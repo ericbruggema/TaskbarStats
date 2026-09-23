@@ -47,6 +47,14 @@ WAT KAN JE INSTELLEN (rechtermuisknop)
                   oranje <= 20%, rood <= 10%, groen = laden of op netstroom
                   (bliksem = laden, stekker = op netstroom). Percentage
                   in of naast de batterij, of uit (Weergave).
+- Dashboard     : groot, halfdoorzichtig bureaublad-dashboard met tegels en
+                  grafiekjes (menu "Bureaublad-dashboard"): voor- of
+                  achtergrond, schaal, doorzichtigheid en klik-door
+                  (Ctrl+Alt+D). Blijft staan bij "Bureaublad weergeven".
+- Fullscreen    : Ctrl+Alt+F opent één dicht overzicht van alles op een heel
+                  scherm; klik op een tegel voor details, Esc = terug/sluiten,
+                  toets 1/2/3 = grafiek 1 min / 5 min / 1 uur.
+- Netwerkschijven: Schijven > "Netwerkschijven meenemen".
 - Meldingen     : een melding als de batterij bijna leeg is (20% en 10%),
                   een schijf bijna vol is, CPU/GPU/
                   geheugen te lang op kritiek staat, of je 80% / 100%
@@ -96,6 +104,9 @@ CONTROLS
 - Hover for a tooltip with details (clock speed, per-GPU VRAM, RAM in GB,
   top processes, per-adapter network usage today, disks and free space).
 - Double-click opens Task Manager.
+- Desktop dashboard (menu): large translucent dashboard with tiles and graphs,
+  in front or behind, click-through (Ctrl+Alt+D). Fullscreen dashboard:
+  Ctrl+Alt+F; click a tile for details, Esc = back/close, keys 1/2/3 = graph range.
 - Middle-click copies all tooltip information to the clipboard
   (also in the menu: "Copy info to clipboard").
 

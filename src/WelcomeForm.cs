@@ -122,6 +122,8 @@ public sealed class WelcomeForm : Form
         Para("Instellingen: klik met de rechtermuisknop op het widget. Het menu blijft open terwijl je meerdere dingen kiest.", bullet: true);
         Para("Details: houd de muis erboven voor een tooltip met alle informatie. De middelste muisknop kopieert die naar het klembord.", bullet: true);
         Para("Dubbelklik: opent Taakbeheer.", bullet: true);
+        Para("Dashboard: zet via het menu (Bureaublad-dashboard) een groot dashboard op je bureaublad, en druk op Ctrl+Alt+F voor een " +
+             "fullscreen overzicht met alle details. Klik daarin op een tegel voor meer; Esc gaat terug.", bullet: true);
 
         Para("");
         Para("Deze uitleg vind je later terug via het menu: \"Welkomstscherm\", \"Leesmij en credits\" en \"Over TaskbarStats\".");
@@ -161,6 +163,8 @@ public sealed class WelcomeForm : Form
         Para("Settings: right-click the widget. The menu stays open while you pick several options.", bullet: true);
         Para("Details: hover for a tooltip with all information. Middle-click copies it to the clipboard.", bullet: true);
         Para("Double-click: opens Task Manager.", bullet: true);
+        Para("Dashboard: use the menu (Desktop dashboard) to put a large dashboard on your desktop, and press Ctrl+Alt+F for a " +
+             "fullscreen overview with all the details. Click a tile inside for more; Esc goes back.", bullet: true);
 
         Para("");
         Para("You can find this explanation again in the menu: \"Welcome screen\", \"Readme and credits\" and \"About TaskbarStats\".");

@@ -17,7 +17,8 @@ internal static class Program
         }
 
         // Slechts één instantie tegelijk (voorkomt dubbel starten bij autostart + handmatig).
-        using var mutex = new Mutex(true, "TaskbarStats_SingleInstance", out bool created);
+        // TASKBARSTATS_INSTANCE = achtervoegsel voor de mutex, zodat een testkopie naast de echte app kan draaien.
+        using var mutex = new Mutex(true, "TaskbarStats_SingleInstance" + Environment.GetEnvironmentVariable("TASKBARSTATS_INSTANCE"), out bool created);
         if (!created) return 0;
 
         ApplicationConfiguration.Initialize();

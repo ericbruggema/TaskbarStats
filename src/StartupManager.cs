@@ -17,11 +17,15 @@ public static class StartupManager
     private const string TaskName = "TaskbarStats";
     private const string LegacyRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
-    public static bool IsEnabled() => Schtasks($"/Query /TN \"{TaskName}\"") == 0;
+    // schtasks.exe starten kost ~30 ms; het resultaat onthouden zodat het menu niet bij elke rechtsklik wacht.
+    private static bool? _cached;
+
+    public static bool IsEnabled() => _cached ??= Schtasks($"/Query /TN \"{TaskName}\"") == 0;
 
     public static void Set(bool enabled)
     {
         RemoveLegacyRunValue();
+        _cached = null;   // opnieuw opvragen na een wijziging
         try
         {
             if (!enabled) { Schtasks($"/Delete /TN \"{TaskName}\" /F"); return; }

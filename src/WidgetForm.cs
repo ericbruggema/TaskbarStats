@@ -41,6 +41,11 @@ public sealed class WidgetForm : Form
     private readonly Dictionary<string, long> _alertAt = new();
     private readonly Dictionary<string, long> _critSince = new();
 
+    // Bureaublad-dashboard
+    private DashboardForm? _dash;
+    private readonly MetricHistory _history = new();
+    private readonly NotifyIcon _tray = new() { Icon = SystemIcons.Application, Text = "TaskbarStats" };
+
     // Het venster is altijd een 'layered window' met per-pixel alpha. Bij een transparante
     // achtergrond tekenen we alpha=1 (onzichtbaar, maar wel klikbaar). Met een TransparencyKey
     // werd de rechtermuisknop op de doorzichtige pixels doorgegeven aan het venster eronder,
@@ -79,8 +84,11 @@ public sealed class WidgetForm : Form
         _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        StartSampler();
 
         BuildContextMenu();
+        _tray.ContextMenuStrip = _menu;                       // pictogram naast de klok: zelfde menu (ook bij klik-door)
+        _tray.DoubleClick += (_, _) => ToggleClickThrough();
 
         _timer.Interval = Math.Max(50, _cfg.RefreshMs);
         _timer.Tick += (_, _) => Tick();
@@ -96,7 +104,7 @@ public sealed class WidgetForm : Form
 
         _notifyHide.Tick += (_, _) => { _notifyHide.Stop(); _notify.Visible = false; };
 
-        MouseEnter += (_, _) => { _hover = true; _procAt = Environment.TickCount64; _procs.Sample(); };
+        MouseEnter += (_, _) => { _hover = true; _procAt = Environment.TickCount64; _procs.SampleAsync(); };
         MouseLeave += (_, _) => { _hover = false; _procs.Reset(); };
         MouseDoubleClick += (_, e) =>
         {
@@ -124,6 +132,7 @@ public sealed class WidgetForm : Form
         TrySetTaskbarOwner();
         Tick();
         if (!_cfg.WelcomeShown) BeginInvoke(new Action(ShowWelcome));
+        SyncDashboard();
     }
 
     private WelcomeForm? _welcome;
@@ -152,14 +161,44 @@ public sealed class WidgetForm : Form
 
     private void Tick()
     {
-        _metrics.Update();
-        _usage.Sample();
-        if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.Sample(); }
+        // Metingen (PerformanceCounters, ~20 ms) en verbruik bijhouden (~7 ms) draaien op de sampler-thread; de UI-thread
+        // tekent hier alleen met de meest recente waarden, zodat slepen en het menu soepel blijven.
+        _history.Sample(_metrics);
+        if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
         RefreshDrives(false);
         CheckAlerts();
         if (_menu.Visible) UpdateLiveItems();
         else UpdateTooltip();
         Render();
+        _dash?.Tick();
+    }
+
+    // ---------- Sampler-thread ----------
+    private Thread? _samplerThread;
+    private readonly ManualResetEventSlim _stopSampler = new(false);
+
+    private void StartSampler()
+    {
+        _samplerThread = new Thread(() =>
+        {
+            long lastUsage = 0;
+            while (!_stopSampler.IsSet)
+            {
+                long t0 = Environment.TickCount64;
+                try { _metrics.Update(); } catch { }
+                if (t0 - lastUsage >= 1000) { lastUsage = t0; try { _usage.Sample(); } catch { } }
+                int wait = Math.Max(20, _cfg.RefreshMs - (int)(Environment.TickCount64 - t0));
+                _stopSampler.Wait(wait);
+            }
+        })
+        { IsBackground = true, Name = "TaskbarStats sampler", Priority = ThreadPriority.BelowNormal };
+        _samplerThread.Start();
+    }
+
+    private void StopSampler()
+    {
+        _stopSampler.Set();
+        _samplerThread?.Join(1500);
     }
 
     // Schijfruimte verandert langzaam; maximaal elke 5 s opnieuw opvragen (of geforceerd bij het menu).
@@ -167,7 +206,33 @@ public sealed class WidgetForm : Form
     {
         if (!force && Environment.TickCount64 - _drivesAt < 5000) return;
         _drivesAt = Environment.TickCount64;
-        _drives = Metrics.GetDriveSpaces();
+        _fixedDrives = Metrics.GetDriveSpaces();
+        if (_cfg.IncludeNetworkDrives) RefreshNetworkDrives(); else _netDrives = new();
+        _drives = _fixedDrives.Concat(_netDrives).ToList();
+    }
+
+    private List<DriveSpace> _fixedDrives = new(), _netDrives = new();
+    private bool _netDrivesBusy;
+
+    // Netwerkschijven kunnen traag of onbereikbaar zijn: op de achtergrond opvragen zodat de app nooit blokkeert.
+    private void RefreshNetworkDrives()
+    {
+        if (_netDrivesBusy) return;
+        _netDrivesBusy = true;
+        Task.Run(() =>
+        {
+            var result = Metrics.GetDriveSpaces(DriveType.Network);
+            try
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    _netDrives = result;
+                    _netDrivesBusy = false;
+                    _drives = _fixedDrives.Concat(_netDrives).ToList();
+                }));
+            }
+            catch { _netDrivesBusy = false; }
+        });
     }
 
     private void UpdateLiveItems()
@@ -195,7 +260,7 @@ public sealed class WidgetForm : Form
         sb.AppendLine($"CPU  {m.CpuPercent:0}%{mhz}");
         foreach (var (luid, v) in m.GpuPerLuid.OrderBy(k => k.Key))
         {
-            if (luid == "") continue;
+            if (luid == "" || !Metrics.IsRealGpu(luid)) continue;
             string vram = "";
             long ded = Metrics.GpuDedicatedBytes(luid);
             if (ded > 0 && m.VramUsedPerLuid.TryGetValue(luid, out var used))
@@ -323,6 +388,7 @@ public sealed class WidgetForm : Form
     {
         if (_cfg.AutoHeight && Environment.TickCount64 - _heightCheckedAt > 5000) ApplyHeight();
         bool fs = _cfg.HideInFullscreen && IsFullscreenAppRunning();
+        _dash?.SetSuppressed(fs && _cfg.DashFront);
         if (fs != _hidden)
         {
             _hidden = fs;
@@ -357,6 +423,169 @@ public sealed class WidgetForm : Form
         catch { /* klembord kan tijdelijk bezet zijn */ }
     }
 
+    // ---------- Bureaublad-dashboard ----------
+    private void SyncDashboard()
+    {
+        if (_cfg.ShowDashboard)
+        {
+            if (_dash is null || _dash.IsDisposed)
+            {
+                _dash = new DashboardForm(MakeContext());
+                _dash.FormClosed += (_, _) => _dash = null;
+            }
+            _dash.Present();
+            _tray.Visible = true;
+        }
+        else
+        {
+            _dash?.HideByUser();
+            _tray.Visible = false;
+        }
+    }
+
+    private DashContext MakeContext() => new()
+    {
+        Metrics = _metrics, Cfg = _cfg, Usage = _usage, History = _history,
+        Drives = () => _drives, ShowMenu = p => _menu.Show(p),
+    };
+
+    // ---------- Fullscreen dashboard ----------
+    private FullscreenForm? _full;
+
+    private void ToggleFullscreen()
+    {
+        if (_full is { IsDisposed: false }) { _full.Close(); return; }
+        var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == _cfg.FullMonitor) ?? Screen.FromControl(this);
+        _full = new FullscreenForm(MakeContext(), screen);
+        _full.FormClosed += (_, _) => _full = null;
+        _full.Show();
+        _full.Activate();
+    }
+
+    private ToolStripMenuItem BuildFullMenu()
+    {
+        var m = new ToolStripMenuItem(Loc.Pick("Fullscreen dashboard", "Fullscreen dashboard"));
+        var open = new ToolStripMenuItem(Loc.Pick("Openen / sluiten (Ctrl+Alt+F)", "Open / close (Ctrl+Alt+F)")) { Tag = "close" };
+        open.Click += (_, _) => ToggleFullscreen();
+        m.DropDownItems.Add(open);
+        m.DropDownItems.Add(new ToolStripSeparator());
+
+        var auto = new ToolStripMenuItem(Loc.Pick("Scherm: automatisch (waar het widget staat)", "Display: automatic (where the widget is)")) { Checked = _cfg.FullMonitor is null };
+        auto.Click += (_, _) => { Keep(); MarkOnly(auto); _cfg.FullMonitor = null; Persist(); };
+        m.DropDownItems.Add(auto);
+        foreach (var sc in Screen.AllScreens)
+        {
+            string dev = sc.DeviceName;
+            var it = new ToolStripMenuItem($"{dev.TrimStart('\\', '.')}  {sc.Bounds.Width}×{sc.Bounds.Height}{(sc.Primary ? " *" : "")}") { Checked = _cfg.FullMonitor == dev };
+            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.FullMonitor = dev; Persist(); };
+            m.DropDownItems.Add(it);
+        }
+        return m;
+    }
+
+    private void ToggleClickThrough()
+    {
+        _cfg.DashClickThrough = !_cfg.DashClickThrough;
+        _cfg.Save();
+        _dash?.ApplySettings();
+        Alert("clickthrough" + Environment.TickCount64, 0, "TaskbarStats",
+              _cfg.DashClickThrough
+                  ? Loc.Pick("Dashboard: klik-door aan (Ctrl+Alt+D of dubbelklik op het pictogram om uit te zetten)",
+                             "Dashboard: click-through on (Ctrl+Alt+D or double-click the tray icon to turn off)")
+                  : Loc.Pick("Dashboard: klik-door uit", "Dashboard: click-through off"));
+    }
+
+    // Sneltoets Ctrl+Alt+D: klik-door van het dashboard aan/uit
+    private const int HotkeyId = 0x7A51, HotkeyFullId = 0x7A52;
+    [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint vk);
+    [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        RegisterHotKey(Handle, HotkeyId, 0x0001 | 0x0002 /* ALT | CTRL */, 0x44 /* D */);
+        RegisterHotKey(Handle, HotkeyFullId, 0x0001 | 0x0002, 0x46 /* F */);
+    }
+
+    protected override void OnHandleDestroyed(EventArgs e)
+    {
+        UnregisterHotKey(Handle, HotkeyId);
+        UnregisterHotKey(Handle, HotkeyFullId);
+        base.OnHandleDestroyed(e);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == 0x0312 /* WM_HOTKEY */)
+        {
+            int id = m.WParam.ToInt32();
+            if (id == HotkeyId) { ToggleClickThrough(); return; }
+            if (id == HotkeyFullId) { ToggleFullscreen(); return; }
+        }
+        base.WndProc(ref m);
+    }
+
+    private ToolStripMenuItem BuildDashMenu()
+    {
+        var m = new ToolStripMenuItem(Loc.Pick("Bureaublad-dashboard", "Desktop dashboard"));
+        AddCheck(m, Loc.Pick("Dashboard tonen", "Show dashboard"), _cfg.ShowDashboard,
+                 v => { _cfg.ShowDashboard = v; SyncDashboard(); Persist(); });
+
+        var pos = new ToolStripMenuItem(Loc.Pick("Positie", "Layer"));
+        foreach (var (label, front) in new[]
+        {
+            (Loc.Pick("Op de voorgrond (altijd bovenop)", "In front (always on top)"), true),
+            (Loc.Pick("Op de achtergrond (onder alle vensters)", "In the background (below all windows)"), false),
+        })
+        {
+            var it = new ToolStripMenuItem(label) { Checked = _cfg.DashFront == front };
+            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.DashFront = front; Persist(); };
+            pos.DropDownItems.Add(it);
+        }
+        m.DropDownItems.Add(pos);
+
+        AddCheck(m, Loc.Pick("Klik-door (Ctrl+Alt+D)", "Click-through (Ctrl+Alt+D)"), _cfg.DashClickThrough,
+                 v => { _cfg.DashClickThrough = v; Persist(); });
+        AddCheck(m, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.DashLocked,
+                 v => { _cfg.DashLocked = v; Persist(); });
+        m.DropDownItems.Add(new ToolStripSeparator());
+
+        void radios(string title, int[] values, Func<int, string> label, Func<int> get, Action<int> set)
+        {
+            var sub = new ToolStripMenuItem(title);
+            foreach (int v in values)
+            {
+                var it = new ToolStripMenuItem(label(v)) { Checked = get() == v };
+                it.Click += (_, _) => { Keep(); MarkOnly(it); set(v); Persist(); };
+                sub.DropDownItems.Add(it);
+            }
+            m.DropDownItems.Add(sub);
+        }
+        radios(Loc.Pick("Doorzichtigheid", "Opacity"), new[] { 100, 90, 80, 70, 60, 50, 40, 30, 20 },
+               v => $"{v}%", () => _cfg.DashOpacity, v => _cfg.DashOpacity = v);
+        radios(Loc.Pick("Schaal", "Scale"), new[] { 50, 75, 100, 125, 150, 200, 250, 300 },
+               v => $"{v}%", () => _cfg.DashScale, v => _cfg.DashScale = v);
+        radios(Loc.Pick("Kolommen", "Columns"), new[] { 1, 2, 3, 4 },
+               v => v.ToString(), () => _cfg.DashColumns, v => _cfg.DashColumns = v);
+
+        var tiles = new ToolStripMenuItem(Loc.Pick("Tegels", "Tiles"));
+        AddCheck(tiles, "CPU", _cfg.DashCpu, v => { _cfg.DashCpu = v; Persist(); });
+        AddCheck(tiles, "GPU", _cfg.DashGpu, v => { _cfg.DashGpu = v; Persist(); });
+        AddCheck(tiles, Loc.S("memory"), _cfg.DashMem, v => { _cfg.DashMem = v; Persist(); });
+        AddCheck(tiles, Loc.Pick("Netwerk", "Network"), _cfg.DashNet, v => { _cfg.DashNet = v; Persist(); });
+        AddCheck(tiles, Loc.S("disks"), _cfg.DashDisks, v => { _cfg.DashDisks = v; Persist(); });
+        AddCheck(tiles, Loc.Pick("Batterij", "Battery"), _cfg.DashBattery, v => { _cfg.DashBattery = v; Persist(); });
+        AddCheck(tiles, Loc.Pick("Zwaarste programma's", "Top programs"), _cfg.DashProcs, v => { _cfg.DashProcs = v; Persist(); });
+        AddCheck(tiles, Loc.Pick("Systeem", "System"), _cfg.DashSystem, v => { _cfg.DashSystem = v; Persist(); });
+        m.DropDownItems.Add(tiles);
+
+        m.DropDownItems.Add(new ToolStripSeparator());
+        var reset = new ToolStripMenuItem(Loc.Pick("Reset positie dashboard", "Reset dashboard position"));
+        reset.Click += (_, _) => { Keep(); _dash?.ResetPosition(); };
+        m.DropDownItems.Add(reset);
+        return m;
+    }
+
     private void ShowLog()
     {
         if (_logForm is null || _logForm.IsDisposed) _logForm = new LogForm(_usage);
@@ -366,14 +595,50 @@ public sealed class WidgetForm : Form
     }
 
     private static string DriveLine(DriveSpace d)
-        => $"{d.Name}  {Metrics.FormatSize(d.Free)} {Loc.S("freeOf")} {Metrics.FormatSize(d.Total)} ({d.UsedPercent:0}% {Loc.S("usedWord")})";
+        => $"{d.Display}  {Metrics.FormatSize(d.Free)} {Loc.S("freeOf")} {Metrics.FormatSize(d.Total)} ({d.UsedPercent:0}% {Loc.S("usedWord")})";
 
 
+    private long _lastRaise;
+
+    // SetWindowPos(TOPMOST) op een venster dat eigendom is van de taakbalk (ander proces) blokkeert de UI-thread
+    // 100-700 ms per aanroep; elke 200 ms uitvoeren gaf daarom merkbaar haperen (ook bij het verslepen van het
+    // dashboard). Het widget is 'owned' door de taakbalk en blijft daardoor vanzelf erboven; we zetten het alleen
+    // nog opnieuw bovenop als er echt een ander zichtbaar topmost-venster overheen staat, en hooguit elke 2 s.
     private void KeepOnTop()
     {
         if (_hidden) return;
+        long now = Environment.TickCount64;
+        if (now - _lastRaise < 2000 || !CoveredByTopmostWindow()) return;
+        _lastRaise = now;
         SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
+
+    private bool CoveredByTopmostWindow()
+    {
+        int self = Environment.ProcessId;
+        IntPtr h = Handle;
+        for (int guard = 0; guard < 300; guard++)
+        {
+            h = GetWindow(h, 3 /* GW_HWNDPREV */);
+            if (h == IntPtr.Zero) return false;
+            if (!IsWindowVisible(h)) continue;
+            if ((GetWindowLong(h, -20 /* GWL_EXSTYLE */) & 0x8 /* WS_EX_TOPMOST */) == 0) return false;
+            GetWindowThreadProcessId(h, out uint pid);
+            if (pid == (uint)self) continue;                                                   // onze eigen vensters
+            if (DwmGetWindowAttribute(h, 14 /* DWMWA_CLOAKED */, out int cloaked, 4) == 0 && cloaked != 0) continue;
+            if (!GetWindowRect(h, out var r) || r.Right - r.Left < 20 || r.Bottom - r.Top < 20) continue;
+            return true;
+        }
+        return false;
+    }
+
+    [StructLayout(LayoutKind.Sequential)] private struct WRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint cmd);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hWnd, int index);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out WRect rect);
+    [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out int value, int size);
 
     private static readonly IntPtr HWND_TOPMOST = new(-1);
     private const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010;
@@ -707,7 +972,7 @@ public sealed class WidgetForm : Form
     }
 
     // ---------- Batterij ----------
-    private static GraphicsPath RoundedRect(RectangleF r, float radius)
+    internal static GraphicsPath RoundedRect(RectangleF r, float radius)
     {
         float d = radius * 2;
         var p = new GraphicsPath();
@@ -719,7 +984,7 @@ public sealed class WidgetForm : Form
         return p;
     }
 
-    private static void DrawBolt(Graphics g, float cx, float cy, float h)
+    internal static void DrawBolt(Graphics g, float cx, float cy, float h)
     {
         float s = h / 16f;
         var pts = new (float x, float y)[] { (5, 0), (0, 8.5f), (4, 8.5f), (3, 16), (10, 6.5f), (5.5f, 6.5f), (8, 0) };
@@ -730,7 +995,7 @@ public sealed class WidgetForm : Form
         g.DrawPolygon(edge, poly);
     }
 
-    private static void DrawPlug(Graphics g, float cx, float cy, float h)
+    internal static void DrawPlug(Graphics g, float cx, float cy, float h)
     {
         float s = h / 18f, top = cy - h / 2;
         using var pen = new Pen(Color.White, Math.Max(1.3f, 1.6f * s)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
@@ -1024,7 +1289,7 @@ public sealed class WidgetForm : Form
         auto.Click += (_, _) => { Keep(); MarkOnly(auto); _cfg.GpuLuid = null; _metrics.SetGpuLuid(null); Persist(); };
         Live(auto, () => $"{Loc.S("auto")}   {(_metrics.GpuPerLuid.Count == 0 ? 0 : _metrics.GpuPerLuid.Values.Max()):0}%");
         gpuSel.DropDownItems.Add(auto);
-        foreach (var l in Metrics.GetGpuLuids())
+        foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu))
         {
             var it = new ToolStripMenuItem(Metrics.GpuName(l)) { Checked = _cfg.GpuLuid == l };
             Live(it, () => $"{Metrics.GpuName(l)}   {_metrics.GpuPerLuid.GetValueOrDefault(l):0}%");
@@ -1035,6 +1300,8 @@ public sealed class WidgetForm : Form
         menu.Items.Add(BuildDiskMenu());
         menu.Items.Add(BuildUsageMenu());
         menu.Items.Add(BuildNotifyMenu());
+        menu.Items.Add(BuildDashMenu());
+        menu.Items.Add(BuildFullMenu());
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -1098,7 +1365,9 @@ public sealed class WidgetForm : Form
 
         menu.Items.Add(new ToolStripSeparator());
         var exit = new ToolStripMenuItem(Loc.S("exit")) { Tag = "close" };
-        exit.Click += (_, _) => Application.Exit();
+        // Het widget zelf sluiten (niet Application.Exit): dat loopt door alle open vensters terwijl wij tijdens het sluiten
+        // het dashboard en het fullscreen-venster sluiten, wat "Collection was modified" gaf.
+        exit.Click += (_, _) => Close();
         menu.Items.Add(exit);
 
         HookDropDowns(menu.Items);
@@ -1136,6 +1405,10 @@ public sealed class WidgetForm : Form
             m.DropDownItems.Add(it);
         }
         if (_drives.Count > 0) m.DropDownItems.Add(new ToolStripSeparator());
+
+        AddCheck(m, Loc.Pick("Netwerkschijven meenemen", "Include network drives"), _cfg.IncludeNetworkDrives,
+                 v => { _cfg.IncludeNetworkDrives = v; RefreshDrives(true); Persist(); });
+        m.DropDownItems.Add(new ToolStripSeparator());
 
         // Wat tonen we in het widget?
         var sp = new ToolStripMenuItem(Loc.S("diskSpace"));
@@ -1399,7 +1672,7 @@ public sealed class WidgetForm : Form
         parent.Items.Add(item);
     }
 
-    private void Persist() { _cfg.Save(); Render(); }
+    private void Persist() { _cfg.Save(); Render(); _dash?.ApplySettings(); }
 
     // Wijziging die de breedte kan beïnvloeden: menu open houden, opslaan, opnieuw meten.
     private void Relayout() { Keep(); _cfg.Save(); Render(); }
@@ -1413,8 +1686,13 @@ public sealed class WidgetForm : Form
         _notifyHide.Stop();
         _notify.Visible = false;
         _notify.Dispose();
+        _tray.Visible = false;
+        _tray.Dispose();
+        _dash?.Close();
+        _full?.Close();
         _usage.Save();
         _tip.Dispose();
+        StopSampler();   // eerst de thread stoppen, dan pas de tellers opruimen
         _metrics.Dispose();
         base.OnFormClosing(e);
     }

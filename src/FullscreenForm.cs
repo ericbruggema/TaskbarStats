@@ -1,0 +1,923 @@
+using System.Drawing.Drawing2D;
+using Microsoft.Win32;
+
+namespace TaskbarStats;
+
+/// <summary>
+/// Fullscreen "cockpit": één dicht overzicht van alles (CPU, GPU, geheugen, netwerk, schijven, batterij, systeem,
+/// programma's) op een vast canvas van 1920x1080 dat meeschaalt naar het scherm. Klik op een tegel voor de
+/// diepgaande weergave; Esc gaat een stap terug (en sluit vanuit het overzicht). Toetsen 1/2/3 = grafiek 1 min / 5 min / 1 uur.
+/// </summary>
+public sealed class FullscreenForm : Form
+{
+    private const float CW = 1920, CH = 1080, M = 16;
+    private static readonly Color Bg = Color.FromArgb(11, 13, 18);
+    private static readonly Color Dim = Color.FromArgb(150, 160, 175);
+    private static readonly Color Green = Color.FromArgb(52, 199, 89), Orange = Color.FromArgb(255, 149, 0);
+
+    private readonly DashContext _c;
+    private AppSettings Cfg => _c.Cfg;
+    private readonly ProcessSampler _procs = new() { TopCount = 12 };
+    private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1000 };
+    private readonly List<(string key, RectangleF r)> _hits = new();
+    private readonly Font _f, _fs, _fb, _fh, _fbig, _fhuge;
+    private string? _detail, _hover;
+    private int _win = 300;
+    private float _s = 1, _ox, _oy;
+    private long _procAt;
+    private static string? _cpuName;
+
+    public FullscreenForm(DashContext c, Screen screen)
+    {
+        _c = c;
+        FormBorderStyle = FormBorderStyle.None;
+        StartPosition = FormStartPosition.Manual;
+        Bounds = screen.Bounds;
+        TopMost = true;
+        ShowInTaskbar = false;
+        BackColor = Bg;
+        DoubleBuffered = true;
+        KeyPreview = true;
+        SetStyle(ControlStyles.ResizeRedraw, true);
+
+        string fam = Cfg.FontFamily;
+        _f = new Font(fam, 15f, FontStyle.Regular, GraphicsUnit.Pixel);
+        _fs = new Font(fam, 13f, FontStyle.Regular, GraphicsUnit.Pixel);
+        _fb = new Font(fam, 15f, FontStyle.Bold, GraphicsUnit.Pixel);
+        _fh = new Font(fam, 19f, FontStyle.Bold, GraphicsUnit.Pixel);
+        _fbig = new Font(fam, 34f, FontStyle.Bold, GraphicsUnit.Pixel);
+        _fhuge = new Font(fam, 54f, FontStyle.Bold, GraphicsUnit.Pixel);
+
+        _timer.Tick += (_, _) => { SampleProcs(); Invalidate(); };
+        _timer.Start();
+        SampleProcs(true);
+    }
+
+    private void SampleProcs(bool force = false)
+    {
+        long now = Environment.TickCount64;
+        if (!force && now - _procAt < 2000) return;
+        _procAt = now;
+        _procs.SampleAsync();
+    }
+
+    // ---------- Invoer ----------
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        switch (e.KeyCode)
+        {
+            case Keys.Escape:
+            case Keys.Back:
+                if (_detail is not null) _detail = null; else Close();
+                break;
+            case Keys.D1: _win = 60; break;
+            case Keys.D2: _win = 300; break;
+            case Keys.D3: _win = 3600; break;
+            default: base.OnKeyDown(e); return;
+        }
+        e.Handled = true;
+        Invalidate();
+    }
+
+    private string? HitAt(Point p)
+    {
+        float x = (p.X - _ox) / _s, y = (p.Y - _oy) / _s;
+        for (int i = _hits.Count - 1; i >= 0; i--)
+            if (_hits[i].r.Contains(x, y)) return _hits[i].key;
+        return null;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        var h = HitAt(e.Location);
+        if (h == _hover) return;
+        _hover = h;
+        Cursor = h is null ? Cursors.Default : Cursors.Hand;
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button == MouseButtons.Right) { _c.ShowMenu(Cursor.Position); return; }
+        if (e.Button != MouseButtons.Left || _hover is null) return;
+        if (_hover.StartsWith('w')) { _win = int.Parse(_hover[1..]); }
+        else if (_hover == "back") _detail = null;
+        else if (_detail is null) _detail = _hover == "bat" ? "sys" : _hover;
+        Invalidate();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _timer.Stop();
+        _timer.Dispose();
+        foreach (var f in new[] { _f, _fs, _fb, _fh, _fbig, _fhuge }) f.Dispose();
+        base.OnFormClosed(e);
+    }
+
+    // ---------- Tekenen ----------
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+        g.Clear(Bg);
+        _s = Math.Min(ClientSize.Width / CW, ClientSize.Height / CH);
+        _ox = (ClientSize.Width - CW * _s) / 2;
+        _oy = (ClientSize.Height - CH * _s) / 2;
+        g.TranslateTransform(_ox, _oy);
+        g.ScaleTransform(_s, _s);
+        _hits.Clear();
+        DrawHeader(g);
+        if (_detail is null) DrawOverview(g); else DrawDetail(g);
+    }
+
+    private Color Col(string hex, Color fb) { try { return ColorTranslator.FromHtml(hex); } catch { return fb; } }
+    private Color Accent => Col(Cfg.AccentColor, Color.DodgerBlue);
+    private Color TextCol => Col(Cfg.TextColor, Color.White);
+
+    private Color Thr(double v)
+    {
+        if (v >= Cfg.CritThreshold) return Col(Cfg.CritColor, Color.Red);
+        if (v >= Cfg.WarnThreshold) return Col(Cfg.WarnColor, Color.Orange);
+        return Accent;
+    }
+
+    private static GraphicsPath Rounded(RectangleF r, float radius) => WidgetForm.RoundedRect(r, radius);
+
+    private void T(Graphics g, string s, Font f, Color c, float x, float y)
+    {
+        using var b = new SolidBrush(c);
+        g.DrawString(s, f, b, x, y);
+    }
+
+    private void TR(Graphics g, string s, Font f, Color c, float right, float y)
+    {
+        using var b = new SolidBrush(c);
+        using var sf = new StringFormat { Alignment = StringAlignment.Far };
+        g.DrawString(s, f, b, new RectangleF(right - 600, y, 600, 40), sf);
+    }
+
+    private void TC(Graphics g, string s, Font f, Color c, float cx, float cy)
+    {
+        using var b = new SolidBrush(c);
+        using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+        g.DrawString(s, f, b, new RectangleF(cx - 200, cy - 40, 400, 80), sf);
+    }
+
+    private static string Trunc(string s, int n) => s.Length > n ? s[..(n - 1)] + "…" : s;
+    private static string TruncMid(string s, int n) => s.Length <= n ? s : s[..(n / 2 - 1)] + "…" + s[^(n - n / 2)..];
+
+    private void Card(Graphics g, string? key, RectangleF r, string title, string? sub = null)
+    {
+        if (key is not null) _hits.Add((key, r));
+        bool hot = key is not null && key == _hover && _detail is null;
+        using (var path = Rounded(r, 12))
+        using (var bg = new SolidBrush(Color.FromArgb(hot ? 34 : 20, 255, 255, 255)))
+        using (var pen = new Pen(hot ? Color.FromArgb(170, Accent) : Color.FromArgb(30, 255, 255, 255), hot ? 1.8f : 1f))
+        {
+            g.FillPath(bg, path);
+            g.DrawPath(pen, path);
+        }
+        T(g, title, _fh, TextCol, r.X + 16, r.Y + 10);
+        if (sub is not null) TR(g, sub, _fs, Dim, r.Right - 16, r.Y + 15);
+        if (hot) TR(g, Loc.Pick("klik voor details", "click for details"), _fs, Color.FromArgb(200, Accent), r.Right - 16, r.Bottom - 24);
+    }
+
+    private void Gauge(Graphics g, float cx, float cy, float rad, double pct, Color col, string label)
+    {
+        float pw = rad * 0.16f;
+        var rect = new RectangleF(cx - rad, cy - rad, rad * 2, rad * 2);
+        using (var bg = new Pen(Color.FromArgb(70, 78, 90), pw)) g.DrawArc(bg, rect, 0, 360);
+        if (pct > 0.5)
+            using (var fg = new Pen(col, pw) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(pct, 0, 100) / 100.0));
+        TC(g, label, rad >= 50 ? _fbig : _fh, TextCol, cx, cy);
+    }
+
+    private void Bar(Graphics g, float x, float y, float w, double pct, Color col, float h = 8)
+    {
+        using (var bgp = Rounded(new RectangleF(x, y, w, h), h / 2))
+        using (var bg = new SolidBrush(Color.FromArgb(70, 78, 90)))
+            g.FillPath(bg, bgp);
+        float fw = (float)(w * Math.Clamp(pct, 0, 100) / 100.0);
+        if (fw >= h)
+            using (var fp = Rounded(new RectangleF(x, y, fw, h), h / 2))
+            using (var fb = new SolidBrush(col))
+                g.FillPath(fb, fp);
+        else if (fw > 0.5f)
+            using (var fb = new SolidBrush(col))
+                g.FillRectangle(fb, x, y, fw, h);
+    }
+
+    private string WinLabel() => _win switch { 60 => Loc.Pick("1 min", "1 min"), 300 => Loc.Pick("5 min", "5 min"), _ => Loc.Pick("1 uur", "1 hour") };
+
+    private static string Pct(double v) => $"{v:0}%";
+    private static string Rate(double v) => Metrics.FormatRate(v);
+    private static string SizeStr(double v) => Metrics.FormatSize(v);
+
+    /// <summary>Grafiek over het gekozen tijdvenster; max &lt;= 0 = automatisch schalen.</summary>
+    private void Graph(Graphics g, RectangleF r, IReadOnlyList<(Ring ring, Color col)> series, double max, Func<double, string> fmt, bool axes = true)
+    {
+        int win = _win;
+        if (max <= 0)
+        {
+            double mm = 0;
+            foreach (var (ring, _) in series) mm = Math.Max(mm, ring.Max(win));
+            max = Math.Max(1024, mm * 1.15);
+        }
+        float left = axes ? 64 : 0;
+        var p = new RectangleF(r.X + left, r.Y + (axes ? 8 : 0), r.Width - left - (axes ? 8 : 0), r.Height - (axes ? 30 : 0));
+        int lines = axes ? 4 : 2;
+        using (var grid = new Pen(Color.FromArgb(34, 255, 255, 255), 1f))
+            for (int k = 0; k <= lines; k++)
+            {
+                float y = p.Bottom - p.Height * k / lines;
+                g.DrawLine(grid, p.X, y, p.Right, y);
+                if (axes) TR(g, fmt(max * k / lines), _fs, Dim, p.X - 8, y - 8);
+            }
+        if (axes)
+        {
+            T(g, "-" + WinLabel(), _fs, Dim, p.X, p.Bottom + 6);
+            TR(g, Loc.Pick("nu", "now"), _fs, Dim, p.Right, p.Bottom + 6);
+        }
+        foreach (var (ring, col) in series)
+        {
+            int n = Math.Min(ring.Count, win), start = ring.Count - n;
+            if (n < 2) continue;
+            var pts = new PointF[n];
+            for (int i = 0; i < n; i++)
+                pts[i] = new PointF(p.Right - (n - 1 - i) * p.Width / (win - 1),
+                                    p.Bottom - (float)(Math.Clamp(ring[start + i] / max, 0, 1) * p.Height));
+            var fill = pts.Concat(new[] { new PointF(pts[^1].X, p.Bottom), new PointF(pts[0].X, p.Bottom) }).ToArray();
+            using (var fb = new SolidBrush(Color.FromArgb(40, col))) g.FillPolygon(fb, fill);
+            using (var pen = new Pen(col, 1.8f) { LineJoin = LineJoin.Round }) g.DrawLines(pen, pts);
+        }
+    }
+
+    private (double cur, double min, double avg, double max) Stat(Ring r)
+    {
+        int n = Math.Min(r.Count, _win);
+        if (n == 0) return (0, 0, 0, 0);
+        double mn = double.MaxValue, mx = 0, sum = 0;
+        for (int i = r.Count - n; i < r.Count; i++) { mn = Math.Min(mn, r[i]); mx = Math.Max(mx, r[i]); sum += r[i]; }
+        return (r[r.Count - 1], mn, sum / n, mx);
+    }
+
+    private void StatRows(Graphics g, float x, float y, float w, Ring ring, Func<double, string> fmt)
+    {
+        var s = Stat(ring);
+        var rows = new (string l, double v)[]
+        {
+            (Loc.Pick("Nu", "Now"), s.cur), (Loc.Pick("Min", "Min"), s.min), (Loc.Pick("Gemiddeld", "Average"), s.avg), (Loc.Pick("Max", "Max"), s.max),
+        };
+        for (int i = 0; i < rows.Length; i++)
+        {
+            T(g, rows[i].l, _f, Dim, x, y + i * 24);
+            TR(g, fmt(rows[i].v), _fb, TextCol, x + w, y + i * 24);
+        }
+    }
+
+    private void KeyValue(Graphics g, float x, float y, float w, string k, string v)
+    {
+        T(g, k, _f, Dim, x, y);
+        TR(g, v, _f, TextCol, x + w, y);
+    }
+
+    private void ProcList(Graphics g, float x, float y, float w, int rows, bool cpu)
+    {
+        int count = cpu ? (_procs.HasCpu ? _procs.TopCpu.Count : 0) : _procs.TopMem.Count;
+        if (cpu && !_procs.HasCpu) T(g, "…", _f, Dim, x, y);
+        double top = cpu ? (count > 0 ? _procs.TopCpu[0].cpu : 1) : (count > 0 ? _procs.TopMem[0].mem : 1);
+        for (int i = 0; i < Math.Min(rows, count); i++)
+        {
+            float yy = y + i * 24;
+            string name = cpu ? _procs.TopCpu[i].name : _procs.TopMem[i].name;
+            double val = cpu ? _procs.TopCpu[i].cpu : _procs.TopMem[i].mem;
+            using (var bar = new SolidBrush(Color.FromArgb(28, Accent)))
+                g.FillRectangle(bar, x, yy + 1, (float)(w * Math.Clamp(val / Math.Max(1e-9, top), 0, 1)), 21);
+            T(g, Trunc(name, 24), _f, TextCol, x + 6, yy + 2);
+            TR(g, cpu ? $"{val:0.0}%" : SizeStr(val), _f, Dim, x + w - 6, yy + 2);
+        }
+    }
+
+    private static string CpuName()
+    {
+        if (_cpuName is not null) return _cpuName;
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
+            _cpuName = (k?.GetValue("ProcessorNameString") as string)?.Trim() ?? "";
+        }
+        catch { _cpuName = ""; }
+        return _cpuName;
+    }
+
+    /// <summary>Adapters met verkeer nu, in het gekozen venster of vandaag (meest actief eerst).</summary>
+    private List<string> ActiveAdapters(int max)
+    {
+        var m = _c.Metrics;
+        bool Active(string n)
+        {
+            m.NetPerAdapter.TryGetValue(n, out var r0);
+            if (r0.down >= 1024 || r0.up >= 1024) return true;
+            if (_c.History.NetPer.TryGetValue(n, out var pr) && (pr.down.Max(_win) >= 1024 || pr.up.Max(_win) >= 1024)) return true;
+            return _c.Usage.Today(n).Total > 0;
+        }
+        return m.NetPerAdapter.Keys.Where(Active)
+            .OrderByDescending(n => { m.NetPerAdapter.TryGetValue(n, out var r0); return r0.down + r0.up + _c.Usage.Today(n).Total; })
+            .Take(max).ToList();
+    }
+
+    private List<KeyValuePair<string, double>> Gpus()
+        => _c.Metrics.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
+
+    // ---------- Kop ----------
+    private void DrawHeader(Graphics g)
+    {
+        if (_detail is null)
+        {
+            T(g, "TaskbarStats", _fh, TextCol, M + 4, 18);
+            T(g, "· " + Environment.MachineName, _f, Dim, M + 138, 21);
+        }
+        else
+        {
+            var back = new RectangleF(M, 12, 230, 40);
+            _hits.Add(("back", back));
+            bool hot = _hover == "back";
+            using (var path = Rounded(back, 10))
+            using (var bg = new SolidBrush(Color.FromArgb(hot ? 50 : 26, 255, 255, 255)))
+                g.FillPath(bg, path);
+            T(g, "←  " + Loc.Pick("Terug (Esc)", "Back (Esc)"), _fb, TextCol, M + 16, 23);
+        }
+
+        TC(g, DateTime.Now.ToString("HH:mm:ss"), _fbig, TextCol, CW / 2 - 60, 34);
+        T(g, DateTime.Now.ToString("dddd d MMMM yyyy"), _f, Dim, CW / 2 + 40, 26);
+
+        // tijdvenster
+        float x = CW - M - 4;
+        var chips = new (int w, string l)[] { (3600, Loc.Pick("1 u", "1 h")), (300, "5 m"), (60, "1 m") };
+        foreach (var (w, l) in chips)
+        {
+            var r = new RectangleF(x - 56, 16, 56, 32);
+            _hits.Add(($"w{w}", r));
+            bool on = _win == w, hot = _hover == $"w{w}";
+            using (var path = Rounded(r, 8))
+            using (var bg = new SolidBrush(on ? Color.FromArgb(180, Accent) : Color.FromArgb(hot ? 50 : 26, 255, 255, 255)))
+                g.FillPath(bg, path);
+            TC(g, l, _fb, TextCol, r.X + r.Width / 2, r.Y + r.Height / 2);
+            x -= 62;
+        }
+        TR(g, Loc.Pick("grafiek:", "graph:"), _fs, Dim, x - 4, 24);
+        TR(g, _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  Esc sluit", "Click a tile for details  ·  Esc closes")
+                              : Loc.Pick("Esc: terug naar het overzicht", "Esc: back to the overview"),
+           _fs, Dim, x - 110, 24);
+    }
+
+    // ---------- Overzicht ----------
+    private void DrawOverview(Graphics g)
+    {
+        float top = 76, colW = (CW - 5 * M) / 4, h1 = 500, y2 = top + h1 + M, h2 = CH - M - y2;
+        RectangleF Cell(int col, int span, float y, float h) => new(M + col * (colW + M), y, span * colW + (span - 1) * M, h);
+
+        TileCpu(g, Cell(0, 2, top, h1));
+        TileGpu(g, Cell(2, 1, top, h1));
+        TileMem(g, Cell(3, 1, top, h1));
+        TileNet(g, Cell(0, 1, y2, h2));
+        TileDisk(g, Cell(1, 1, y2, h2));
+        TileBattery(g, Cell(2, 1, y2, 190));
+        TileSystem(g, Cell(2, 1, y2 + 190 + M, h2 - 190 - M));
+        TileProcs(g, Cell(3, 1, y2, h2));
+    }
+
+    private void TileCpu(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        string sub = $"{m.CpuCores.Length} {Loc.Pick("kernen", "cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "");
+        Card(g, "cpu", r, "CPU", sub);
+        T(g, Trunc(CpuName(), 60), _fs, Dim, r.X + 16, r.Y + 36);
+        Gauge(g, r.X + 96, r.Y + 140, 62, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
+        StatRows(g, r.X + 16, r.Y + 224, 170, _c.History.Cpu, Pct);
+
+        var cores = m.CpuCores;
+        if (cores.Length > 0)
+        {
+            float x0 = r.X + 232, w = r.Right - 16 - x0, y0 = r.Y + 62;
+            int cols = cores.Length <= 8 ? 4 : cores.Length <= 24 ? 6 : 8;
+            int rows = (cores.Length + cols - 1) / cols;
+            float cw = w / cols, ch = Math.Min(48, 230f / rows);
+            for (int i = 0; i < cores.Length; i++)
+            {
+                float x = x0 + (i % cols) * cw, y = y0 + (i / cols) * ch;
+                var cell = new RectangleF(x + 2, y + 2, cw - 4, ch - 4);
+                using (var path = Rounded(cell, 6))
+                using (var bg = new SolidBrush(Color.FromArgb(24, 255, 255, 255)))
+                    g.FillPath(bg, path);
+                Bar(g, cell.X + 6, cell.Bottom - 8, cell.Width - 12, cores[i], Thr(cores[i]), 4);
+                T(g, $"C{i}", _fs, Dim, cell.X + 8, cell.Y + 3);
+                TR(g, $"{cores[i]:0}%", _fb, TextCol, cell.Right - 8, cell.Y + 3);
+            }
+        }
+        Graph(g, new RectangleF(r.X + 16, r.Y + 322, r.Width - 32, 166), new[] { (_c.History.Cpu, Accent) }, 100, Pct);
+    }
+
+    private void TileGpu(Graphics g, RectangleF r)
+    {
+        var gpus = Gpus();
+        var m = _c.Metrics;
+        Card(g, "gpu", r, "GPU", m.GpuTempC is double t ? $"{t:0}°C" : null);
+        if (gpus.Count == 0) { T(g, Loc.Pick("Geen GPU-gegevens", "No GPU data"), _f, Dim, r.X + 16, r.Y + 50); return; }
+        float sh = (r.Height - 52) / gpus.Count;
+        for (int i = 0; i < gpus.Count; i++)
+        {
+            var (luid, v) = (gpus[i].Key, gpus[i].Value);
+            float y0 = r.Y + 44 + i * sh;
+            T(g, Trunc(Metrics.GpuName(luid), 32), _fb, TextCol, r.X + 16, y0);
+            TR(g, $"{v:0}%", _fbig, Thr(v), r.Right - 16, y0 - 10);
+            Bar(g, r.X + 16, y0 + 30, r.Width - 32, v, Thr(v), 8);
+            long ded = Metrics.GpuDedicatedBytes(luid);
+            float gy = y0 + 46;
+            if (ded > 0 && m.VramUsedPerLuid.TryGetValue(luid, out var used))
+            {
+                T(g, $"VRAM  {SizeStr(used)} / {SizeStr(ded)}", _fs, Dim, r.X + 16, y0 + 46);
+                Bar(g, r.X + 190, y0 + 50, r.Width - 206, 100.0 * used / ded, Green, 6);
+                gy = y0 + 66;
+            }
+            if (_c.History.GpuPer.TryGetValue(luid, out var ring))
+                Graph(g, new RectangleF(r.X + 16, gy, r.Width - 32, Math.Max(50, y0 + sh - gy - 14)), new[] { (ring, Accent) }, 100, Pct, false);
+        }
+    }
+
+    private void TileMem(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        Card(g, "mem", r, Loc.S("memory"), $"{SizeStr(m.MemTotalBytes)}");
+        Gauge(g, r.X + 82, r.Y + 122, 50, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
+        T(g, $"{SizeStr(m.MemUsedBytes)}", _fbig, TextCol, r.X + 150, r.Y + 84);
+        T(g, $"{Loc.Pick("in gebruik van", "in use of")} {SizeStr(m.MemTotalBytes)}", _f, Dim, r.X + 152, r.Y + 126);
+        T(g, $"{Loc.Pick("Vrij", "Free")}  {SizeStr(m.MemTotalBytes - m.MemUsedBytes)}", _f, Dim, r.X + 152, r.Y + 150);
+        Graph(g, new RectangleF(r.X + 16, r.Y + 190, r.Width - 32, 140), new[] { (_c.History.Mem, Green) }, 100, Pct);
+        T(g, Loc.Pick("Meeste geheugen", "Top memory"), _fs, Dim, r.X + 16, r.Y + 348);
+        ProcList(g, r.X + 16, r.Y + 370, r.Width - 32, 5, false);
+    }
+
+    private void TileNet(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        Card(g, "net", r, Loc.Pick("Netwerk", "Network"));
+        T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, r.X + 16, r.Y + 44);
+        T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fh, Green, r.X + 16, r.Y + 90);
+        Graph(g, new RectangleF(r.X + 210, r.Y + 44, r.Width - 226, 92), new[] { (_c.History.NetDown, Accent), (_c.History.NetUp, Green) }, 0, Rate, false);
+
+        float y = r.Y + 150;
+        foreach (var (label, u) in new[]
+        {
+            (Loc.Pick("Sessie", "Session"), _c.Usage.Session(null)), (Loc.Pick("Vandaag", "Today"), _c.Usage.Today(null)),
+            (Loc.Pick("Gisteren", "Yesterday"), _c.Usage.Yesterday(null)), (Loc.Pick("7 dagen", "7 days"), _c.Usage.Week(null)),
+            (Loc.Pick("Deze maand", "This month"), _c.Usage.Month(null)),
+        })
+        {
+            T(g, label, _f, Dim, r.X + 16, y);
+            TR(g, $"↓ {Metrics.FormatBytes(u.Down)}    ↑ {Metrics.FormatBytes(u.Up)}", _f, TextCol, r.Right - 16, y);
+            y += 24;
+        }
+        if (Cfg.MonthlyLimitGb > 0)
+        {
+            var mu = _c.Usage.Month(Cfg.NetworkAdapter);
+            double pct = 100.0 * mu.Total / (Cfg.MonthlyLimitGb * 1073741824.0);
+            T(g, $"{Loc.Pick("Limiet", "Limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, r.X + 16, y + 4);
+            Bar(g, r.X + 16, y + 26, r.Width - 32, pct, Thr(pct), 7);
+            y += 44;
+        }
+        y += 6;
+        foreach (var name in ActiveAdapters(8))
+        {
+            if (y > r.Bottom - 46) break;
+            m.NetPerAdapter.TryGetValue(name, out var rt);
+            T(g, TruncMid(name, 30), _fs, Dim, r.X + 16, y);
+            TR(g, $"↓ {Rate(rt.down)}  ↑ {Rate(rt.up)}", _fs, TextCol, r.Right - 16, y);
+            if (_c.History.NetPer.TryGetValue(name, out var pr))
+                Graph(g, new RectangleF(r.X + 16, y + 20, r.Width - 32, 22), new[] { (pr.down, Accent), (pr.up, Green) }, 0, Rate, false);
+            y += 48;
+        }
+    }
+
+    private void TileDisk(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        var drives = _c.Drives();
+        Card(g, "disk", r, Loc.S("disks"));
+        float y = r.Y + 44;
+        foreach (var d in drives.Take(6))
+        {
+            T(g, d.Display, _fb, TextCol, r.X + 16, y);
+            TR(g, $"{SizeStr(d.Free)} {Loc.S("freeOf")} {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _fs, Dim, r.Right - 16, y + 2);
+            Bar(g, r.X + 16, y + 24, r.Width - 32, d.UsedPercent, Thr(d.UsedPercent), 8);
+            y += 44;
+        }
+        if (drives.Count > 6) { T(g, $"+{drives.Count - 6} {Loc.Pick("meer — klik voor alle", "more — click for all")}", _fs, Dim, r.X + 16, y - 8); y += 14; }
+        T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fb, Accent, r.X + 16, y + 4);
+        TR(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fb, Orange, r.Right - 16, y + 4);
+        float gh = 96;
+        Graph(g, new RectangleF(r.X + 16, y + 32, r.Width - 32, gh), new[] { (_c.History.DiskRead, Accent), (_c.History.DiskWrite, Orange) }, 0, Rate, false);
+        y += 32 + gh + 12;
+        foreach (var (name, rt) in m.DiskPerDisk.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            if (y > r.Bottom - 26) break;
+            T(g, Trunc(name, 22), _fs, Dim, r.X + 16, y);
+            TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _fs, TextCol, r.Right - 16, y);
+            y += 21;
+        }
+    }
+
+    private void TileBattery(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        Card(g, "bat", r, Loc.Pick("Batterij", "Battery"));
+        if (!m.BatteryPresent) { T(g, Loc.Pick("Geen batterij (desktop-pc)", "No battery (desktop PC)"), _f, Dim, r.X + 16, r.Y + 56); return; }
+        DrawBatteryBig(g, r.X + 34, r.Y + 50, 46, 100, m);
+        T(g, $"{m.BatteryPercent:0}%", _fhuge, TextCol, r.X + 110, r.Y + 46);
+        T(g, BatteryState(m), _f, Dim, r.X + 112, r.Y + 116);
+    }
+
+    private static string BatteryState(Metrics m)
+    {
+        string state = m.BatteryCharging ? Loc.Pick("Laden", "Charging") : m.BatteryOnAc ? Loc.Pick("Op netstroom", "Plugged in") : Loc.Pick("Ontladen", "On battery");
+        return state + (!m.BatteryOnAc && m.BatteryRemainingSec > 0
+            ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.Pick("u", "h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.Pick("resterend", "left")}" : "");
+    }
+
+    private void DrawBatteryBig(Graphics g, float x, float y, float w, float h, Metrics m)
+    {
+        double pct = m.BatteryPercent;
+        Color fill = m.BatteryCharging || m.BatteryOnAc ? Green
+                   : pct <= 10 ? Col(Cfg.CritColor, Color.Red) : pct <= 20 ? Col(Cfg.WarnColor, Color.Orange) : Accent;
+        using (var nub = new SolidBrush(Color.FromArgb(142, 142, 147))) g.FillRectangle(nub, x + w / 2 - 9, y - 6, 18, 6);
+        using (var path = Rounded(new RectangleF(x, y, w, h), 7))
+        using (var bg = new SolidBrush(Color.FromArgb(42, 42, 45)))
+        using (var edge = new Pen(Color.FromArgb(142, 142, 147), 2f))
+        {
+            g.FillPath(bg, path);
+            g.DrawPath(edge, path);
+        }
+        float ih = h - 6, fh = (float)(ih * pct / 100.0);
+        if (fh >= 1)
+            using (var fp = Rounded(new RectangleF(x + 3, y + 3 + ih - fh, w - 6, fh), 4))
+            using (var fb = new SolidBrush(fill))
+                g.FillPath(fb, fp);
+        if (m.BatteryCharging) WidgetForm.DrawBolt(g, x + w / 2, y + h / 2, h * 0.5f);
+        else if (m.BatteryOnAc) WidgetForm.DrawPlug(g, x + w / 2, y + h / 2, h * 0.5f);
+    }
+
+    private void TileSystem(Graphics g, RectangleF r)
+    {
+        var m = _c.Metrics;
+        Card(g, "sys", r, Loc.Pick("Systeem", "System"));
+        T(g, DateTime.Now.ToString("HH:mm"), _fhuge, TextCol, r.X + 16, r.Y + 40);
+        T(g, DateTime.Now.ToString("dddd d MMMM"), _f, Dim, r.X + 205, r.Y + 62);
+        var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        float y = r.Y + 110;
+        KeyValue(g, r.X + 16, y, r.Width - 32, "Uptime", $"{(int)up.TotalDays} {Loc.Pick("d", "d")} {up.Hours} {Loc.Pick("u", "h")} {up.Minutes} m"); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.Pick("Computer", "Computer"), Environment.MachineName); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, "OS", Trunc(System.Runtime.InteropServices.RuntimeInformation.OSDescription, 34)); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.Pick("Werkgeheugen", "Memory"), SizeStr(m.MemTotalBytes)); y += 24;
+        if (m.CpuTempC is double c) { KeyValue(g, r.X + 16, y, r.Width - 32, "CPU", $"{c:0}°C"); y += 24; }
+        if (m.GpuTempC is double t) KeyValue(g, r.X + 16, y, r.Width - 32, "GPU", $"{t:0}°C");
+    }
+
+    private void TileProcs(Graphics g, RectangleF r)
+    {
+        Card(g, "proc", r, Loc.Pick("Zwaarste programma's", "Top programs"));
+        T(g, "CPU", _fs, Dim, r.X + 16, r.Y + 42);
+        ProcList(g, r.X + 16, r.Y + 62, r.Width - 32, 7, true);
+        float y2 = r.Y + 62 + 7 * 24 + 14;
+        T(g, "RAM", _fs, Dim, r.X + 16, y2);
+        ProcList(g, r.X + 16, y2 + 20, r.Width - 32, 7, false);
+    }
+
+    // ---------- Details ----------
+    private void DrawDetail(Graphics g)
+    {
+        var R = new RectangleF(M, 76, CW - 2 * M, CH - 76 - M);
+        switch (_detail)
+        {
+            case "cpu": DetailCpu(g, R); break;
+            case "gpu": DetailGpu(g, R); break;
+            case "mem": DetailMem(g, R); break;
+            case "net": DetailNet(g, R); break;
+            case "disk": DetailDisk(g, R); break;
+            case "sys": DetailSys(g, R); break;
+            case "proc": DetailProcs(g, R); break;
+        }
+    }
+
+    private void DetailCpu(Graphics g, RectangleF R)
+    {
+        var m = _c.Metrics;
+        Card(g, null, R, "CPU — " + Loc.Pick("details", "details"), Trunc(CpuName(), 70));
+        float gw = 1240;
+        var cores = m.CpuCores;
+        int ccols = cores.Length <= 8 ? 4 : cores.Length <= 24 ? 6 : 8;
+        int crows = cores.Length == 0 ? 0 : (cores.Length + ccols - 1) / ccols;
+        float cellH = crows == 0 ? 0 : Math.Min(130f, 400f / crows);
+        float cpuGh = Math.Max(260f, R.Bottom - 16 - (R.Y + 50) - crows * cellH - 24);
+        Graph(g, new RectangleF(R.X + 16, R.Y + 50, gw, cpuGh), new[] { (_c.History.Cpu, Accent) }, 100, Pct);
+
+        if (cores.Length > 0)
+        {
+            int cols = ccols;
+            int rows = crows;
+            float y0 = R.Y + 50 + cpuGh + 24, cw = gw / cols, ch = cellH;
+            for (int i = 0; i < cores.Length; i++)
+            {
+                float cx0 = R.X + 16 + (i % cols) * cw, cy0 = y0 + (i / cols) * ch;
+                var cell = new RectangleF(cx0 + 3, cy0 + 3, cw - 6, ch - 6);
+                using (var path = Rounded(cell, 8))
+                using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
+                    g.FillPath(bg, path);
+                T(g, Loc.Pick("Kern", "Core") + $" {i}", _fs, Dim, cell.X + 10, cell.Y + 6);
+                TR(g, $"{cores[i]:0}%", _fb, Thr(cores[i]), cell.Right - 10, cell.Y + 5);
+                if (i < _c.History.Cores.Count)
+                    Graph(g, new RectangleF(cell.X + 8, cell.Y + 28, cell.Width - 16, cell.Height - 36), new[] { (_c.History.Cores[i], Accent) }, 100, Pct, false);
+            }
+        }
+
+        float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
+        T(g, Loc.Pick("Totaal", "Total"), _fs, Dim, rx, R.Y + 50);
+        Gauge(g, rx + 70, R.Y + 150, 56, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
+        StatRows(g, rx + 160, R.Y + 96, rw - 160, _c.History.Cpu, Pct);
+        float y = R.Y + 236;
+        KeyValue(g, rx, y, rw, Loc.Pick("Kernen", "Cores"), $"{cores.Length}"); y += 24;
+        if (m.CpuMHz is double f) { KeyValue(g, rx, y, rw, Loc.Pick("Klokfrequentie", "Clock speed"), $"{f / 1000:0.00} GHz"); y += 24; }
+        if (m.CpuTempC is double t) { KeyValue(g, rx, y, rw, Loc.Pick("Temperatuur", "Temperature"), $"{t:0}°C"); y += 24; }
+        y += 16;
+        T(g, Loc.Pick("Zwaarste programma's (CPU)", "Top programs (CPU)"), _fs, Dim, rx, y);
+        ProcList(g, rx, y + 22, rw, 12, true);
+    }
+
+    private void DetailGpu(Graphics g, RectangleF R)
+    {
+        var gpus = Gpus();
+        var m = _c.Metrics;
+        Card(g, null, R, "GPU — " + Loc.Pick("details", "details"), m.GpuTempC is double tt ? $"{tt:0}°C" : null);
+        if (gpus.Count == 0) { T(g, Loc.Pick("Geen GPU-gegevens", "No GPU data"), _f, Dim, R.X + 16, R.Y + 56); return; }
+        float sh = (R.Height - 50) / gpus.Count;
+        for (int i = 0; i < gpus.Count; i++)
+        {
+            var (luid, v) = (gpus[i].Key, gpus[i].Value);
+            float y0 = R.Y + 48 + i * sh, hh = sh - 20;
+            T(g, Metrics.GpuName(luid), _fh, TextCol, R.X + 16, y0);
+            TR(g, $"{v:0}%", _fbig, Thr(v), R.Right - 16, y0 - 8);
+            float gh = hh - 50;
+            float half = (R.Width - 48) / 2;
+            T(g, Loc.Pick("Belasting", "Load"), _fs, Dim, R.X + 16, y0 + 34);
+            if (_c.History.GpuPer.TryGetValue(luid, out var ring))
+            {
+                Graph(g, new RectangleF(R.X + 16, y0 + 54, half - 200, gh), new[] { (ring, Accent) }, 100, Pct);
+                StatRows(g, R.X + 16 + half - 180, y0 + 60, 170, ring, Pct);
+            }
+            long ded = Metrics.GpuDedicatedBytes(luid);
+            float x2 = R.X + 32 + half;
+            T(g, Loc.Pick("Videogeheugen (VRAM)", "Video memory (VRAM)"), _fs, Dim, x2, y0 + 34);
+            if (ded > 0 && _c.History.VramPer.TryGetValue(luid, out var vr))
+            {
+                Graph(g, new RectangleF(x2, y0 + 54, half - 200, gh), new[] { (vr, Green) }, ded, SizeStr);
+                var s = Stat(vr);
+                KeyValue(g, x2 + half - 180, y0 + 60, 170, Loc.Pick("In gebruik", "Used"), SizeStr(s.cur));
+                KeyValue(g, x2 + half - 180, y0 + 84, 170, Loc.Pick("Totaal", "Total"), SizeStr(ded));
+                KeyValue(g, x2 + half - 180, y0 + 108, 170, "Max", SizeStr(s.max));
+            }
+            else T(g, Loc.Pick("Geen VRAM-gegevens", "No VRAM data"), _f, Dim, x2, y0 + 60);
+        }
+    }
+
+    private void DetailMem(Graphics g, RectangleF R)
+    {
+        var m = _c.Metrics;
+        Card(g, null, R, Loc.S("memory") + " — details", SizeStr(m.MemTotalBytes));
+        float gw = 1240;
+        Graph(g, new RectangleF(R.X + 16, R.Y + 50, gw, 420), new[] { (_c.History.Mem, Green) }, 100, Pct);
+        float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
+        Gauge(g, rx + 70, R.Y + 120, 56, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
+        StatRows(g, rx + 160, R.Y + 70, rw - 160, _c.History.Mem, Pct);
+        float y = R.Y + 200;
+        KeyValue(g, rx, y, rw, Loc.Pick("In gebruik", "In use"), SizeStr(m.MemUsedBytes)); y += 24;
+        KeyValue(g, rx, y, rw, Loc.Pick("Beschikbaar", "Available"), SizeStr(m.MemTotalBytes - m.MemUsedBytes)); y += 24;
+        KeyValue(g, rx, y, rw, Loc.Pick("Totaal", "Total"), SizeStr(m.MemTotalBytes)); y += 40;
+        T(g, Loc.Pick("Meeste geheugen", "Top memory"), _fs, Dim, rx, y);
+        ProcList(g, rx, y + 22, rw, 12, false);
+
+        // onderaan: gebruik in GB als tweede grafiek
+        T(g, Loc.Pick("Meeste geheugen — alle", "Top memory — all"), _fs, Dim, R.X + 16, R.Y + 500);
+        float py = R.Y + 522;
+        for (int i = 0; i < Math.Min(12, _procs.TopMem.Count); i++)
+        {
+            var (name, mem) = _procs.TopMem[i];
+            double pct = 100.0 * mem / Math.Max(1, m.MemTotalBytes);
+            T(g, Trunc(name, 30), _f, TextCol, R.X + 16, py + i * 34);
+            Bar(g, R.X + 300, py + i * 34 + 6, 800, pct * 4, Green, 10);
+            TR(g, $"{SizeStr(mem)}  ({pct:0.0}%)", _f, Dim, R.X + gw - 8, py + i * 34);
+        }
+    }
+
+    private void DetailNet(Graphics g, RectangleF R)
+    {
+        var m = _c.Metrics;
+        Card(g, null, R, Loc.Pick("Netwerk — details", "Network — details"));
+        float gw = 1240;
+        T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
+        T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fbig, Green, R.X + 330, R.Y + 44);
+
+        var names = m.NetPerAdapter.Keys.Union(_c.Usage.KnownAdapters()).Distinct()
+            .OrderByDescending(n => { m.NetPerAdapter.TryGetValue(n, out var r0); return r0.down + r0.up + _c.Usage.Month(n).Total; })
+            .ThenBy(n => n).ToList();
+        var active = ActiveAdapters(8);
+        int mrows = (active.Count + 1) / 2;
+        const float miniH = 120;
+        float gridH = active.Count == 0 ? 0 : 26 + mrows * (miniH + 8);
+        float tableH = (Math.Min(names.Count, 10) + 1) * 26 + 24;
+        float netGh = Math.Max(200f, R.Bottom - (R.Y + 96) - gridH - tableH - 60);
+        Graph(g, new RectangleF(R.X + 16, R.Y + 96, gw, netGh), new[] { (_c.History.NetDown, Accent), (_c.History.NetUp, Green) }, 0, Rate);
+
+        // kleine grafiekjes per actieve adapter (2 per rij)
+        float gy = R.Y + 96 + netGh + 30;
+        if (active.Count > 0)
+        {
+            T(g, Loc.Pick("Per adapter", "Per adapter"), _fs, Dim, R.X + 16, gy - 4);
+            gy += 22;
+            float cellW = (gw - 8) / 2;
+            for (int i = 0; i < active.Count; i++)
+            {
+                string n = active[i];
+                float cx0 = R.X + 16 + (i % 2) * (cellW + 8), cy0 = gy + (i / 2) * (miniH + 8);
+                var cell = new RectangleF(cx0, cy0, cellW, miniH);
+                using (var path = Rounded(cell, 8))
+                using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
+                    g.FillPath(bg, path);
+                m.NetPerAdapter.TryGetValue(n, out var rt);
+                T(g, TruncMid(n, 34), _fs, Dim, cell.X + 10, cell.Y + 6);
+                TR(g, $"↓ {Rate(rt.down)}   ↑ {Rate(rt.up)}", _fb, TextCol, cell.Right - 10, cell.Y + 5);
+                if (_c.History.NetPer.TryGetValue(n, out var pr))
+                    Graph(g, new RectangleF(cell.X + 10, cell.Y + 28, cell.Width - 20, cell.Height - 36), new[] { (pr.down, Accent), (pr.up, Green) }, 0, Rate, false);
+            }
+            gy += mrows * (miniH + 8);
+        }
+
+        // tabel met alle adapters
+        float ty = gy + 8;
+        string[] heads = { Loc.Pick("Adapter", "Adapter"), Loc.Pick("Nu ↓", "Now ↓"), Loc.Pick("Nu ↑", "Now ↑"), Loc.Pick("Sessie", "Session"), Loc.Pick("Vandaag", "Today"), Loc.Pick("Gisteren", "Yesterday"), Loc.Pick("7 dagen", "7 days"), Loc.Pick("Maand", "Month") };
+        float[] xs = { 0, 330, 450, 570, 720, 870, 1020, 1150 };
+        for (int i = 0; i < heads.Length; i++)
+        {
+            if (i == 0) T(g, heads[i], _fs, Dim, R.X + 16 + xs[i], ty);
+            else TR(g, heads[i], _fs, Dim, R.X + 16 + xs[i] + 110, ty);
+        }
+        float y = ty + 26;
+        foreach (var n in names)
+        {
+            if (y > R.Bottom - 30) break;
+            m.NetPerAdapter.TryGetValue(n, out var rt);
+            T(g, TruncMid(n, 40), _f, TextCol, R.X + 16, y);
+            var cells = new[] { Rate(rt.down), Rate(rt.up), Metrics.FormatBytes(_c.Usage.Session(n).Total), Metrics.FormatBytes(_c.Usage.Today(n).Total),
+                                Metrics.FormatBytes(_c.Usage.Yesterday(n).Total), Metrics.FormatBytes(_c.Usage.Week(n).Total), Metrics.FormatBytes(_c.Usage.Month(n).Total) };
+            for (int i = 0; i < cells.Length; i++) TR(g, cells[i], _f, TextCol, R.X + 16 + xs[i + 1] + 110, y);
+            y += 26;
+        }
+
+        float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
+        T(g, Loc.Pick("Downloadsnelheid", "Download speed"), _fs, Dim, rx, R.Y + 50);
+        StatRows(g, rx, R.Y + 74, rw, _c.History.NetDown, Rate);
+        T(g, Loc.Pick("Uploadsnelheid", "Upload speed"), _fs, Dim, rx, R.Y + 190);
+        StatRows(g, rx, R.Y + 214, rw, _c.History.NetUp, Rate);
+        float ry = R.Y + 330;
+        T(g, Loc.Pick("Totaal verbruik (alle adapters)", "Total usage (all adapters)"), _fs, Dim, rx, ry);
+        ry += 24;
+        foreach (var (label, u) in new[]
+        {
+            (Loc.Pick("Sessie", "Session"), _c.Usage.Session(null)), (Loc.Pick("Vandaag", "Today"), _c.Usage.Today(null)),
+            (Loc.Pick("Gisteren", "Yesterday"), _c.Usage.Yesterday(null)), (Loc.Pick("7 dagen", "7 days"), _c.Usage.Week(null)),
+            (Loc.Pick("Deze maand", "This month"), _c.Usage.Month(null)),
+        })
+        {
+            T(g, label, _f, Dim, rx, ry);
+            TR(g, $"↓ {Metrics.FormatBytes(u.Down)}   ↑ {Metrics.FormatBytes(u.Up)}", _f, TextCol, rx + rw, ry);
+            ry += 26;
+        }
+        if (Cfg.MonthlyLimitGb > 0)
+        {
+            var mu = _c.Usage.Month(Cfg.NetworkAdapter);
+            double pct = 100.0 * mu.Total / (Cfg.MonthlyLimitGb * 1073741824.0);
+            T(g, $"{Loc.Pick("Maandlimiet", "Monthly limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, rx, ry + 8);
+            Bar(g, rx, ry + 32, rw, pct, Thr(pct), 10);
+        }
+    }
+
+    private void DetailDisk(Graphics g, RectangleF R)
+    {
+        var m = _c.Metrics;
+        var drives = _c.Drives();
+        Card(g, null, R, Loc.S("disks") + " — details");
+        float gw = 1240;
+        T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
+        T(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fbig, Orange, R.X + 380, R.Y + 44);
+        float diskGh = Math.Max(240f, R.Bottom - (R.Y + 96) - (drives.Count * 34 + 84));
+        Graph(g, new RectangleF(R.X + 16, R.Y + 96, gw, diskGh), new[] { (_c.History.DiskRead, Accent), (_c.History.DiskWrite, Orange) }, 0, Rate);
+
+        float y = R.Y + 96 + diskGh + 24;
+        T(g, Loc.Pick("Stations", "Drives"), _fs, Dim, R.X + 16, y);
+        y += 24;
+        foreach (var d in drives)
+        {
+            T(g, d.Display, _fb, TextCol, R.X + 16, y);
+            Bar(g, R.X + 90, y + 6, 640, d.UsedPercent, Thr(d.UsedPercent), 12);
+            TR(g, $"{SizeStr(d.Used)} {Loc.Pick("gebruikt", "used")}  ·  {SizeStr(d.Free)} {Loc.Pick("vrij", "free")}  ·  {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _f, Dim, R.X + gw + 8, y);
+            y += 34;
+        }
+
+        float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
+        T(g, Loc.Pick("Lezen", "Read"), _fs, Dim, rx, R.Y + 50);
+        StatRows(g, rx, R.Y + 74, rw, _c.History.DiskRead, Rate);
+        T(g, Loc.Pick("Schrijven", "Write"), _fs, Dim, rx, R.Y + 190);
+        StatRows(g, rx, R.Y + 214, rw, _c.History.DiskWrite, Rate);
+        float ry = R.Y + 330;
+        T(g, Loc.Pick("Fysieke schijven", "Physical disks"), _fs, Dim, rx, ry);
+        ry += 24;
+        foreach (var (name, rt) in m.DiskPerDisk.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            T(g, Trunc(name, 22), _f, TextCol, rx, ry);
+            TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _f, Dim, rx + rw, ry);
+            ry += 26;
+        }
+    }
+
+    private void DetailSys(Graphics g, RectangleF R)
+    {
+        var m = _c.Metrics;
+        Card(g, null, R, Loc.Pick("Batterij en systeem — details", "Battery and system — details"));
+        float half = (R.Width - 48) / 2;
+
+        // batterij
+        float x = R.X + 16, y = R.Y + 56;
+        T(g, Loc.Pick("Batterij", "Battery"), _fs, Dim, x, y);
+        if (m.BatteryPresent)
+        {
+            DrawBatteryBig(g, x + 20, y + 40, 90, 190, m);
+            T(g, $"{m.BatteryPercent:0}%", _fhuge, TextCol, x + 150, y + 36);
+            T(g, BatteryState(m), _fh, Dim, x + 152, y + 110);
+            KeyValue(g, x + 152, y + 160, 420, Loc.Pick("Netstroom", "AC power"), m.BatteryOnAc ? Loc.Pick("aangesloten", "connected") : Loc.Pick("niet aangesloten", "not connected"));
+            KeyValue(g, x + 152, y + 186, 420, Loc.Pick("Laden", "Charging"), m.BatteryCharging ? Loc.Pick("ja", "yes") : Loc.Pick("nee", "no"));
+        }
+        else T(g, Loc.Pick("Geen batterij aanwezig (desktop-pc)", "No battery present (desktop PC)"), _f, Dim, x, y + 30);
+
+        // systeem
+        float sx = R.X + 32 + half, sy = R.Y + 56;
+        T(g, Loc.Pick("Systeem", "System"), _fs, Dim, sx, sy);
+        T(g, DateTime.Now.ToString("HH:mm:ss"), _fhuge, TextCol, sx, sy + 26);
+        var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        float yy = sy + 110;
+        void kv(string k, string v) { KeyValue(g, sx, yy, half - 16, k, v); yy += 26; }
+        kv(Loc.Pick("Computer", "Computer"), Environment.MachineName);
+        kv(Loc.Pick("Gebruiker", "User"), Environment.UserName);
+        kv("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription);
+        kv(Loc.Pick("Opgestart", "Booted"), (DateTime.Now - up).ToString("yyyy-MM-dd HH:mm"));
+        kv("Uptime", $"{(int)up.TotalDays} {Loc.Pick("d", "d")} {up.Hours} {Loc.Pick("u", "h")} {up.Minutes} m");
+        kv("CPU", Trunc(CpuName(), 46));
+        kv(Loc.Pick("Kernen", "Cores"), $"{m.CpuCores.Length} ({Environment.ProcessorCount} threads)");
+        kv(Loc.Pick("Werkgeheugen", "Memory"), SizeStr(m.MemTotalBytes));
+        if (m.CpuTempC is double c) kv(Loc.Pick("CPU-temperatuur", "CPU temperature"), $"{c:0}°C");
+        if (m.GpuTempC is double t) kv(Loc.Pick("GPU-temperatuur", "GPU temperature"), $"{t:0}°C");
+
+        // videokaarten en schermen onderaan links
+        float by = R.Y + 340;
+        T(g, Loc.Pick("Videokaarten", "Graphics cards"), _fs, Dim, x, by);
+        by += 24;
+        foreach (var kv2 in Gpus())
+        {
+            long ded = Metrics.GpuDedicatedBytes(kv2.Key);
+            KeyValue(g, x, by, half - 16, Trunc(Metrics.GpuName(kv2.Key), 40), ded > 0 ? SizeStr(ded) + " VRAM" : "");
+            by += 26;
+        }
+        by += 16;
+        T(g, Loc.Pick("Schermen", "Displays"), _fs, Dim, x, by);
+        by += 24;
+        foreach (var sc in Screen.AllScreens)
+        {
+            KeyValue(g, x, by, half - 16, sc.DeviceName.TrimStart('\\', '.') + (sc.Primary ? " *" : ""), $"{sc.Bounds.Width} × {sc.Bounds.Height}");
+            by += 26;
+        }
+    }
+
+    private void DetailProcs(Graphics g, RectangleF R)
+    {
+        Card(g, null, R, Loc.Pick("Zwaarste programma's — details", "Top programs — details"));
+        float half = (R.Width - 64) / 2;
+        T(g, Loc.Pick("Meeste CPU", "Most CPU"), _fh, TextCol, R.X + 16, R.Y + 50);
+        ProcList(g, R.X + 16, R.Y + 90, half, 12, true);
+        T(g, Loc.Pick("Meeste geheugen", "Most memory"), _fh, TextCol, R.X + 48 + half, R.Y + 50);
+        ProcList(g, R.X + 48 + half, R.Y + 90, half, 12, false);
+        T(g, Loc.Pick("Gegroepeerd per programma (alle processen van dezelfde naam opgeteld). Ververst elke 2 seconden.",
+                      "Grouped per program (all processes with the same name added together). Refreshes every 2 seconds."),
+          _fs, Dim, R.X + 16, R.Bottom - 34);
+    }
+}

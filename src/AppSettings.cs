@@ -46,7 +46,29 @@ public sealed class AppSettings
 
     // Schijfruimte in het widget: uit / totaal / elke schijf apart / één schijf (DiskSpaceDrive, bv. "C:")
     public DiskSpaceMode DiskSpace { get; set; } = DiskSpaceMode.Off;
+    public bool IncludeNetworkDrives { get; set; } = false;   // gekoppelde netwerkschijven meenemen (op de achtergrond opgevraagd)
     public string DiskSpaceDrive { get; set; } = "C:";
+
+    // Bureaublad-dashboard (groot, halfdoorzichtig, los van het taakbalk-widget)
+    public bool ShowDashboard { get; set; } = false;
+    public bool DashFront { get; set; } = false;          // false = op de achtergrond (onder alle vensters)
+    public bool DashClickThrough { get; set; } = false;   // kliks gaan erdoorheen (aan/uit met Ctrl+Alt+D)
+    public bool DashLocked { get; set; } = false;
+    public int DashOpacity { get; set; } = 90;            // procent
+    public int DashScale { get; set; } = 100;             // procent
+    public int DashColumns { get; set; } = 2;
+    public int? DashX { get; set; } = null;
+    public int? DashY { get; set; } = null;
+    public bool DashCpu { get; set; } = true;
+    public bool DashGpu { get; set; } = true;
+    public bool DashMem { get; set; } = true;
+    public bool DashNet { get; set; } = true;
+    public bool DashDisks { get; set; } = true;
+    public bool DashBattery { get; set; } = true;
+    public bool DashProcs { get; set; } = true;
+    public bool DashSystem { get; set; } = true;
+
+    public string? FullMonitor { get; set; } = null;   // null = automatisch (scherm waar het widget staat)
 
     public bool WelcomeShown { get; set; } = false;   // eenmalig welkomstscherm al getoond?
 
@@ -98,8 +120,11 @@ public sealed class AppSettings
 
     public static AppSettings Load()
     {
-        var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
+        // TASKBARSTATS_DATA = eigen datamap (voor tests/screenshots, zodat je echte instellingen ongemoeid blijven).
+        var custom = Environment.GetEnvironmentVariable("TASKBARSTATS_DATA");
+        var dir = !string.IsNullOrWhiteSpace(custom)
+            ? custom
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "settings.json");
 

@@ -5,8 +5,10 @@ using LibreHardwareMonitor.Hardware;
 namespace TaskbarStats;
 
 /// <summary>Vrije/totale ruimte van één schijf (station).</summary>
-public readonly record struct DriveSpace(string Name, long Total, long Free)
+public readonly record struct DriveSpace(string Name, long Total, long Free, bool Network = false)
 {
+    /// <summary>Naam voor weergave; netwerkschijven krijgen "(net)" erachter.</summary>
+    public string Display => Network ? Name + " (net)" : Name;
     public long Used => Total - Free;
     public double UsedPercent => Total <= 0 ? 0 : 100.0 * Used / Total;
 }
@@ -56,7 +58,7 @@ public sealed class Metrics : IDisposable
     private readonly List<PerformanceCounter> _vram = new();
     private Dictionary<string, double> _vramRates = new();
     private readonly List<PerformanceCounter> _cpuCores = new();
-    private readonly List<PerformanceCounter> _gpuCounters = new();
+    private PdhWildcard? _gpuQuery;   // één gezamenlijke query voor alle "GPU Engine"-instanties
     private readonly Dictionary<string, (PerformanceCounter recv, PerformanceCounter sent)> _net = new();
     private readonly Dictionary<string, (PerformanceCounter read, PerformanceCounter write)> _disks = new();
     private Dictionary<string, (double down, double up)> _netRates = new();
@@ -66,6 +68,7 @@ public sealed class Metrics : IDisposable
     private string? _gpuLuidFilter;
     private string? _netFilter;
     private Computer? _lhm;
+    private readonly object _lhmLock = new();   // EnableTemperatures (UI) en UpdateTemperatures (sampler-thread)
     private long _rebuiltAt;
 
     public Metrics()
@@ -84,7 +87,8 @@ public sealed class Metrics : IDisposable
         }
         catch { _cpuFreq?.Dispose(); _cpuPerf?.Dispose(); _cpuFreq = _cpuPerf = null; }
 
-        RebuildGpuCounters();
+        _gpuQuery = PdhWildcard.TryCreate(@"\GPU Engine(*)\Utilization Percentage");
+        RebuildVramCounters();
         RebuildNetCounters();
         RebuildDiskCounters();
         _rebuiltAt = Environment.TickCount64;
@@ -125,6 +129,7 @@ public sealed class Metrics : IDisposable
 
     public void EnableTemperatures(bool on)
     {
+        lock (_lhmLock)
         try
         {
             if (on && _lhm is null)
@@ -145,6 +150,8 @@ public sealed class Metrics : IDisposable
 
     private void UpdateTemperatures()
     {
+        lock (_lhmLock)
+        {
         if (_lhm is null) return;
         try
         {
@@ -165,6 +172,7 @@ public sealed class Metrics : IDisposable
             }
         }
         catch { }
+        }
     }
 
     // ---------- Netwerk ----------
@@ -224,8 +232,8 @@ public sealed class Metrics : IDisposable
         }
     }
 
-    /// <summary>Ruimte per vast station (C:, D:, ...).</summary>
-    public static List<DriveSpace> GetDriveSpaces()
+    /// <summary>Ruimte per station van het gevraagde type (standaard vaste schijven; Network = gekoppelde netwerkschijven).</summary>
+    public static List<DriveSpace> GetDriveSpaces(DriveType type = DriveType.Fixed)
     {
         var list = new List<DriveSpace>();
         try
@@ -234,8 +242,8 @@ public sealed class Metrics : IDisposable
             {
                 try
                 {
-                    if (d.DriveType != DriveType.Fixed || !d.IsReady) continue;
-                    list.Add(new DriveSpace(d.Name.TrimEnd('\\'), d.TotalSize, d.AvailableFreeSpace));
+                    if (d.DriveType != type || !d.IsReady) continue;
+                    list.Add(new DriveSpace(d.Name.TrimEnd('\\'), d.TotalSize, d.AvailableFreeSpace, type == DriveType.Network));
                 }
                 catch { }
             }
@@ -268,6 +276,13 @@ public sealed class Metrics : IDisposable
         return _gpuNames.TryGetValue(luid, out var n) ? n : luid;
     }
 
+    /// <summary>True voor een echte videokaart: naam bekend via DXGI en niet de "Microsoft Basic Render Driver".</summary>
+    public static bool IsRealGpu(string luid)
+    {
+        _gpuNames ??= DxgiNames.Read();
+        return _gpuNames.TryGetValue(luid, out var n) && !n.StartsWith("Microsoft Basic", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Dedicated videogeheugen van een GPU in bytes (0 = onbekend).</summary>
     public static long GpuDedicatedBytes(string luid)
     {
@@ -275,10 +290,9 @@ public sealed class Metrics : IDisposable
         return DxgiNames.Dedicated.GetValueOrDefault(luid);
     }
 
-    private void RebuildGpuCounters()
+    // Videogeheugen (paar instanties): apart per teller; de zware "GPU Engine"-tellers gaan via _gpuQuery.
+    private void RebuildVramCounters()
     {
-        foreach (var c in _gpuCounters) c.Dispose();
-        _gpuCounters.Clear();
         foreach (var c in _vram) c.Dispose();
         _vram.Clear();
         try
@@ -293,23 +307,6 @@ public sealed class Metrics : IDisposable
                     _vram.Add(c);
                 }
                 catch { }
-            }
-        }
-        catch { }
-        try
-        {
-            var cat = new PerformanceCounterCategory("GPU Engine");
-            foreach (var inst in cat.GetInstanceNames())
-            {
-                if (!inst.Contains("engtype")) continue;
-                foreach (var c in cat.GetCounters(inst))
-                {
-                    if (c.CounterName == "Utilization Percentage")
-                    {
-                        try { c.NextValue(); _gpuCounters.Add(c); } catch { c.Dispose(); }
-                    }
-                    else c.Dispose();
-                }
             }
         }
         catch { }
@@ -347,12 +344,13 @@ public sealed class Metrics : IDisposable
         try
         {
             var perLuid = new Dictionary<string, double>();
-            foreach (var c in _gpuCounters)
-            {
-                var luid = ExtractLuid(c.InstanceName) ?? "";
-                double v; try { v = c.NextValue(); } catch { continue; }
-                perLuid[luid] = perLuid.TryGetValue(luid, out var cur) ? cur + v : v;
-            }
+            if (_gpuQuery is not null)
+                foreach (var (inst, v) in _gpuQuery.Read())
+                {
+                    if (!inst.Contains("engtype")) continue;
+                    var luid = ExtractLuid(inst) ?? "";
+                    perLuid[luid] = perLuid.TryGetValue(luid, out var cur) ? cur + v : v;
+                }
             foreach (var k in perLuid.Keys.ToList()) perLuid[k] = Math.Min(100, perLuid[k]);
             _gpuRates = perLuid;
             GpuPercent = _gpuLuidFilter is not null
@@ -422,11 +420,11 @@ public sealed class Metrics : IDisposable
 
         UpdateTemperatures();
 
-        // Instances (GPU-engines, adapters, schijven) komen en gaan; af en toe opnieuw opbouwen.
+        // Instances (adapters, schijven, VRAM) komen en gaan; af en toe opnieuw opbouwen.
         if (Environment.TickCount64 - _rebuiltAt > 5000)
         {
             _rebuiltAt = Environment.TickCount64;
-            RebuildGpuCounters();
+            RebuildVramCounters();
             if (!_net.Keys.OrderBy(x => x).SequenceEqual(GetNetworkAdapters())) RebuildNetCounters();
             if (!_disks.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
                             .SequenceEqual(GetDiskInstances())) RebuildDiskCounters();
@@ -463,10 +461,10 @@ public sealed class Metrics : IDisposable
         _cpuPerf?.Dispose();
         foreach (var c in _vram) c.Dispose();
         foreach (var c in _cpuCores) c.Dispose();
-        foreach (var c in _gpuCounters) c.Dispose();
+        _gpuQuery?.Dispose();
         foreach (var (r, s) in _net.Values) { r.Dispose(); s.Dispose(); }
         foreach (var (r, w) in _disks.Values) { r.Dispose(); w.Dispose(); }
-        try { _lhm?.Close(); } catch { }
+        lock (_lhmLock) { try { _lhm?.Close(); } catch { } }
     }
 
     // ---------- P/Invoke ----------
@@ -554,4 +552,75 @@ internal static class DxgiNames
 
     [DllImport("dxgi.dll")]
     private static extern int CreateDXGIFactory1(ref Guid riid, out IntPtr factory);
+}
+
+/// <summary>
+/// Eén PDH-query met een jokerteken (bv. "\GPU Engine(*)\Utilization Percentage"). Leest alle instanties in één keer
+/// (zoals Taakbeheer) in plaats van honderden losse PerformanceCounter-objecten per tik uit te lezen.
+/// </summary>
+internal sealed class PdhWildcard : IDisposable
+{
+    private IntPtr _query, _counter, _buffer;
+    private uint _bufferSize;
+
+    private PdhWildcard() { }
+
+    public static PdhWildcard? TryCreate(string path)
+    {
+        var w = new PdhWildcard();
+        try
+        {
+            if (PdhOpenQuery(null, IntPtr.Zero, out w._query) != 0) return null;
+            if (PdhAddEnglishCounter(w._query, path, IntPtr.Zero, out w._counter) != 0) { w.Dispose(); return null; }
+            PdhCollectQueryData(w._query);   // eerste meting: begintelling
+            return w;
+        }
+        catch { w.Dispose(); return null; }
+    }
+
+    /// <summary>Verzamelt een nieuwe meting en geeft per instantie de waarde (alleen geldige waarden).</summary>
+    public List<(string instance, double value)> Read()
+    {
+        var result = new List<(string, double)>();
+        if (_query == IntPtr.Zero) return result;
+        if (PdhCollectQueryData(_query) != 0) return result;
+
+        uint size = _bufferSize, count = 0;
+        uint rc = PdhGetFormattedCounterArray(_counter, 0x200 /* PDH_FMT_DOUBLE */, ref size, ref count, _buffer);
+        if (rc == 0x800007D2 /* PDH_MORE_DATA */)
+        {
+            if (_buffer != IntPtr.Zero) Marshal.FreeHGlobal(_buffer);
+            _bufferSize = size;
+            _buffer = Marshal.AllocHGlobal((int)size);
+            rc = PdhGetFormattedCounterArray(_counter, 0x200, ref size, ref count, _buffer);
+        }
+        if (rc != 0 || _buffer == IntPtr.Zero) return result;
+
+        // PDH_FMT_COUNTERVALUE_ITEM: { LPWSTR name; DWORD status; (padding) double value }
+        int itemSize = IntPtr.Size == 8 ? 24 : 16;
+        int valueOffset = IntPtr.Size == 8 ? 16 : 8;
+        for (int i = 0; i < count; i++)
+        {
+            IntPtr item = _buffer + i * itemSize;
+            uint status = (uint)Marshal.ReadInt32(item, IntPtr.Size);
+            if (status != 0 && status != 1) continue;   // PDH_CSTATUS_VALID_DATA / NEW_DATA
+            string? name = Marshal.PtrToStringUni(Marshal.ReadIntPtr(item));
+            if (name is null) continue;
+            double v = BitConverter.Int64BitsToDouble(Marshal.ReadInt64(item, valueOffset));
+            result.Add((name, v));
+        }
+        return result;
+    }
+
+    public void Dispose()
+    {
+        if (_query != IntPtr.Zero) { PdhCloseQuery(_query); _query = IntPtr.Zero; }
+        if (_buffer != IntPtr.Zero) { Marshal.FreeHGlobal(_buffer); _buffer = IntPtr.Zero; }
+    }
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)] private static extern uint PdhOpenQuery(string? source, IntPtr userData, out IntPtr query);
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)] private static extern uint PdhAddEnglishCounter(IntPtr query, string path, IntPtr userData, out IntPtr counter);
+    [DllImport("pdh.dll")] private static extern uint PdhCollectQueryData(IntPtr query);
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)] private static extern uint PdhGetFormattedCounterArray(IntPtr counter, uint format, ref uint bufferSize, ref uint itemCount, IntPtr buffer);
+    [DllImport("pdh.dll")] private static extern uint PdhCloseQuery(IntPtr query);
 }

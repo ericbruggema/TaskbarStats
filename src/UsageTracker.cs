@@ -20,6 +20,7 @@ public sealed class AdapterUsage
 /// </summary>
 public sealed class UsageTracker
 {
+    private readonly object _lock = new();   // Sample() draait op een achtergrond-thread; de UI leest tegelijk
     private readonly string _path;
     // "yyyy-MM-dd" -> adapternaam -> gebruik
     private Dictionary<string, Dictionary<string, AdapterUsage>> _days = new();
@@ -77,7 +78,7 @@ public sealed class UsageTracker
                 {
                     long dr = rx >= l.rx ? rx - l.rx : rx;     // teller gereset (reboot/adapter opnieuw)
                     long dt = tx >= l.tx ? tx - l.tx : tx;
-                    if (dr > 0 || dt > 0) Add(day, key, dr, dt);
+                    if (dr > 0 || dt > 0) lock (_lock) Add(day, key, dr, dt);
                 }
                 _last[key] = (rx, tx);
             }
@@ -99,16 +100,24 @@ public sealed class UsageTracker
 
     public void Save()
     {
-        _lastSave = Environment.TickCount64;
-        _dirty = false;
-        try { File.WriteAllText(_path, JsonSerializer.Serialize(_days, Json)); }
+        string json;
+        lock (_lock)
+        {
+            _lastSave = Environment.TickCount64;
+            _dirty = false;
+            json = JsonSerializer.Serialize(_days, Json);
+        }
+        try { File.WriteAllText(_path, json); }   // schrijven buiten het slot
         catch { }
     }
 
     public void Clear()
     {
-        _days.Clear();
-        _session.Clear();
+        lock (_lock)
+        {
+            _days.Clear();
+            _session.Clear();
+        }
         Save();
     }
 
@@ -119,20 +128,22 @@ public sealed class UsageTracker
     {
         var r = new AdapterUsage();
         string a = Key(from), b = Key(to);
-        foreach (var (day, list) in _days)
-        {
-            if (string.CompareOrdinal(day, a) < 0 || string.CompareOrdinal(day, b) > 0) continue;
-            foreach (var (name, u) in list)
-                if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
-        }
+        lock (_lock)
+            foreach (var (day, list) in _days)
+            {
+                if (string.CompareOrdinal(day, a) < 0 || string.CompareOrdinal(day, b) > 0) continue;
+                foreach (var (name, u) in list)
+                    if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
+            }
         return r;
     }
 
     public AdapterUsage Session(string? adapter = null)
     {
         var r = new AdapterUsage();
-        foreach (var (name, u) in _session)
-            if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
+        lock (_lock)
+            foreach (var (name, u) in _session)
+                if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
         return r;
     }
 
@@ -151,9 +162,12 @@ public sealed class UsageTracker
         var n = DateTime.Now;
         string from = Key(new DateTime(n.Year, n.Month, 1));
         var set = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (day, list) in _days)
-            if (string.CompareOrdinal(day, from) >= 0) foreach (var name in list.Keys) set.Add(name);
-        foreach (var name in _session.Keys) set.Add(name);
+        lock (_lock)
+        {
+            foreach (var (day, list) in _days)
+                if (string.CompareOrdinal(day, from) >= 0) foreach (var name in list.Keys) set.Add(name);
+            foreach (var name in _session.Keys) set.Add(name);
+        }
         return set.ToList();
     }
 
@@ -161,9 +175,11 @@ public sealed class UsageTracker
     public List<(DateTime day, Dictionary<string, AdapterUsage> perAdapter)> Days(int lastDays)
     {
         string from = Key(DateTime.Now.AddDays(-(lastDays - 1)));
-        return _days.Where(kv => string.CompareOrdinal(kv.Key, from) >= 0)
-                    .OrderByDescending(kv => kv.Key)
-                    .Select(kv => (DateTime.ParseExact(kv.Key, "yyyy-MM-dd", null), kv.Value))
-                    .ToList();
+        lock (_lock)   // diepe kopie: de aanroeper doorloopt dit buiten het slot
+            return _days.Where(kv => string.CompareOrdinal(kv.Key, from) >= 0)
+                        .OrderByDescending(kv => kv.Key)
+                        .Select(kv => (DateTime.ParseExact(kv.Key, "yyyy-MM-dd", null),
+                                       kv.Value.ToDictionary(x => x.Key, x => new AdapterUsage { Down = x.Value.Down, Up = x.Value.Up })))
+                        .ToList();
     }
 }

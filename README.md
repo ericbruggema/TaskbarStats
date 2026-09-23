@@ -2,7 +2,31 @@
 
 Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
-overeenkomen met Task Manager.
+overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een fullscreen "cockpit".
+
+## Screenshots
+
+**Taakbalk-widget** — cijfers, meters met per-core-balkjes en batterij, of compact met labels boven:
+
+![Widget met cijfers](docs/screenshots/widget-digital.png)
+![Widget met meters](docs/screenshots/widget-gauges.png)
+![Compacte widget](docs/screenshots/widget-compact.png)
+
+**Rechtermuisknop-menu** (blijft open terwijl je meerdere dingen kiest):
+
+![Menu](docs/screenshots/menu.png) ![Menu Weergave](docs/screenshots/menu-display.png)
+
+**Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):
+
+![Bureaublad-dashboard](docs/screenshots/dashboard.png)
+
+**Fullscreen dashboard** (Ctrl+Alt+F) — overzicht, en klik op een tegel voor details:
+
+![Fullscreen overzicht](docs/screenshots/fullscreen-overview.png)
+![Fullscreen CPU-details](docs/screenshots/fullscreen-cpu.png)
+![Fullscreen netwerk-details](docs/screenshots/fullscreen-net.png)
+
+*(Computernaam en programmanamen in de screenshots zijn geanonimiseerd.)*
 
 ## Waarom de waarden hier wél kloppen
 
@@ -42,6 +66,18 @@ dotnet publish -c Release -r win-x64 --self-contained true ^
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true ^
   -p:EnableCompressionInSingleFile=true
 ```
+
+## Testen zonder je instellingen aan te raken
+
+Twee omgevingsvariabelen laten een testkopie naast de echte app draaien:
+
+| Variabele | Effect |
+|-----------|--------|
+| `TASKBARSTATS_DATA` | Eigen map voor `settings.json` en `usage.json` (in plaats van `%AppData%\TaskbarStats`). |
+| `TASKBARSTATS_INSTANCE` | Achtervoegsel voor de single-instance-mutex, zodat er een tweede instantie kan starten. |
+
+De app vraagt administrator-rechten (`app.manifest`); voor geautomatiseerde tests zet je in een tijdelijke kopie
+`requireAdministrator` op `asInvoker`. Zie ook `CLAUDE.md`.
 
 ## Installer (Inno Setup)
 
@@ -95,6 +131,23 @@ seconde niet meer boven het menu (of een submenu) is.
 
 Er draait maar één instantie tegelijk.
 
+## Bureaublad-dashboard en fullscreen
+
+**Bureaublad-dashboard** (menu *Bureaublad-dashboard*, standaard uit): een groot, halfdoorzichtig venster met tegels
+(CPU met per-core-balkjes, GPU per kaart met VRAM, geheugen, netwerk met een minigrafiekje per adapter, schijven,
+batterij, zwaarste programma's, systeem) en grafiekjes van de laatste 5 minuten. Alles is los aan/uit te zetten;
+verder instelbaar: voorgrond of achtergrond, schaal 50–300%, doorzichtigheid, 1–4 kolommen, vergrendelen en **klik-door**
+(kliks gaan erdoorheen; **Ctrl+Alt+D** of dubbelklik op het pictogram bij de klok zet dat aan/uit, want dan werkt
+rechtsklikken niet meer). Het blijft staan als je "Bureaublad weergeven" gebruikt.
+
+**Fullscreen dashboard** (**Ctrl+Alt+F**, of menu *Fullscreen dashboard*): één dicht overzicht van alles op een heel scherm
+(kiesbaar welk). Klik op een tegel voor de diepgaande weergave (grafiek tot 1 uur, min/gemiddeld/max, per kern, per GPU
+met VRAM, per adapter, per schijf, top-programma's, systeeminfo); **Esc** gaat terug en sluit vanuit het overzicht.
+Toets **1/2/3** kiest de grafiek: 1 min / 5 min / 1 uur.
+
+**Netwerkschijven** (gekoppelde stations) neem je mee via *Schijven → Netwerkschijven meenemen*; ze worden op de
+achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt.
+
 ## Instellingen
 
 Opgeslagen in `%AppData%\TaskbarStats\settings.json` (overleeft herbouw en
@@ -123,17 +176,31 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 
 | Bestand | Rol |
 |---------|-----|
-| `src/Program.cs` | Startpunt, single-instance mutex. |
-| `src/WidgetForm.cs` | Widget: tekenen naar een ARGB-bitmap (`UpdateLayeredWindow`), muis, menu. |
-| `src/Metrics.cs` | Prestatietellers, geheugen, temperatuur. |
+| `src/Program.cs` | Startpunt, single-instance mutex, `--autostart-on/off` voor de installer. |
+| `src/WidgetForm.cs` | Het taakbalk-widget: tekenen naar een ARGB-bitmap (`UpdateLayeredWindow`), muis, menu, tooltip, meldingen, sneltoetsen, sampler-thread. |
+| `src/Metrics.cs` | Prestatietellers (PDH-wildcard voor GPU), geheugen, batterij, temperatuur, DXGI-GPU-namen. |
+| `src/DashboardForm.cs` | Bureaublad-dashboard + `MetricHistory`/`Ring` (grafiekgeschiedenis) en `DashContext`. |
+| `src/FullscreenForm.cs` | Fullscreen "cockpit": dicht overzicht en detailweergaven per tegel. |
+| `src/UsageTracker.cs` | Netwerkverbruik per adapter en per dag (`usage.json`), thread-veilig. |
+| `src/ProcessSampler.cs` | Zwaarste processen (asynchroon bemonsterd). |
 | `src/AppSettings.cs` | Instellingen (JSON). |
-| `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak. |
+| `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak/de taakbalk. |
 | `src/StartupManager.cs` | Autostart via een geplande taak (hoogste rechten). |
-| `src/UsageTracker.cs` | Netwerkverbruik per adapter en per dag (`usage.json`). |
-| `src/ProcessSampler.cs` | Zwaarste processen voor de tooltip. |
 | `src/LogForm.cs` | Venster met het verbruikslog. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
-| `src/Loc.cs` | Nederlandse/Engelse teksten. |
+| `src/Loc.cs` | Nederlandse/Engelse teksten (`Loc.Pick`). |
+
+## Prestaties en threads
+
+De UI-thread doet alleen tekenen en menu's; het zware werk zit elders:
+
+- Een **sampler-thread** leest de metingen (`Metrics.Update`) en houdt het verbruik bij (`UsageTracker.Sample`);
+  de UI tekent met de laatste waarden. Gedeelde gegevens zijn thread-veilig (vergrendeld of atomair vervangen).
+- **GPU** gaat via één PDH-query met jokerteken (`\GPU Engine(*)\Utilization Percentage`), niet via honderden losse
+  `PerformanceCounter`-objecten (dat kostte 150–780 ms per tik).
+- Het widget staat niet elke 200 ms opnieuw bovenop (`SetWindowPos` op een venster van de taakbalk kan 100+ ms blokkeren);
+  dat gebeurt alleen als er echt een ander zichtbaar topmost-venster overheen staat.
+- Programma's bemonsteren (`ProcessSampler.SampleAsync`) en netwerkschijven (`DriveInfo`) draaien op de achtergrond.
 
 ## Licentie en credits
 

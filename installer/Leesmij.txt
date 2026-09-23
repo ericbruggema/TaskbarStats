@@ -1,0 +1,154 @@
+================================================================
+ TaskbarStats  -  Leesmij / Readme
+================================================================
+
+NEDERLANDS
+----------
+
+WAT IS HET?
+TaskbarStats is een klein, lichtgewicht widget dat naast het systeemvak
+van de Windows-taakbalk zweeft en live laat zien hoe je computer ervoor
+staat: CPU, GPU, geheugen, netwerk, schijven en temperaturen. De waarden
+komen uit dezelfde bronnen als Taakbeheer, dus ze kloppen ook daarmee.
+
+BEDIENING
+- Slepen        : houd de linkermuisknop ingedrukt en sleep het widget
+                  waar je wilt (ook buiten de taakbalk). De plek wordt
+                  onthouden. Zet "Positie vergrendelen" aan om het vast
+                  te zetten.
+- Rechtermuisknop: opent het menu met alle instellingen. Het menu blijft
+                  open als je een optie aanklikt; het sluit als je
+                  ernaast klikt, Esc drukt of de muis er ~1 seconde af is.
+- Muis erboven  : een tooltip met alle details: CPU + klokfrequentie,
+                  elke GPU met videogeheugen, RAM in GB, de zwaarste
+                  programma's (CPU en RAM), netwerk per adapter met
+                  verbruik van vandaag, schijven en vrije ruimte.
+- Dubbelklik    : opent Taakbeheer.
+- Middelste muisknop: kopieert alle tooltip-informatie naar het klembord
+                  (ook via het menu: "Kopieer info naar klembord").
+
+WAT KAN JE INSTELLEN (rechtermuisknop)
+- Onderdelen    : CPU, GPU, geheugen, batterij (alleen op laptops),
+                  upload, download, schijf lezen/schrijven, CPU- en
+                  GPU-temperatuur.
+- Weergave      : per onderdeel digitaal, meter (donut) of balk; CPU
+                  eventueel per core.
+- Kleuren       : tekst, achtergrond, meter/balk, waarschuwing, kritiek,
+                  rand en de drempels (bv. 85% / 95%).
+- Netwerkadapter en GPU-bron: kies wat het widget volgt. Achter elke
+                  adapter/GPU staat de actuele snelheid/het gebruik.
+- Schijven      : snelheid per schijf, ruimte per station, en wat het
+                  widget toont (uit, totaal, alle schijven of een schijf).
+- Verbruik      : hoeveel je hebt ontvangen/verzonden per adapter:
+                  sessie, vandaag, gisteren, 7 dagen, deze maand.
+                  "Log bekijken..." toont per dag en adapter een tabel
+                  met CSV-export. Ook een instelbare maandlimiet (data).
+- Batterij      : staande batterij, van onderaf gevuld; blauw = normaal,
+                  oranje <= 20%, rood <= 10%, groen = laden of op netstroom
+                  (bliksem = laden, stekker = op netstroom). Percentage
+                  in of naast de batterij, of uit (Weergave).
+- Meldingen     : een melding als de batterij bijna leeg is (20% en 10%),
+                  een schijf bijna vol is, CPU/GPU/
+                  geheugen te lang op kritiek staat, of je 80% / 100%
+                  van je maandlimiet bereikt.
+- Overig        : ververssnelheid, taal (NL/EN), transparante achtergrond,
+                  met Windows meestarten, verbergen bij volledig scherm
+                  (games/video), positie vergrendelen/resetten.
+
+WAAROM ADMINISTRATOR?
+De app vraagt administrator-rechten. Die zijn nodig om de temperatuur-
+sensoren uit te lezen. "Met Windows meestarten" gebruikt daarom een
+geplande taak, zodat je bij het inloggen geen UAC-melding krijgt.
+
+WAAR STAAN MIJN GEGEVENS?
+  %AppData%\TaskbarStats\settings.json   - je instellingen
+  %AppData%\TaskbarStats\usage.json      - het netwerkverbruik per dag
+Verkeer terwijl de app niet draait wordt niet meegeteld.
+
+VERWIJDEREN
+Start menu > TaskbarStats > "TaskbarStats verwijderen", of via
+Instellingen > Apps. Je wordt gevraagd of je instellingen en log ook
+wilt verwijderen.
+
+PROBLEEMOPLOSSING
+- Menu of tooltip verschijnt niet: klik eerst op het widget en probeer
+  opnieuw. Weg? Start menu > TaskbarStats, of "Reset positie" in het
+  menu als het buiten beeld staat.
+- Geen temperatuur: start de app als administrator (standaard).
+- GPU-waarde lijkt niet te kloppen: kies onder "GPU-bron" een vaste GPU.
+
+
+ENGLISH
+-------
+
+WHAT IS IT?
+TaskbarStats is a small, lightweight widget that floats next to the
+Windows taskbar's notification area and shows live CPU, GPU, memory,
+network, disk and temperature figures, taken from the same sources as
+Task Manager.
+
+CONTROLS
+- Drag with the left mouse button to place it anywhere (also outside the
+  taskbar); the position is remembered. Enable "Lock position" to fix it.
+- Right-click opens the settings menu. It stays open while you click
+  options; it closes when you click outside, press Esc, or leave it with
+  the mouse for about a second.
+- Hover for a tooltip with details (clock speed, per-GPU VRAM, RAM in GB,
+  top processes, per-adapter network usage today, disks and free space).
+- Double-click opens Task Manager.
+- Middle-click copies all tooltip information to the clipboard
+  (also in the menu: "Copy info to clipboard").
+
+FEATURES
+Components, display style (digital / gauge / bar / per-core), colours and
+thresholds, network adapter and GPU selection with live values, disk
+throughput and free space, network usage per adapter (session, today,
+yesterday, 7 days, month) with a log window and CSV export, an optional
+monthly data limit, notifications (disk almost full, sustained high load,
+data limit), hide in full screen, start with Windows, NL/EN language.
+
+ADMINISTRATOR
+Administrator rights are required to read temperature sensors. Autostart
+therefore uses a scheduled task, so there is no UAC prompt at logon.
+
+YOUR DATA
+  %AppData%\TaskbarStats\settings.json   - settings
+  %AppData%\TaskbarStats\usage.json      - daily network usage
+Traffic while the app is not running is not counted.
+
+UNINSTALL
+Start menu > TaskbarStats > "Uninstall TaskbarStats", or Settings > Apps.
+You will be asked whether to also remove your settings and log.
+
+
+================================================================
+ CREDITS
+================================================================
+
+ Idee, ontwerp en testen / Idea, design and testing:
+     Eric Bruggema
+
+ Gebouwd met / Built with:
+     Claude Code (Anthropic)  -  https://claude.com/claude-code
+
+ Gebruikte software van derden / Third-party software:
+     LibreHardwareMonitorLib   (MPL-2.0)
+         https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
+         Temperatuursensoren / temperature sensors
+     HidSharp                  (Apache-2.0)
+         https://www.zer7.com/software/hidsharp
+     System.Diagnostics.PerformanceCounter   (MIT)
+         https://github.com/dotnet/runtime
+     .NET 8 / Windows Forms    (MIT)
+         https://dotnet.microsoft.com
+     Inno Setup                (Inno Setup License)
+         https://jrsoftware.org/isinfo.php  -  de installer / the installer
+
+ Metingen komen uit Windows Performance Counters, GlobalMemoryStatusEx
+ en DXGI (GPU-namen) / Readings come from Windows Performance Counters,
+ GlobalMemoryStatusEx and DXGI (GPU names).
+
+ De genoemde componenten vallen onder hun eigen licenties. / The listed
+ components remain under their own licences.
+
+ Versie / Version 1.0.0

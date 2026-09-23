@@ -1,0 +1,123 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace TaskbarStats;
+
+/// <summary>Weergavestijl per onderdeel.</summary>
+public enum DisplayStyle { Digital, Gauge, Bar }
+
+/// <summary>Wat tonen we van de schijfruimte in het widget?</summary>
+public enum DiskSpaceMode { Off, Total, Each, Single }
+
+/// <summary>Waar staat het percentage bij de batterij?</summary>
+public enum BatteryPercentMode { Inside, Beside, Off }
+
+/// <summary>
+/// Instellingen, opgeslagen als settings.json in %AppData%\TaskbarStats
+/// (overleeft herbouw/herinstallatie). Wijzigingen via het menu worden direct bewaard.
+/// </summary>
+public sealed class AppSettings
+{
+    // Welke onderdelen tonen we?
+    public bool ShowCpu { get; set; } = true;
+    public bool ShowGpu { get; set; } = true;
+    public bool ShowMem { get; set; } = true;
+    public bool ShowNetUp { get; set; } = true;
+    public bool ShowNetDown { get; set; } = true;
+    public bool ShowBattery { get; set; } = true;   // verdwijnt vanzelf op een pc zonder accu
+    public BatteryPercentMode BatteryPercent { get; set; } = BatteryPercentMode.Inside;
+    public bool ShowDisk { get; set; } = false;   // lees/schrijfsnelheid (totaal)
+    public bool ShowCpuTemp { get; set; } = false;
+    public bool ShowGpuTemp { get; set; } = false;
+
+    // Weergavestijl per onderdeel (digitaal / meter / balk)
+    public DisplayStyle CpuStyle { get; set; } = DisplayStyle.Digital;
+    public DisplayStyle GpuStyle { get; set; } = DisplayStyle.Digital;
+    public DisplayStyle MemStyle { get; set; } = DisplayStyle.Digital;
+
+    // CPU per core (balkjes) i.p.v. één totaalwaarde
+    public bool CpuPerCore { get; set; } = false;
+
+    // Netwerkadapter: null = alle adapters samengeteld, anders de instance-naam.
+    public string? NetworkAdapter { get; set; } = null;
+
+    // GPU: null = automatisch de drukste GPU volgen, anders een vaste LUID-string.
+    public string? GpuLuid { get; set; } = null;
+
+    // Schijfruimte in het widget: uit / totaal / elke schijf apart / één schijf (DiskSpaceDrive, bv. "C:")
+    public DiskSpaceMode DiskSpace { get; set; } = DiskSpaceMode.Off;
+    public string DiskSpaceDrive { get; set; } = "C:";
+
+    public bool WelcomeShown { get; set; } = false;   // eenmalig welkomstscherm al getoond?
+
+    // Positie / gedrag
+    public bool LockPosition { get; set; } = false;      // sleep uitschakelen
+    public bool HideInFullscreen { get; set; } = true;   // verbergen bij volledig-scherm-apps
+
+    // Meldingen
+    public bool Notifications { get; set; } = true;
+    public int DiskFullPercent { get; set; } = 90;       // melding als een schijf zo vol is
+    public int CritSeconds { get; set; } = 30;           // melding als CPU/GPU/MEM zo lang op kritiek staat
+    public int MonthlyLimitGb { get; set; } = 0;         // 0 = geen maandlimiet (data)
+
+    // Kleuren
+    public string TextColor { get; set; } = "#FFFFFF";
+    public string BackgroundColor { get; set; } = "#141414";
+    public string AccentColor { get; set; } = "#0A84FF";   // meter-/balkvulling
+    public string WarnColor { get; set; } = "#FF9500";   // vanaf WarnThreshold
+    public string CritColor { get; set; } = "#FF3B30";   // vanaf CritThreshold
+    public int WarnThreshold { get; set; } = 85;
+    public int CritThreshold { get; set; } = 95;
+    public string BorderColor { get; set; } = "#FF00FF";   // leeg = geen rand
+
+    // Weergave
+    public bool TransparentBackground { get; set; } = false;
+    public bool AutoHeight { get; set; } = true;      // hoogte volgt de taakbalk
+    public int WidgetHeight { get; set; } = 44;       // vaste hoogte (als AutoHeight uit staat)
+    public int RefreshMs { get; set; } = 1000;
+    public string Language { get; set; } = "nl";   // "nl" of "en"
+    public bool LabelsAbove { get; set; } = false;   // label (CPU/GPU/MEM) boven de grafiek i.p.v. ernaast
+    public bool Compact { get; set; } = false;       // korte eenheden, kleinere marges en lettertype
+    public int FontSize { get; set; } = 9;
+    public string FontFamily { get; set; } = "Segoe UI";
+
+    // Positie (zwevend)
+    public int TrayGap { get; set; } = 5;
+    // null = nog nooit versleept: dan wordt de standaardpositie naast het systeemvak berekend.
+    public int? FloatX { get; set; } = null;
+    public int? FloatY { get; set; } = null;
+
+    [JsonIgnore] public string FilePath { get; private set; } = "";
+
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public static AppSettings Load()
+    {
+        var dir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "settings.json");
+
+        AppSettings s;
+        try
+        {
+            s = File.Exists(path)
+                ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOpts) ?? new AppSettings()
+                : new AppSettings();
+        }
+        catch { s = new AppSettings(); }
+        s.FilePath = path;
+        return s;
+    }
+
+    public void Save()
+    {
+        try { File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts)); }
+        catch { /* best-effort */ }
+    }
+}

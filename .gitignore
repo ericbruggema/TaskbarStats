@@ -1,0 +1,14 @@
+# Build-uitvoer
+bin/
+obj/
+publish/
+installer/Output/
+
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+
+# Losse back-ups
+*.bak
+*.bak-*

@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo [1/3] Publiceren (self-contained, een bestand)...
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 if errorlevel 1 goto :fail
 
 echo [2/3] Inno Setup zoeken...

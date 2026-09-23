@@ -151,4 +151,8 @@ You will be asked whether to also remove your settings and log.
  De genoemde componenten vallen onder hun eigen licenties. / The listed
  components remain under their own licences.
 
+ Licentie / Licence: MIT - https://github.com/ericbruggema/TaskbarStats
+ Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
+ Free to use and modify; please keep the credits.
+
  Versie / Version 1.0.0

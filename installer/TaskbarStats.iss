@@ -1,7 +1,7 @@
 ; Inno Setup script voor TaskbarStats
 ; Bouwen: dubbelklik  build-installer.bat  in de projectmap (publiceert de app en compileert dit script).
 ; Handmatig: 1) dotnet publish -c Release -r win-x64 --self-contained true
-;                 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+;                 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 ;            2) ISCC.exe installer\TaskbarStats.iss
 ; Resultaat: installer\Output\TaskbarStats-Setup.exe
 

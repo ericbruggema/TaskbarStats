@@ -1,6 +1,6 @@
 # TaskbarStats
 
-Een lichtgewicht CPU / GPU / geheugen / netwerk / temperatuur-monitor die naast het
+Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
 overeenkomen met Task Manager.
 
@@ -26,7 +26,7 @@ Het makkelijkst: dubbelklik **`build.bat`**. Het script
 1. vraagt zo nodig zelf om administrator-rechten (nodig om de draaiende app af te sluiten),
 2. sluit `TaskbarStats.exe` af als die draait,
 3. bouwt een Release-build,
-4. start de app opnieuw als hij daarvoor draaide.
+4. start de app daarna weer.
 
 Handmatig kan ook:
 
@@ -39,7 +39,8 @@ Voor één zelfstandig bestand zonder .NET-installatie:
 
 ```
 dotnet publish -c Release -r win-x64 --self-contained true ^
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true ^
+  -p:EnableCompressionInSingleFile=true
 ```
 
 ## Installer (Inno Setup)
@@ -79,7 +80,14 @@ bij loslaten bewaard); het menu heeft "Reset positie".
 - **Netwerkadapter** en **GPU-bron**: achter elke adapter en GPU staat de actuele snelheid/het gebruik (live bijgewerkt terwijl het menu openstaat). GPU's worden met naam getoond.
 - **Schijven**: lees/schrijfsnelheid per fysieke schijf (live), vrije/totale ruimte per station, en een keuze wat het widget toont: uit, totaal, alle schijven apart of één schijf. De totale lees/schrijfsnelheid zet je aan via *Onderdelen → Schijf lezen/schrijven*.
 - **Tooltip**: houd de muis boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
-- **Met Windows meestarten** (registersleutel `HKCU\...\Run`) en **Afsluiten**.
+- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand), een log per dag met CSV-export en een instelbare maandlimiet.
+- **Meldingen**: bijna volle schijf, langdurig hoge belasting, lage batterij, maandlimiet.
+- **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
+- **Hoogte** (automatisch = taakbalk), **Lettertype**, **Lettergrootte**, **Compact**, **Labels boven**, **Positie vergrendelen**, **Verbergen bij volledig scherm**.
+- **Met Windows meestarten** (geplande taak, geen UAC-melding) en **Afsluiten**.
+
+Verder: dubbelklik opent Taakbeheer, de middelste muisknop kopieert de tooltip-informatie
+naar het klembord, en bij de eerste start verschijnt een welkomstscherm.
 
 Het menu blijft open als je een optie aanklikt, zodat je meerdere dingen achter elkaar kunt
 instellen. Het sluit als je buiten het menu klikt, Esc drukt, of de muis ongeveer een
@@ -108,9 +116,8 @@ temperatuur-sensoren (LibreHardwareMonitorLib). Heb je die niet nodig, dan mag j
 
 ## Automatisch starten met Windows
 
-Gebruik "Met Windows meestarten" in het menu, of de optie in de installer. Wil je de
-UAC-prompt bij het opstarten vermijden, maak dan een taak in Taakplanner met
-"Met hoogste bevoegdheden uitvoeren".
+Gebruik "Met Windows meestarten" in het menu, of de optie in de installer. Dit maakt een
+geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding komt.
 
 ## Code-overzicht
 
@@ -121,5 +128,18 @@ UAC-prompt bij het opstarten vermijden, maak dan een taak in Taakplanner met
 | `src/Metrics.cs` | Prestatietellers, geheugen, temperatuur. |
 | `src/AppSettings.cs` | Instellingen (JSON). |
 | `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak. |
-| `src/StartupManager.cs` | Autostart via het register. |
-| `src/Loc.cs` | Nederlandse/Engelse menuteksten. |
+| `src/StartupManager.cs` | Autostart via een geplande taak (hoogste rechten). |
+| `src/UsageTracker.cs` | Netwerkverbruik per adapter en per dag (`usage.json`). |
+| `src/ProcessSampler.cs` | Zwaarste processen voor de tooltip. |
+| `src/LogForm.cs` | Venster met het verbruikslog. |
+| `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
+| `src/Loc.cs` | Nederlandse/Engelse teksten. |
+
+## Licentie en credits
+
+MIT-licentie (zie [LICENSE](LICENSE)): je mag TaskbarStats vrij gebruiken, aanpassen en delen,
+ook voor eigen projecten. De enige voorwaarde is dat de copyrightregel en de licentietekst
+behouden blijven — laat dus graag de credits staan. Bedankt!
+
+Het programma gebruikt LibreHardwareMonitorLib (MPL-2.0), HidSharp (Apache-2.0) en .NET (MIT);
+die vallen onder hun eigen licenties.

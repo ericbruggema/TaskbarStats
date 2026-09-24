@@ -15,7 +15,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 
 - De app heeft `requireAdministrator` (LibreHardwareMonitor voor temperaturen). Je kunt hem dus niet zomaar vanuit een
   niet-elevated shell starten; een `taskkill` op de draaiende app vereist ook admin.
-- Inno Setup is mogelijk niet geïnstalleerd (`winget install JRSoftware.InnoSetup`). De installer is nog nooit gebouwd/uitgeprobeerd.
+- Inno Setup 6.7.3 is per gebruiker geïnstalleerd (`%LOCALAPPDATA%\Programs\Inno Setup 6`; `build-installer.bat` zoekt daar ook). Opnieuw: `winget install JRSoftware.InnoSetup --override "/CURRENTUSER /VERYSILENT /NORESTART"`.
 - Versie staat op één plek: `<Version>` in `TaskbarStats.csproj` (het Over-scherm leest die uit). Ook `installer\TaskbarStats.iss` (AppVersion, bepaalt de bestandsnaam `TaskbarStats-Setup-<versie>.exe`) en `installer\Leesmij.txt` noemen hem.
 
 ## Architectuur (kort)
@@ -71,6 +71,9 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 - **Geen schermopnames van het hele scherm**: die lekken persoonlijke info (browser, muziek) en tijdens een vergrendelde sessie
   krijg je het vergrendelscherm. Teken vensters liever rechtstreeks naar een PNG (`Bitmap.Save` vóór `UpdateLayeredWindow`,
   of `OnPaint` naar een bitmap) en **anonimiseer** computernaam/gebruiker/programmanamen voor publicatie (zie `docs/screenshots`).
+- UAC-meldingen kunnen niet worden geaccepteerd terwijl de sessie vergrendeld is (`Get-Process LogonUI`); elevated tests dan uitstellen.
+  Een elevated proces kan niet door een niet-elevated PowerShell worden gestopt: laat de testkopie zichzelf afsluiten (`Environment.Exit`).
+- PowerShell 5: `$(native command 2>&1 | Out-String) -match 'naam'` matcht ook de foutmelding (die de opdracht met de naam bevat); controleer de exitcode.
 - Voorkom dat testprocessen blijven hangen; `Get-Process TaskbarStats` en alleen processen uit de tempmap stoppen, nooit de echte.
 
 ## Conventies
@@ -85,6 +88,10 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 ## Ideeën / nog te doen
 
 - Tegels in het dashboard slepen/herordenen; thema's; controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
-- Installer bouwen en uitproberen (Inno Setup); een release met de installer op GitHub.
+- **Release v1.1.0 staat als concept (draft) op GitHub** met `TaskbarStats-Setup-1.1.0.exe`. Nog te doen vóór publiceren: de installer echt
+  (elevated) uitproberen — installeren in een tijdelijke map met `TASKBARSTATS_TASK=<testnaam>` zodat de echte autostart-taak ongemoeid blijft,
+  daarna verwijderen — en de sensoren elevated bekijken (CPU/hoofdbord/schijven vragen admin). Publiceren: `gh release edit v1.1.0 --draft=false`.
+  Al getest zonder admin: bestanden, Startmenu-snelkoppelingen, registervermelding, verwijderen/opruimen, en het aanmaken/verwijderen van de
+  autostart-taak (XML) met gewone rechten.
 - Kleinere download: installer die .NET 8 controleert, of port naar .NET Framework 4.8 (zit in Windows).
 - Meting van de `Metrics.Update` (nu ~20 ms op de sampler-thread) verder verlagen door meer tellers te bundelen in PDH-queries.

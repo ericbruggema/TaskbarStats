@@ -70,8 +70,9 @@ public sealed class Metrics : IDisposable
     /// <summary>Geschatte resterende tijd in seconden bij ontladen (-1 = onbekend).</summary>
     public int BatteryRemainingSec { get; private set; } = -1;
     public double? CpuMHz { get; private set; }
-    public double? CpuTempC { get; private set; }
-    public double? GpuTempC { get; private set; }
+    private double? _rCpuT, _rGpuT;
+    public double? CpuTempC { get => _rCpuT is double d ? Cadence.M(3, d) : null; private set => _rCpuT = value; }
+    public double? GpuTempC { get => _rGpuT is double d ? Cadence.M(4, d) : null; private set => _rGpuT = value; }
 
     /// <summary>Actuele snelheid per netwerkadapter (down, up) in bytes/s.</summary>
     public IReadOnlyDictionary<string, (double down, double up)> NetPerAdapter => _netRates;

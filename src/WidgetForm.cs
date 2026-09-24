@@ -148,6 +148,8 @@ public sealed class WidgetForm : Form
             try { Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true }); } catch { }
         };
         MouseDown += OnMouseDown;
+        _fx.Tick += (_, _) => FxTick();
+        Cadence.Hook = mode => { if (IsHandleCreated) BeginInvoke(new Action(() => FxStart(mode))); };
         MouseMove += OnMouseMove;
         MouseUp += OnMouseUp;
     }
@@ -173,6 +175,9 @@ public sealed class WidgetForm : Form
 
     private WelcomeForm? _welcome;
     private CreditsForm? _credits;
+    private readonly System.Windows.Forms.Timer _fx = new() { Interval = 40 };
+    private Point _fxBase;
+    private bool _fxOn;
 
     private void ShowWelcome()
     {
@@ -505,6 +510,28 @@ public sealed class WidgetForm : Form
         Drives = () => _drives, ShowMenu = p => _menu.Show(p), Nudge = Nudge,
     };
 
+    // Tijdelijke effecten: snelle timer zolang ze lopen (trillen = het hele widget een paar pixels heen en weer, stijgen = vaker tekenen).
+    private void FxStart(int mode)
+    {
+        if (!_fxOn) { _fxBase = Location; _fxOn = true; }
+        _fx.Interval = mode == 1 ? 30 : 60;
+        _fx.Start();
+    }
+
+    private void FxTick()
+    {
+        if (_dragging) { _fx.Stop(); _fxOn = false; return; }
+        if (Cadence.Active)
+        {
+            if (Cadence.On(1)) { var j = Cadence.Jitter(); Location = new Point(_fxBase.X + j.X, _fxBase.Y + j.Y); }
+            else Render();
+            return;
+        }
+        _fx.Stop();
+        if (_fxOn) { _fxOn = false; Location = _fxBase; }
+        Render();
+    }
+
     private void Nudge(int code)
     {
         if (code != 1) return;
@@ -760,6 +787,7 @@ public sealed class WidgetForm : Form
                 : C(_cfg.BackgroundColor, Color.FromArgb(20, 20, 20)));
             DrawAll(g);
             Cadence.Cap(g, Width, Height);
+            Cadence.Fool(g, Width, Height, _font);
             if (!string.IsNullOrWhiteSpace(_cfg.BorderColor))
             {
                 using var pen = new Pen(C(_cfg.BorderColor, Color.Magenta), 1);
@@ -828,8 +856,6 @@ public sealed class WidgetForm : Form
                     break;
             }
         }
-        if (Cadence.On(2))
-            x += DrawTextCell(g, x, "", Cadence.Word, Cadence.Word, (Environment.TickCount64 / 200 % 2 == 0) ? C(_cfg.CritColor, Color.Red) : C(_cfg.WarnColor, Color.Orange)) + gap;
         return x;
     }
 
@@ -974,10 +1000,12 @@ public sealed class WidgetForm : Form
     {
         var st = _metrics.Ping.Stats();
         var textCol = C(_cfg.TextColor, Color.White);
-        Color col = st.Last is null ? textCol
-                  : st.Last < 0 || st.Last >= 250 ? C(_cfg.CritColor, Color.Red)
-                  : st.Last >= 100 ? C(_cfg.WarnColor, Color.Orange) : textCol;
-        return DrawTextCell(g, x, "PING", st.LastText, "999 ms", col);
+        double? last = st.Last is double l && l >= 0 ? Cadence.M(7, l) : st.Last;
+        Color col = last is null ? textCol
+                  : last < 0 || last >= 250 ? C(_cfg.CritColor, Color.Red)
+                  : last >= 100 ? C(_cfg.WarnColor, Color.Orange) : textCol;
+        string txt = last is null ? "…" : last < 0 ? "✕" : $"{last:0} ms";
+        return DrawTextCell(g, x, "PING", txt, "999 ms", col);
     }
 
     private int DrawDisk(Graphics g, int x)
@@ -1212,7 +1240,7 @@ public sealed class WidgetForm : Form
     {
         HideTip();
         if (e.Button == MouseButtons.Middle) { CopyInfo(); return; }
-        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 5000); }
+        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 11500); }
         else if (e.Button == MouseButtons.Right) { _dragging = false; _menu.Show(this, e.Location); }
     }
     private void OnMouseUp(object? s, MouseEventArgs e)

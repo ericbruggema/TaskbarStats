@@ -67,6 +67,9 @@ public sealed class FullscreenForm : Form
     }
 
     // ---------- Invoer ----------
+    // Pijltjestoetsen worden anders door het formulier zelf afgehandeld (focus verplaatsen) en komen niet als toets aan.
+    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Up or Keys.Down or Keys.Left or Keys.Right || base.IsInputKey(keyData);
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if (_tour)

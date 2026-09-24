@@ -41,7 +41,7 @@ public sealed class AboutForm : Form
             Location = new Point(20, 52),
         };
 
-        version.Click += (_, _) => { if (Cadence.Hit(1, 7, 5000)) Cadence.Go(1, 6000); };
+        version.Click += (_, _) => { if (Cadence.Hit(1, 7, 5000)) Cadence.Go(1, 10000); };
 
         var box = new TextBox
         {

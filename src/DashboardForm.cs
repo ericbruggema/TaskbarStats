@@ -33,7 +33,7 @@ public sealed class MetricHistory
     public void Sample(Metrics m)
     {
         long now = Environment.TickCount64;
-        if (now - _at < 1000) return;
+        if (now - _at < 1000 || Cadence.Active) return;
         _at = now;
         Cpu.Add(m.CpuPercent); Gpu.Add(m.GpuPercent); Mem.Add(m.MemPercent);
         NetDown.Add(m.NetDownBytesPerSec); NetUp.Add(m.NetUpBytesPerSec);

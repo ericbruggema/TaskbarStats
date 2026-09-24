@@ -7,7 +7,7 @@ namespace TaskbarStats;
 public static class Cadence
 {
     private static volatile int _mode;
-    private static long _until;
+    private static long _start, _until;
 
     private static string D(string s) => Encoding.UTF8.GetString(Convert.FromBase64String(s).Select(b => (byte)(b ^ 0x5A)).ToArray());
 
@@ -15,44 +15,67 @@ public static class Cadence
     public static bool Active => _mode != 0 && Environment.TickCount64 <= _until;
     public static bool On(int mode) => _mode == mode && Environment.TickCount64 <= _until;
 
-    public static void Go(int mode, int ms) { _until = Environment.TickCount64 + ms; _mode = mode; }
+    /// <summary>Wordt aangeroepen als een modus start (het widget zet dan een snelle timer aan).</summary>
+    public static Action<int>? Hook;
 
-    /// <summary>Meetwaarde tijdelijk vervangen (kind: 0 cpu, 1 geheugen, 2 gpu, 5/6 netwerk).</summary>
+    public static void Go(int mode, int ms)
+    {
+        _start = Environment.TickCount64;
+        _until = _start + ms;
+        _mode = mode;
+        Hook?.Invoke(mode);
+    }
+
+    private const double RampMs = 8000;
+
+    // Langzaam beginnen en steeds sneller (derde macht): 0 -> 1 over RampMs.
+    private static double Rise(long now) { double p = Math.Clamp((now - _start) / RampMs, 0, 1); return p * p * p; }
+
+    /// <summary>Laatste fase van modus 2 (na het stijgen).</summary>
+    public static bool Finale => _mode == 2 && Environment.TickCount64 - _start >= RampMs && Environment.TickCount64 <= _until;
+
+    /// <summary>Meetwaarde tijdelijk laten stijgen (kind: 0 cpu, 1 geheugen, 2 gpu, 3/4 temperatuur, 5/6 netwerk, 7 ping).</summary>
     public static double M(int kind, double raw)
     {
-        int m = _mode;
-        if (m == 0) return raw;
+        if (_mode != 2) return raw;
         long now = Environment.TickCount64;
         if (now > _until) { _mode = 0; return raw; }
-        double t = now / 1000.0;
-        if (m == 1)
-        {
-            if (kind == 0) return Ring.Length * 900 + 1;
-            if (kind >= 5) return (0.5 + 0.5 * Math.Sin(t * 5 + kind)) * 1.2e9;
-            return 50 + 50 * Math.Sin(t * 6 + kind * 1.3);
-        }
-        return kind switch
-        {
-            0 => 97 + 3 * Math.Abs(Math.Sin(t * 23)),
-            2 => 90 + 10 * Math.Abs(Math.Sin(t * 17)),
-            _ => raw,
-        };
+        double top = kind switch { 0 or 1 or 2 => 100, 3 or 4 => 110, 5 or 6 => 1.5e9, 7 => 999, _ => raw };
+        return raw + (Math.Max(top, raw) - raw) * Rise(now);
     }
 
     public static double[] C(double[] raw)
     {
-        int m = _mode;
-        if (m == 0) return raw;
+        if (_mode != 2) return raw;
         long now = Environment.TickCount64;
         if (now > _until) { _mode = 0; return raw; }
-        double t = now / 1000.0;
-        var r = new double[raw.Length];
-        for (int i = 0; i < r.Length; i++)
-            r[i] = m == 1 ? 50 + 50 * Math.Sin(t * 7 + i * 0.7) : 90 + 10 * Math.Abs(Math.Sin(t * 19 + i));
-        return r;
+        double r = Rise(now);
+        var res = new double[raw.Length];
+        for (int i = 0; i < res.Length; i++) res[i] = raw[i] + (100 - raw[i]) * Math.Clamp(r * (1 + 0.15 * Math.Sin(i * 1.7)), 0, 1);
+        return res;
     }
 
-    public static string Word => D("Dg8IGBU=");
+    /// <summary>Tekst over de waarden heen in de laatste fase.</summary>
+    public static void Fool(Graphics g, int w, int h, Font f)
+    {
+        if (!Finale) return;
+        using var shade = new SolidBrush(Color.FromArgb(95, 0, 0, 0));
+        g.FillRectangle(shade, 0, 0, w, h);
+        string t = D("HDU1Nj8+eiM7Mns=");
+        using var bf = new Font(f.FontFamily, f.Size * 1.35f, FontStyle.Bold);
+        var sz = g.MeasureString(t, bf);
+        using var b = new SolidBrush(Environment.TickCount64 / 250 % 2 == 0 ? Color.OrangeRed : Color.Gold);
+        g.DrawString(t, bf, b, (w - sz.Width) / 2, (h - sz.Height) / 2);
+    }
+
+    /// <summary>Kleine trilling (in pixels) voor het hele widget; (0, 0) als er niets loopt.</summary>
+    public static Point Jitter()
+    {
+        if (!On(1)) return Point.Empty;
+        long t = Environment.TickCount64;
+        return new Point((int)Math.Round(3 * Math.Sin(t * 0.09)) + (int)(t / 30 % 3) - 1, (int)Math.Round(2 * Math.Sin(t * 0.13 + 1)) + (int)(t / 47 % 3) - 1);
+    }
+
     public static string Title => D("DjU7KS4=");
 
     // ---------- Herhaalde klikken ----------
@@ -86,7 +109,7 @@ public static class Cadence
     {
         Ring[_n % 10] = key;
         _n++;
-        if (_n >= 10 && H((_n - 10) % 10, 10) == 3620383964u) { _n = 0; return 1; }
+        if (_n >= 10) { uint h10 = H((_n - 10) % 10, 10); if (h10 == 3620383964u || h10 == 1230234516u) { _n = 0; return 1; } }
         if (_n >= 5 && H((_n - 5) % 10, 5) == 4265512048u) { _n = 0; return 2; }
         return 0;
     }

@@ -50,6 +50,7 @@ zodat het rechtermuismenu soms niet verscheen.
 - Meetteller-kosten: gebruik **PDH-wildcardqueries** (`PdhWildcard`) voor tellers met veel instanties (GPU-engines, netwerk, CPU-cores); losse `PerformanceCounter`-objecten kostten o.a. 39 ms/s voor het netwerk. Meten met een `Stopwatch` per blok in de testkopie (zie `scratchpad/prof_patch.py`-aanpak).
 - Zuinig: sampler meet om de 5 s als niemand kijkt (`_idle` in `WidgetForm`), verbruik om de 5 s, werkset-trim elke minuut, `ConcurrentGarbageCollection=false`. Baseline in rust: ~2% van één kern, ~60 MB werkset.
 - **UAC en netwerkstations**: een als administrator draaiend proces ziet de gekoppelde netwerkstations van de gewone sessie niet in `DriveInfo`. `Metrics.GetDriveSpaces(Network)` leest daarom ook `HKCU\Network` en vraagt de ruimte via het UNC-pad (`GetDiskFreeSpaceEx`).
+- Het icoon moet als `EmbeddedResource` (`LogicalName="app.ico"`) in de csproj staan, anders valt `AppIcon` stil terug op het generieke Windows-icoon (zo ging het een keer mis). Controle: `WM_GETICON` op een venster lezen in een testkopie.
 - Testscripts kopieren `app.ico` mee (anders faalt de build van de testkopie). Elevated testen: env-variabelen binnen het elevated script zetten (RunAs geeft ze niet door).
 - Geen extern proces starten per menu-opening (`schtasks` wordt daarom gecachet). Netwerkschijven (`DriveInfo`) alleen async.
 - Meten in plaats van gokken: een 15 ms-timer die de UI-hapering logt + `Stopwatch` rond verdachte stukken werkte goed.

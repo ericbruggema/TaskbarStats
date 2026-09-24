@@ -251,7 +251,7 @@ public sealed class SettingsForm : Form
     private Control WidgetOrderEditor()
     {
         var host = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
-        var list = new ListBox { Width = 250, Height = 192, IntegralHeight = false };
+        var list = new ListBox { Width = 250, Height = 214, IntegralHeight = false };
         var order = Tiles.WidgetOrder(_c.WidgetOrder);
         void fill()
         {

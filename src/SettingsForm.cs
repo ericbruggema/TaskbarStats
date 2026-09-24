@@ -259,6 +259,15 @@ public sealed class SettingsForm : Form
         reset.Click += (_, _) => _h.ResetWidget();
         p.Controls.Add(reset);
 
+        p.Controls.Add(Head(Loc.Pick("Tooltip boven het widget", "Tooltip over the widget")));
+        var delays = new (string, int)[]
+        {
+            (Loc.S("off"), -1), ("2 s", 2000), ("3 s", 3000), ("4 s", 4000), ("5 s", 5000), ("7 s", 7000), ("10 s", 10000),
+        };
+        p.Controls.Add(Row(Loc.Pick("Verschijnt na", "Appears after"), Seg(delays, () => _c.TooltipDelayMs, v => _c.TooltipDelayMs = v, 52), 130));
+        p.Controls.Add(Note(Loc.Pick("Langer wachten geeft je meer tijd om met de muis op het widget te staan en rechts te klikken.",
+                                     "A longer delay gives you more time to rest the mouse on the widget and right-click.")));
+
         p.Controls.Add(Head(Loc.Pick("Meldingen", "Notifications")));
         var notify = Check(Loc.Pick("Meldingen aan", "Notifications on"), _c.Notifications, v => _c.Notifications = v);
         p.Controls.Add(notify);

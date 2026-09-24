@@ -80,6 +80,7 @@ public sealed class AppSettings
     // Positie / gedrag
     public bool LockPosition { get; set; } = false;      // sleep uitschakelen
     public bool HideInFullscreen { get; set; } = true;   // verbergen bij volledig-scherm-apps
+    public int TooltipDelayMs { get; set; } = 2000;      // wachttijd voor de tooltip boven het widget (minimaal 2 s); -1 = nooit
 
     // Meldingen
     public bool Notifications { get; set; } = true;

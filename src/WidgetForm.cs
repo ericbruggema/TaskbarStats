@@ -22,6 +22,41 @@ public sealed class WidgetForm : Form
     private readonly System.Windows.Forms.Timer _menuTimer = new();
     private int _menuOutsideTicks;
     private readonly ToolTip _tip = new() { AutoPopDelay = 30000, InitialDelay = 400, ReshowDelay = 100 };
+
+    // De tooltip verschijnt pas nadat de muis een instelbare tijd (minimaal 2 s) op het widget heeft gestaan; zo heb je tijd
+    // om rechts te klikken zonder dat hij ervoor staat. We tonen hem zelf (ToolTip.Show) in plaats van de ingebouwde vertraging.
+    private long _hoverAt;
+    private bool _tipShown;
+
+    private void CheckTooltip()
+    {
+        if (!_hover || _menu.Visible || _dragging || _cfg.TooltipDelayMs < 0) { HideTip(); return; }
+        if (_tipShown) return;
+        if (Environment.TickCount64 - _hoverAt < Math.Max(2000, _cfg.TooltipDelayMs)) return;
+        _tipText = BuildTooltip();
+        PlaceTip(_tipText);
+        _tipShown = true;
+    }
+
+    private void HideTip()
+    {
+        if (!_tipShown) return;
+        _tipShown = false;
+        _tipText = "";
+        _tip.Hide(this);
+    }
+
+    // Boven het widget tonen (of eronder als daar geen ruimte is) en binnen het scherm houden.
+    private void PlaceTip(string t)
+    {
+        var sz = TextRenderer.MeasureText(t, SystemFonts.MessageBoxFont);
+        int w = sz.Width + 16, h = sz.Height + 12;
+        var wa = Screen.FromControl(this).WorkingArea;
+        int x = Math.Min(0, wa.Right - (Left + w));
+        int y = -(h + 6);
+        if (Top + y < wa.Top) y = Height + 6;
+        _tip.Show(t, this, x, y);
+    }
     private string _tipText = "";
     private readonly List<(ToolStripItem item, Func<string> text)> _live = new();
     private List<DriveSpace> _drives = new();
@@ -104,8 +139,8 @@ public sealed class WidgetForm : Form
 
         _notifyHide.Tick += (_, _) => { _notifyHide.Stop(); _notify.Visible = false; };
 
-        MouseEnter += (_, _) => { _hover = true; _procAt = Environment.TickCount64; _procs.SampleAsync(); };
-        MouseLeave += (_, _) => { _hover = false; _procs.Reset(); };
+        MouseEnter += (_, _) => { _hover = true; _hoverAt = Environment.TickCount64; _procAt = _hoverAt; _procs.SampleAsync(); };
+        MouseLeave += (_, _) => { _hover = false; HideTip(); _procs.Reset(); };
         MouseDoubleClick += (_, e) =>
         {
             if (e.Button != MouseButtons.Left) return;
@@ -255,10 +290,11 @@ public sealed class WidgetForm : Form
 
     private void UpdateTooltip()
     {
+        if (!_tipShown) return;
         string t = BuildTooltip();
         if (t == _tipText) return;
         _tipText = t;
-        _tip.SetToolTip(this, t);
+        PlaceTip(t);
     }
 
     private string BuildTooltip(bool forceProcs = false)
@@ -395,6 +431,7 @@ public sealed class WidgetForm : Form
     // ---------- Volledig scherm ----------
     private void OnTopTick()
     {
+        CheckTooltip();
         if (_cfg.AutoHeight && Environment.TickCount64 - _heightCheckedAt > 5000) ApplyHeight();
         bool fs = _cfg.HideInFullscreen && IsFullscreenAppRunning();
         _dash?.SetSuppressed(fs && _cfg.DashFront);
@@ -1073,6 +1110,7 @@ public sealed class WidgetForm : Form
     // ---------- Muis ----------
     private void OnMouseDown(object? s, MouseEventArgs e)
     {
+        HideTip();
         if (e.Button == MouseButtons.Middle) { CopyInfo(); return; }
         if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; }
         else if (e.Button == MouseButtons.Right) { _dragging = false; _menu.Show(this, e.Location); }
@@ -1172,7 +1210,7 @@ public sealed class WidgetForm : Form
     private void BuildContextMenu()
     {
         _menu = new ContextMenuStrip();
-        _menu.Opening += (_, _) => RefreshMenu(_menu);
+        _menu.Opening += (_, _) => { HideTip(); RefreshMenu(_menu); };
         _menu.Opened += (_, _) => { _menuOutsideTicks = 0; _menuTimer.Start(); };
         _menu.Closed += (_, _) => _menuTimer.Stop();
         _menu.Closing += OnDropDownClosing;
@@ -1211,6 +1249,10 @@ public sealed class WidgetForm : Form
         menu.Items.Add(BuildUsageMenu());
         menu.Items.Add(BuildDashMenu());
         menu.Items.Add(BuildFullMenu());
+
+        var resetItem = new ToolStripMenuItem(Loc.S("resetPos")) { Tag = "close" };
+        resetItem.Click += (_, _) => ResetWidgetPosition();
+        menu.Items.Add(resetItem);
 
         menu.Items.Add(new ToolStripSeparator());
         var copy = new ToolStripMenuItem(Loc.Pick("Kopieer info naar klembord", "Copy info to clipboard")) { Tag = "close" };

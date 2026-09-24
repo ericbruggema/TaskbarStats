@@ -131,11 +131,12 @@ bij loslaten bewaard); de instellingen (tab Algemeen) hebben "Reset positie".
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
   - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.
   - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
-  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen/resetten, verbergen bij volledig scherm, meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
+  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen/resetten, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
 - **Thema**: snelkeuze om met één klik een thema toe te passen.
 - **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
+- **Reset positie** (zet het widget terug naast het systeemvak).
 - **Bureaublad-dashboard** (tonen, klik-door, vergrendelen) en **Fullscreen dashboard**, plus *Kopieer info*, *Welkomstscherm*, *Leesmij en credits*, *Over* en **Afsluiten**.
-- **Tooltip**: houd de muis boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
+- **Tooltip**: houd de muis minstens 2 s (instelbaar) boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
 - **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
 
 Verder: dubbelklik opent Taakbeheer, de middelste muisknop kopieert de tooltip-informatie

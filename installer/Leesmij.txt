@@ -196,4 +196,4 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
- Versie / Version 1.2.1
+ Versie / Version 1.3.0

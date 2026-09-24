@@ -14,6 +14,7 @@ public sealed class WelcomeForm : Form
 
     public WelcomeForm(Action<string> setLanguage)
     {
+        AppIcon.Apply(this);
         _setLanguage = setLanguage;
 
         FormBorderStyle = FormBorderStyle.FixedDialog;

@@ -4,6 +4,16 @@ using System.Text.Json;
 
 namespace TaskbarStats;
 
+/// <summary>Wat het instellingenvenster van het widget nodig heeft (toepassen, acties, gegevens).</summary>
+public sealed class SettingsHost
+{
+    public required Action Apply { get; init; }
+    public required Action ResetDash { get; init; }
+    public required Action ResetWidget { get; init; }
+    public required Action ShowLog { get; init; }
+    public required Func<List<DriveSpace>> Drives { get; init; }
+}
+
 /// <summary>
 /// Instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast (en opgeslagen) via <c>apply</c>,
 /// zodat je het effect meteen op het widget, het dashboard en het fullscreen-scherm ziet.
@@ -13,7 +23,7 @@ public sealed class SettingsForm : Form
 {
     private readonly AppSettings _c;
     private readonly Action _apply;
-    private readonly Action _resetDash;
+    private readonly SettingsHost _h;
     private readonly TabControl _tabs = new() { Dock = DockStyle.Fill };
     private readonly List<Action> _deps = new();
     private bool _building;
@@ -22,11 +32,12 @@ public sealed class SettingsForm : Form
     private static readonly Color SegOn = Color.FromArgb(0, 103, 192), SegOff = Color.FromArgb(240, 240, 240);
     private const int ColW = 210;   // breedte van één vinkje in een kolomrooster
 
-    public SettingsForm(AppSettings cfg, Action apply, Action resetDash)
+    public SettingsForm(AppSettings cfg, SettingsHost host)
     {
+        AppIcon.Apply(this);
         _c = cfg;
-        _apply = apply;
-        _resetDash = resetDash;
+        _h = host;
+        _apply = host.Apply;
         Text = Loc.Pick("TaskbarStats — instellingen", "TaskbarStats — settings");
         StartPosition = FormStartPosition.CenterScreen;
         Size = new Size(780, 640);
@@ -55,6 +66,7 @@ public sealed class SettingsForm : Form
         _tabs.TabPages.Add(DashTab());
         _tabs.TabPages.Add(FullTab());
         _tabs.TabPages.Add(ThemesTab());
+        _tabs.TabPages.Add(GeneralTab());
         _tabs.SelectedIndex = Math.Clamp(select, 0, _tabs.TabPages.Count - 1);
         ResumeLayout();
         RunDeps();
@@ -220,6 +232,54 @@ public sealed class SettingsForm : Form
         return Row(label, host);
     }
 
+    // ---------- tabblad Algemeen ----------
+    private TabPage GeneralTab()
+    {
+        var p = Page(Loc.Pick("Algemeen", "General"), out var tab);
+
+        p.Controls.Add(Head(Loc.S("language")));
+        p.Controls.Add(Seg(new (string, string)[] { (Loc.S("dutch"), "nl"), (Loc.S("english"), "en") }, () => _c.Language, v =>
+        {
+            _c.Language = v;
+            Loc.Lang = v;
+            _apply();
+            BeginInvoke(new Action(() =>
+            {
+                Text = Loc.Pick("TaskbarStats — instellingen", "TaskbarStats — settings");
+                Build(_tabs.SelectedIndex);
+            }));
+        }, 110));
+
+        p.Controls.Add(Head(Loc.Pick("Opstarten en positie", "Startup and position")));
+        p.Controls.Add(Check(Loc.S("startup"), StartupManager.IsEnabled(), v => StartupManager.Set(v)));
+        p.Controls.Add(Check(Loc.Pick("Positie vergrendelen", "Lock position"), _c.LockPosition, v => _c.LockPosition = v));
+        p.Controls.Add(Check(Loc.Pick("Verbergen bij volledig scherm", "Hide in full screen"), _c.HideInFullscreen, v => _c.HideInFullscreen = v));
+        var reset = Btn(Loc.S("resetPos"), 170);
+        reset.Margin = new Padding(3, 6, 3, 3);
+        reset.Click += (_, _) => _h.ResetWidget();
+        p.Controls.Add(reset);
+
+        p.Controls.Add(Head(Loc.Pick("Meldingen", "Notifications")));
+        var notify = Check(Loc.Pick("Meldingen aan", "Notifications on"), _c.Notifications, v => _c.Notifications = v);
+        p.Controls.Add(notify);
+        var diskFull = Seg(new (string, int)[] { ("80%", 80), ("85%", 85), ("90%", 90), ("95%", 95) }, () => _c.DiskFullPercent, v => _c.DiskFullPercent = v, 56);
+        var critSecs = Seg(new (string, int)[] { ("10 s", 10), ("30 s", 30), ("60 s", 60), ("120 s", 120) }, () => _c.CritSeconds, v => _c.CritSeconds = v, 56);
+        p.Controls.Add(Row(Loc.Pick("Schijf bijna vol vanaf", "Disk almost full at"), diskFull, 230));
+        p.Controls.Add(Row(Loc.Pick("Hoge belasting melden na", "Notify on high load after"), critSecs, 230));
+        p.Controls.Add(Note(Loc.Pick("Hoge belasting geldt voor CPU, GPU en geheugen.", "High load applies to CPU, GPU and memory.")));
+        Dep(() => { diskFull.Enabled = critSecs.Enabled = _c.Notifications; });
+
+        p.Controls.Add(Head(Loc.Pick("Netwerkverbruik", "Network usage")));
+        var limits = new List<(string, int)> { (Loc.S("off"), 0) };
+        foreach (int gb in new[] { 5, 10, 25, 50, 100, 250, 500, 1000 }) limits.Add((gb >= 1000 ? "1 TB" : $"{gb} GB", gb));
+        p.Controls.Add(Row(Loc.Pick("Maandlimiet", "Monthly limit"), Seg(limits, () => _c.MonthlyLimitGb, v => _c.MonthlyLimitGb = v, 52), 130));
+        var log = Btn(Loc.Pick("Verbruikslog bekijken…", "View usage log…"), 170);
+        log.Margin = new Padding(3, 6, 3, 3);
+        log.Click += (_, _) => _h.ShowLog();
+        p.Controls.Add(log);
+        return tab;
+    }
+
     private static Button Btn(string text, int minWidth = 110)
         => new() { Text = text, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, MinimumSize = new Size(minWidth, 30), Margin = new Padding(0, 0, 6, 6) };
 
@@ -239,6 +299,49 @@ public sealed class SettingsForm : Form
             Check(Loc.S("diskIo"), _c.ShowDisk, v => _c.ShowDisk = v, ColW),
             Check(Loc.S("cpuTemp"), _c.ShowCpuTemp, v => _c.ShowCpuTemp = v, ColW),
             Check(Loc.S("gpuTemp"), _c.ShowGpuTemp, v => _c.ShowGpuTemp = v, ColW)));
+
+        // Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes hierboven).
+        p.Controls.Add(Head(Loc.Pick("Bronnen", "Sources")));
+        var gpuItems = new List<(string, string)> { (Loc.Pick("Automatisch (drukste)", "Automatic (busiest)"), "") };
+        foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu)) gpuItems.Add((Metrics.GpuName(l), l));
+        var gpuSrc = Seg(gpuItems, () => _c.GpuLuid ?? "", v => _c.GpuLuid = v == "" ? null : v, 60);
+        p.Controls.Add(Row(Loc.S("gpu"), gpuSrc));
+
+        var adapters = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 380 };
+        adapters.Items.Add(Loc.S("allAdapters"));
+        var adapterNames = Metrics.GetNetworkAdapters();
+        foreach (var a in adapterNames) adapters.Items.Add(a);
+        int ai = _c.NetworkAdapter is null ? 0 : Array.IndexOf(adapterNames, _c.NetworkAdapter) + 1;
+        if (ai <= 0 && _c.NetworkAdapter is not null) { adapters.Items.Add(_c.NetworkAdapter); ai = adapters.Items.Count - 1; }
+        adapters.SelectedIndex = Math.Max(0, ai);
+        adapters.SelectedIndexChanged += (_, _) =>
+        {
+            if (_building || adapters.SelectedIndex < 0) return;
+            _c.NetworkAdapter = adapters.SelectedIndex == 0 ? null : adapters.SelectedItem as string;
+            Changed();
+        };
+        p.Controls.Add(Row(Loc.S("netAdapter"), adapters));
+
+        var spaceMode = Seg(new (string, DiskSpaceMode)[]
+        {
+            (Loc.S("off"), DiskSpaceMode.Off), (Loc.S("total"), DiskSpaceMode.Total),
+            (Loc.Pick("Alle apart", "Each"), DiskSpaceMode.Each), (Loc.Pick("Eén schijf", "One drive"), DiskSpaceMode.Single),
+        }, () => _c.DiskSpace, v => _c.DiskSpace = v, 76);
+        p.Controls.Add(Row(Loc.S("diskSpace"), spaceMode));
+        var driveBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
+        foreach (var d in _h.Drives()) driveBox.Items.Add(d.Name);
+        if (driveBox.FindStringExact(_c.DiskSpaceDrive) < 0) driveBox.Items.Add(_c.DiskSpaceDrive);
+        driveBox.SelectedIndex = Math.Max(0, driveBox.FindStringExact(_c.DiskSpaceDrive));
+        driveBox.SelectedIndexChanged += (_, _) => { if (_building || driveBox.SelectedItem is not string dn) return; _c.DiskSpaceDrive = dn; Changed(); };
+        p.Controls.Add(Row(Loc.Pick("Welke schijf", "Which drive"), driveBox));
+        p.Controls.Add(Check(Loc.Pick("Netwerkschijven meenemen (ook in dashboard en fullscreen)", "Include network drives (also in dashboard and fullscreen)"),
+                             _c.IncludeNetworkDrives, v => _c.IncludeNetworkDrives = v));
+        Dep(() =>
+        {
+            gpuSrc.Enabled = _c.ShowGpu;
+            adapters.Enabled = _c.ShowNetUp || _c.ShowNetDown;
+            driveBox.Enabled = _c.DiskSpace == DiskSpaceMode.Single;
+        });
 
         p.Controls.Add(Head(Loc.S("display")));
         var styles = new (string, DisplayStyle)[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar) };
@@ -360,7 +463,7 @@ public sealed class SettingsForm : Form
         left.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
         var reset = Btn(Loc.Pick("Reset positie dashboard", "Reset dashboard position"), 170);
         reset.Margin = new Padding(0, 12, 0, 0);
-        reset.Click += (_, _) => _resetDash();
+        reset.Click += (_, _) => _h.ResetDash();
         left.Controls.Add(reset);
 
         right.Controls.Add(Head(Loc.Pick("Onderdelen en volgorde", "Components and order")));

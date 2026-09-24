@@ -13,6 +13,7 @@ public sealed class LogForm : Form
 
     public LogForm(UsageTracker usage)
     {
+        AppIcon.Apply(this);
         _usage = usage;
         Text = Loc.Pick("Netwerkverbruik – log", "Network usage – log");
         Size = new Size(760, 520);

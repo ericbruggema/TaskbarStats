@@ -346,8 +346,33 @@ public sealed class Metrics : IDisposable
             }
         }
         catch { }
+
+        // Een als administrator draaiend programma ziet de netwerkstations van de gewone sessie niet in DriveInfo
+        // (UAC: elke sessie heeft eigen stationsletters). De koppelingen staan wel in HKCU\Network; de share zelf is
+        // bereikbaar via het UNC-pad.
+        if (type == DriveType.Network)
+        {
+            try
+            {
+                using var root = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Network");
+                foreach (var letter in root?.GetSubKeyNames() ?? Array.Empty<string>())
+                {
+                    string name = letter.ToUpperInvariant() + ":";
+                    if (list.Any(d => d.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) continue;
+                    using var key = root!.OpenSubKey(letter);
+                    if (key?.GetValue("RemotePath") is not string remote || remote.Length < 3) continue;
+                    if (GetDiskFreeSpaceEx(remote.TrimEnd('\\') + "\\", out ulong avail, out ulong total, out _) && total > 0)
+                        list.Add(new DriveSpace(name, (long)total, (long)avail, true));
+                }
+                list.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+            }
+            catch { }
+        }
         return list;
     }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool GetDiskFreeSpaceEx(string directory, out ulong freeAvailable, out ulong total, out ulong totalFree);
 
     // ---------- GPU ----------
 

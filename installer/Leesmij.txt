@@ -16,9 +16,11 @@ BEDIENING
                   waar je wilt (ook buiten de taakbalk). De plek wordt
                   onthouden. Zet "Positie vergrendelen" aan om het vast
                   te zetten.
-- Rechtermuisknop: opent het menu met alle instellingen. Het menu blijft
-                  open als je een optie aanklikt; het sluit als je
-                  ernaast klikt, Esc drukt of de muis er ~1 seconde af is.
+- Rechtermuisknop: opent een kort menu: Instellingen, Thema (snelkeuze),
+                  Verbruik, Dashboard, Fullscreen, Kopieer info, Over en
+                  Afsluiten. Het menu blijft open als je een optie
+                  aanklikt; het sluit als je ernaast klikt, Esc drukt of
+                  de muis er ~1 seconde af is.
 - Muis erboven  : een tooltip met alle details: CPU + klokfrequentie,
                   elke GPU met videogeheugen, RAM in GB, de zwaarste
                   programma's (CPU en RAM), netwerk per adapter met
@@ -27,12 +29,12 @@ BEDIENING
 - Middelste muisknop: kopieert alle tooltip-informatie naar het klembord
                   (ook via het menu: "Kopieer info naar klembord").
 
-WAT KAN JE INSTELLEN (rechtermuisknop)
+WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Onderdelen    : CPU, GPU, geheugen, batterij (alleen op laptops),
                   upload, download, schijf lezen/schrijven, CPU- en
                   GPU-temperatuur.
 - Instellingen  : vetgedrukt bovenaan het menu: een venster met tabbladen
-                  (Widget, Kleuren, Dashboard, Fullscreen, Thema's); elke
+                  (Widget, Kleuren, Dashboard, Fullscreen, Thema's, Algemeen); elke
                   wijziging is direct zichtbaar. Ook de volgorde en aan/uit van de
                   hoofdonderdelen van het dashboard en het fullscreen-scherm, en
                   thema's opslaan/laden/delen (16 meegeleverd, o.a. Donker,
@@ -41,14 +43,17 @@ WAT KAN JE INSTELLEN (rechtermuisknop)
                   eventueel per core.
 - Kleuren       : tekst, achtergrond, meter/balk, waarschuwing, kritiek,
                   rand en de drempels (bv. 85% / 95%).
-- Netwerkadapter en GPU-bron: kies wat het widget volgt. Achter elke
-                  adapter/GPU staat de actuele snelheid/het gebruik.
-- Schijven      : snelheid per schijf, ruimte per station, en wat het
-                  widget toont (uit, totaal, alle schijven of een schijf).
-- Verbruik      : hoeveel je hebt ontvangen/verzonden per adapter:
+- Bronnen       : (tab Widget) welke GPU (of automatisch), welke
+                  netwerkadapter (of alle), wat het widget toont van de
+                  schijfruimte (uit, totaal, alle schijven of een schijf)
+                  en of netwerkschijven meedoen (ook in het dashboard).
+- Algemeen      : (tab Algemeen) taal, met Windows meestarten, positie
+                  vergrendelen/resetten, verbergen bij volledig scherm,
+                  meldingen en de maandlimiet (data).
+- Verbruik      : (menu) hoeveel je hebt ontvangen/verzonden per adapter:
                   sessie, vandaag, gisteren, 7 dagen, deze maand.
                   "Log bekijken..." toont per dag en adapter een tabel
-                  met CSV-export. Ook een instelbare maandlimiet (data).
+                  met CSV-export.
 - Batterij      : staande batterij, van onderaf gevuld; blauw = normaal,
                   oranje <= 20%, rood <= 10%, groen = laden of op netstroom
                   (bliksem = laden, stekker = op netstroom). Percentage
@@ -107,9 +112,11 @@ Task Manager.
 CONTROLS
 - Drag with the left mouse button to place it anywhere (also outside the
   taskbar); the position is remembered. Enable "Lock position" to fix it.
-- Right-click opens the settings menu. It stays open while you click
-  options; it closes when you click outside, press Esc, or leave it with
-  the mouse for about a second.
+- Right-click opens a short menu (Settings, Theme quick pick, Usage,
+  Dashboard, Fullscreen, Copy info, About, Exit); everything else is in
+  Settings (tabs Widget, Colors, Dashboard, Fullscreen, Themes, General).
+  The menu stays open while you click options; it closes when you click
+  outside, press Esc, or leave it with the mouse for about a second.
 - Hover for a tooltip with details (clock speed, per-GPU VRAM, RAM in GB,
   top processes, per-adapter network usage today, disks and free space).
 - Double-click opens Task Manager.
@@ -121,7 +128,7 @@ CONTROLS
 
 FEATURES
 Components, display style (digital / gauge / bar / per-core), colours and
-thresholds, network adapter and GPU selection with live values, disk
+thresholds, network adapter and GPU selection, themes (16 built in, save/load/share your own), order and visibility of the dashboard tiles, disk
 throughput and free space, network usage per adapter (session, today,
 yesterday, 7 days, month) with a log window and CSV export, an optional
 monthly data limit, notifications (disk almost full, sustained high load,

@@ -31,6 +31,7 @@ public sealed class FullscreenForm : Form
 
     public FullscreenForm(DashContext c, Screen screen)
     {
+        AppIcon.Apply(this);
         _c = c;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;

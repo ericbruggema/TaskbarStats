@@ -44,7 +44,7 @@ public sealed class WidgetForm : Form
     // Bureaublad-dashboard
     private DashboardForm? _dash;
     private readonly MetricHistory _history = new();
-    private readonly NotifyIcon _tray = new() { Icon = SystemIcons.Application, Text = "TaskbarStats" };
+    private readonly NotifyIcon _tray = new() { Icon = AppIcon.Small, Text = "TaskbarStats" };
 
     // Het venster is altijd een 'layered window' met per-pixel alpha. Bij een transparante
     // achtergrond tekenen we alpha=1 (onzichtbaar, maar wel klikbaar). Met een TransparencyKey
@@ -535,12 +535,26 @@ public sealed class WidgetForm : Form
 
     // ---------- Instellingenvenster ----------
     private SettingsForm? _settings;
-    private bool _dashShown;
+    private bool _dashShown, _lastNetDrives;
+
+    private void ResetWidgetPosition()
+    {
+        (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition();
+        Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value);
+        Persist();
+    }
 
     private void ShowSettings()
     {
         if (_settings is { IsDisposed: false }) { _settings.WindowState = FormWindowState.Normal; _settings.Activate(); return; }
-        _settings = new SettingsForm(_cfg, ApplyAll, () => _dash?.ResetPosition());
+        _settings = new SettingsForm(_cfg, new SettingsHost
+        {
+            Apply = ApplyAll,
+            ResetDash = () => _dash?.ResetPosition(),
+            ResetWidget = ResetWidgetPosition,
+            ShowLog = ShowLog,
+            Drives = () => _drives.ToList(),
+        });
         _settings.FormClosed += (_, _) => _settings = null;
         _settings.Show();
     }
@@ -552,6 +566,9 @@ public sealed class WidgetForm : Form
         ApplyHeight();
         ApplyFonts();
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        _metrics.SetGpuLuid(_cfg.GpuLuid);
+        _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
+        if (_cfg.IncludeNetworkDrives != _lastNetDrives) { _lastNetDrives = _cfg.IncludeNetworkDrives; RefreshDrives(true); }
         _timer.Interval = Math.Max(50, _cfg.RefreshMs);
         if (_cfg.ShowDashboard != _dashShown) { _dashShown = _cfg.ShowDashboard; SyncDashboard(); }
         Persist();
@@ -1176,68 +1193,24 @@ public sealed class WidgetForm : Form
         settingsItem.Click += (_, _) => ShowSettings();
         menu.Items.Add(settingsItem);
 
+        // Thema-snelkeuze: één klik past een thema toe (beheren doe je in Instellingen → Thema's).
+        var themes = new ToolStripMenuItem(Loc.Pick("Thema", "Theme"));
+        void addTheme(ThemeData t, bool builtIn)
+        {
+            var it = new ToolStripMenuItem(t.Name) { Tag = "close" };
+            it.Click += (_, _) => { t.ApplyTo(_cfg); ApplyAll(); };
+            themes.DropDownItems.Add(it);
+        }
+        foreach (var t in ThemeStore.BuiltIn()) addTheme(t, true);
+        var mine = ThemeStore.User(_cfg);
+        if (mine.Count > 0) themes.DropDownItems.Add(new ToolStripSeparator());
+        foreach (var t in mine) addTheme(t, false);
+        menu.Items.Add(themes);
+
         menu.Items.Add(new ToolStripSeparator());
-
-        // Netwerkadapter
-        var net = new ToolStripMenuItem(Loc.S("netAdapter"));
-        var all = new ToolStripMenuItem(Loc.S("allAdapters")) { Checked = _cfg.NetworkAdapter is null };
-        all.Click += (_, _) => { Keep(); MarkOnly(all); _cfg.NetworkAdapter = null; _metrics.SetNetworkAdapter(null); Persist(); };
-        Live(all, () => $"{Loc.S("allAdapters")}   ↓ {Metrics.FormatRate(_metrics.NetPerAdapter.Values.Sum(r => r.down))}  ↑ {Metrics.FormatRate(_metrics.NetPerAdapter.Values.Sum(r => r.up))}");
-        net.DropDownItems.Add(all);
-        foreach (var a in Metrics.GetNetworkAdapters())
-        {
-            var it = new ToolStripMenuItem(a) { Checked = _cfg.NetworkAdapter == a };
-            Live(it, () => _metrics.NetPerAdapter.TryGetValue(a, out var r)
-                ? $"{a}   ↓ {Metrics.FormatRate(r.down)}  ↑ {Metrics.FormatRate(r.up)}" : a);
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.NetworkAdapter = a; _metrics.SetNetworkAdapter(a); Persist(); };
-            net.DropDownItems.Add(it);
-        }
-        menu.Items.Add(net);
-
-        // GPU-keuze
-        var gpuSel = new ToolStripMenuItem(Loc.S("gpuSource"));
-        var auto = new ToolStripMenuItem(Loc.S("auto")) { Checked = _cfg.GpuLuid is null };
-        auto.Click += (_, _) => { Keep(); MarkOnly(auto); _cfg.GpuLuid = null; _metrics.SetGpuLuid(null); Persist(); };
-        Live(auto, () => $"{Loc.S("auto")}   {(_metrics.GpuPerLuid.Count == 0 ? 0 : _metrics.GpuPerLuid.Values.Max()):0}%");
-        gpuSel.DropDownItems.Add(auto);
-        foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu))
-        {
-            var it = new ToolStripMenuItem(Metrics.GpuName(l)) { Checked = _cfg.GpuLuid == l };
-            Live(it, () => $"{Metrics.GpuName(l)}   {_metrics.GpuPerLuid.GetValueOrDefault(l):0}%");
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.GpuLuid = l; _metrics.SetGpuLuid(l); Persist(); };
-            gpuSel.DropDownItems.Add(it);
-        }
-        menu.Items.Add(gpuSel);
-        menu.Items.Add(BuildDiskMenu());
         menu.Items.Add(BuildUsageMenu());
-        menu.Items.Add(BuildNotifyMenu());
         menu.Items.Add(BuildDashMenu());
         menu.Items.Add(BuildFullMenu());
-
-        menu.Items.Add(new ToolStripSeparator());
-
-        // Taal
-        var lang = new ToolStripMenuItem(Loc.S("language")) { Tag = "lang" };
-        void addLang(string code, string label)
-        {
-            var it = new ToolStripMenuItem(label) { Checked = _cfg.Language == code };
-            it.Click += (_, _) => { _cfg.Language = code; Loc.Lang = code; Persist(); BeginInvoke(new Action(ReopenMenu)); };
-            lang.DropDownItems.Add(it);
-        }
-        addLang("nl", Loc.S("dutch"));
-        addLang("en", Loc.S("english"));
-        menu.Items.Add(lang);
-
-        AddCheck(menu, Loc.S("startup"), StartupManager.IsEnabled(), v => StartupManager.Set(v));
-
-        AddCheck(menu, Loc.Pick("Verbergen bij volledig scherm", "Hide in full screen"), _cfg.HideInFullscreen,
-                 v => { _cfg.HideInFullscreen = v; Persist(); });
-        AddCheck(menu, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.LockPosition,
-                 v => { _cfg.LockPosition = v; Persist(); });
-
-        var reset = new ToolStripMenuItem(Loc.S("resetPos"));
-        reset.Click += (_, _) => { (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition(); Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value); Persist(); };
-        menu.Items.Add(reset);
 
         menu.Items.Add(new ToolStripSeparator());
         var copy = new ToolStripMenuItem(Loc.Pick("Kopieer info naar klembord", "Copy info to clipboard")) { Tag = "close" };
@@ -1278,61 +1251,6 @@ public sealed class WidgetForm : Form
         _live.Add((item, text));
     }
 
-    private ToolStripMenuItem BuildDiskMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.S("disks"));
-
-        // Snelheid per fysieke schijf (live).
-        foreach (var name in _metrics.DiskPerDisk.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
-        {
-            var it = new ToolStripMenuItem(name);
-            it.Click += (_, _) => Keep();
-            Live(it, () => _metrics.DiskPerDisk.TryGetValue(name, out var r)
-                ? $"{name}   R {Metrics.FormatRate(r.read)}  W {Metrics.FormatRate(r.write)}" : name);
-            m.DropDownItems.Add(it);
-        }
-        if (m.DropDownItems.Count > 0) m.DropDownItems.Add(new ToolStripSeparator());
-
-        // Ruimte per station (live via de gecachete lijst).
-        foreach (var d in _drives)
-        {
-            string letter = d.Name;
-            var it = new ToolStripMenuItem(letter);
-            it.Click += (_, _) => Keep();
-            Live(it, () => _drives.FirstOrDefault(x => x.Name == letter) is { Total: > 0 } x ? DriveLine(x) : letter);
-            m.DropDownItems.Add(it);
-        }
-        if (_drives.Count > 0) m.DropDownItems.Add(new ToolStripSeparator());
-
-        AddCheck(m, Loc.Pick("Netwerkschijven meenemen", "Include network drives"), _cfg.IncludeNetworkDrives,
-                 v => { _cfg.IncludeNetworkDrives = v; RefreshDrives(true); Persist(); });
-        m.DropDownItems.Add(new ToolStripSeparator());
-
-        // Wat tonen we in het widget?
-        var sp = new ToolStripMenuItem(Loc.S("diskSpace"));
-        void add(string label, DiskSpaceMode mode, string? drive = null)
-        {
-            bool on = _cfg.DiskSpace == mode &&
-                      (mode != DiskSpaceMode.Single || string.Equals(_cfg.DiskSpaceDrive, drive, StringComparison.OrdinalIgnoreCase));
-            var it = new ToolStripMenuItem(label) { Checked = on };
-            it.Click += (_, _) =>
-            {
-                Keep(); MarkOnly(it);
-                _cfg.DiskSpace = mode;
-                if (drive is not null) _cfg.DiskSpaceDrive = drive;
-                Persist();
-            };
-            sp.DropDownItems.Add(it);
-        }
-        add(Loc.S("off"), DiskSpaceMode.Off);
-        add(Loc.S("total"), DiskSpaceMode.Total);
-        add(Loc.S("eachDisk"), DiskSpaceMode.Each);
-        if (_drives.Count > 0) sp.DropDownItems.Add(new ToolStripSeparator());
-        foreach (var d in _drives) add(d.Name, DiskSpaceMode.Single, d.Name);
-        m.DropDownItems.Add(sp);
-        return m;
-    }
-
     private readonly List<Font> _menuFonts = new();
 
     private ToolStripMenuItem BuildUsageMenu()
@@ -1369,47 +1287,9 @@ public sealed class WidgetForm : Form
         }
         m.DropDownItems.Add(new ToolStripSeparator());
 
-        // Maandlimiet (data) voor de gekozen adapter, of alle adapters.
-        var limit = new ToolStripMenuItem(Loc.Pick("Maandlimiet", "Monthly limit"));
-        foreach (int gb in new[] { 0, 5, 10, 25, 50, 100, 250, 500, 1000 })
-        {
-            var it = new ToolStripMenuItem(gb == 0 ? Loc.S("off") : gb >= 1000 ? "1 TB" : $"{gb} GB")
-            { Checked = _cfg.MonthlyLimitGb == gb };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.MonthlyLimitGb = gb; Persist(); };
-            limit.DropDownItems.Add(it);
-        }
-        m.DropDownItems.Add(limit);
-
         var log = new ToolStripMenuItem(Loc.Pick("Log bekijken…", "View log…")) { Tag = "close" };
         log.Click += (_, _) => ShowLog();
         m.DropDownItems.Add(log);
-        return m;
-    }
-
-    private ToolStripMenuItem BuildNotifyMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.Pick("Meldingen", "Notifications"));
-        AddCheck(m, Loc.Pick("Meldingen aan", "Notifications on"), _cfg.Notifications,
-                 v => { _cfg.Notifications = v; Persist(); });
-        m.DropDownItems.Add(new ToolStripSeparator());
-
-        var disk = new ToolStripMenuItem(Loc.Pick("Schijf bijna vol vanaf", "Disk almost full at"));
-        foreach (int p in new[] { 80, 85, 90, 95 })
-        {
-            var it = new ToolStripMenuItem($"{p}%") { Checked = _cfg.DiskFullPercent == p };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.DiskFullPercent = p; Persist(); };
-            disk.DropDownItems.Add(it);
-        }
-        m.DropDownItems.Add(disk);
-
-        var dur = new ToolStripMenuItem(Loc.Pick("Hoge belasting melden na (CPU/GPU/geheugen)", "Notify on high load after (CPU/GPU/memory)"));
-        foreach (int sec in new[] { 10, 30, 60, 120 })
-        {
-            var it = new ToolStripMenuItem($"{sec} s") { Checked = _cfg.CritSeconds == sec };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.CritSeconds = sec; Persist(); };
-            dur.DropDownItems.Add(it);
-        }
-        m.DropDownItems.Add(dur);
         return m;
     }
 

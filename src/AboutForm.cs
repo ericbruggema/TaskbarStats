@@ -16,6 +16,7 @@ public sealed class AboutForm : Form
 
     public AboutForm()
     {
+        AppIcon.Apply(this);
         Text = Loc.Pick("Over TaskbarStats", "About TaskbarStats");
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;

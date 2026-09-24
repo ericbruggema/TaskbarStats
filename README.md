@@ -19,6 +19,7 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Instellingen: widget](docs/screenshots/settings-widget.png)
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
+![Instellingen: algemeen](docs/screenshots/settings-general.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
 De meegeleverde thema's, hier op het bureaublad-dashboard:
@@ -51,7 +52,7 @@ De meegeleverde thema's, hier op het bureaublad-dashboard:
 | Temperatuur | LibreHardwareMonitorLib | CPU/GPU-temperatuur; vereist administrator. |
 
 GPU staat standaard op **automatisch**: het volgt de drukste GPU (handig bij een iGPU +
-dGPU). Je kunt ook een vaste GPU kiezen in het menu.
+dGPU). Je kunt ook een vaste GPU kiezen in de instellingen (tab Widget → Bronnen).
 
 ## Bouwen
 
@@ -117,24 +118,25 @@ credits of tekst: `installer\Leesmij.txt` en `#define Publisher` in het `.iss`-b
 Start `TaskbarStats.exe`. Het widget verschijnt als zwevend, altijd-bovenliggend venster
 direct links van het systeemvak. Het is eigenaar-venster van de taakbalk, dus het blijft
 erboven staan. Sleep met de **linkermuisknop** om het te verplaatsen (de positie wordt
-bij loslaten bewaard); het menu heeft "Reset positie".
+bij loslaten bewaard); de instellingen (tab Algemeen) hebben "Reset positie".
 
-**Rechtermuisknop** op het widget opent het menu:
+**Rechtermuisknop** op het widget opent een kort menu:
 
-- **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard:
-  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen), weergave per onderdeel (digitaal, meter of balk; CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
+- **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard;
+  bedieningselementen die door een andere keuze geen effect hebben, worden uitgeschakeld:
+  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke
+    netwerkadapter of alle, schijfruimte uit/totaal/alle apart/één schijf, netwerkschijven meenemen), weergave per onderdeel (digitaal, meter of balk;
+    CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
   - *Kleuren*: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand en drempels (bv. 85% / 95%).
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
-  - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel (het scherm past zich aan het aantal onderdelen aan).
-  - *Thema's*: meegeleverde thema's (16 stuks: Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon), je eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
-- **Netwerkadapter** en **GPU-bron**: achter elke adapter en GPU staat de actuele snelheid/het gebruik (live bijgewerkt terwijl het menu openstaat). GPU's worden met naam getoond.
-- **Schijven**: lees/schrijfsnelheid per fysieke schijf (live), vrije/totale ruimte per station, en een keuze wat het widget toont: uit, totaal, alle schijven apart of één schijf. De totale lees/schrijfsnelheid zet je aan via *Onderdelen → Schijf lezen/schrijven*.
+  - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.
+  - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
+  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen/resetten, verbergen bij volledig scherm, meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
+- **Thema**: snelkeuze om met één klik een thema toe te passen.
+- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
+- **Bureaublad-dashboard** (tonen, klik-door, vergrendelen) en **Fullscreen dashboard**, plus *Kopieer info*, *Welkomstscherm*, *Leesmij en credits*, *Over* en **Afsluiten**.
 - **Tooltip**: houd de muis boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
-- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand), een log per dag met CSV-export en een instelbare maandlimiet.
-- **Meldingen**: bijna volle schijf, langdurig hoge belasting, lage batterij, maandlimiet.
 - **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
-- **Positie vergrendelen**, **Verbergen bij volledig scherm**, **Reset positie**, **Taal** (NL/EN).
-- **Met Windows meestarten** (geplande taak, geen UAC-melding) en **Afsluiten**.
 
 Verder: dubbelklik opent Taakbeheer, de middelste muisknop kopieert de tooltip-informatie
 naar het klembord, en bij de eerste start verschijnt een welkomstscherm.
@@ -168,13 +170,14 @@ die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen
 
 **Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het.
 
-**Netwerkschijven** (gekoppelde stations) neem je mee via *Schijven → Netwerkschijven meenemen*; ze worden op de
-achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt.
+**Netwerkschijven** (gekoppelde stations) neem je mee via instellingen → *Widget* → *Bronnen* → *Netwerkschijven meenemen* (ook in dashboard en fullscreen); ze worden op de
+achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt. Omdat de app als administrator draait en Windows dan de stationsletters van
+je gewone sessie niet ziet, leest de app de koppelingen uit het register (`HKCU\Network`) en vraagt de ruimte op via het UNC-pad.
 
 ## Instellingen
 
 Opgeslagen in `%AppData%\TaskbarStats\settings.json` (overleeft herbouw en
-herinstallatie). Wijzigingen via het menu worden direct bewaard. Ook handmatig aan te
+herinstallatie). Wijzigingen in de instellingen worden direct bewaard. Ook handmatig aan te
 passen: `FontFamily`, `FontSize`, `WidgetHeight`, `TrayGap`, kleuren en drempels.
 
 ## Transparante achtergrond
@@ -192,7 +195,7 @@ temperatuur-sensoren (LibreHardwareMonitorLib). Heb je die niet nodig, dan mag j
 
 ## Automatisch starten met Windows
 
-Gebruik "Met Windows meestarten" in het menu, of de optie in de installer. Dit maakt een
+Gebruik "Met Windows meestarten" in de instellingen (tab Algemeen), of de optie in de installer. Dit maakt een
 geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding komt.
 
 ## Code-overzicht

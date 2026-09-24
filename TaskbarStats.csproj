@@ -9,6 +9,7 @@
     <AssemblyName>TaskbarStats</AssemblyName>
     <RootNamespace>TaskbarStats</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <Version>1.2.1</Version>
     <!-- Zuinig: geen extra achtergrond-GC-thread, minder opstart-optimalisatie, geheugen krap houden -->

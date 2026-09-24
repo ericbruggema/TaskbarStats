@@ -407,8 +407,15 @@ public sealed class FullscreenForm : Form
         if (_c.Metrics.Sensors.Count > 0) return null;
         return Environment.TickCount64 - _openedAt < 10000
             ? Loc.Pick("Sensoren laden…", "Loading sensors…")
-            : Loc.Pick("Geen sensorgegevens — LibreHardwareMonitor heeft administrator-rechten nodig.", "No sensor data — LibreHardwareMonitor needs administrator rights.");
+            : IsAdmin()
+                ? Loc.Pick("Geen sensorgegevens beschikbaar op deze computer.", "No sensor data available on this computer.")
+                : Loc.Pick("Geen sensorgegevens — LibreHardwareMonitor heeft administrator-rechten nodig.", "No sensor data — LibreHardwareMonitor needs administrator rights.");
     }
+
+    private static readonly bool AdminRights =
+        new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent())
+            .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+    private static bool IsAdmin() => AdminRights;
 
     private string? CpuPower()
     {
@@ -792,7 +799,7 @@ public sealed class FullscreenForm : Form
         T(g, Loc.Pick("Sensoren", "Sensors"), _fs, Dim, rx, y);
         var cpuRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Cpu && x.Type != SensorType.Load));
         float usedH;
-        if (cpuRows.Count == 0) { T(g, SensorHint() ?? Loc.Pick("Geen CPU-sensoren beschikbaar (administrator-rechten nodig).", "No CPU sensors available (administrator rights needed)."), _fs, Dim, rx, y + 22); usedH = 26; }
+        if (cpuRows.Count == 0) { T(g, SensorHint() ?? (IsAdmin() ? Loc.Pick("Temperatuur, vermogen en klokken van deze processor worden niet door de sensorbibliotheek ondersteund.", "Temperature, power and clocks of this processor are not supported by the sensor library.") : Loc.Pick("Geen CPU-sensoren beschikbaar (administrator-rechten nodig).", "No CPU sensors available (administrator rights needed).")), _fs, Dim, rx, y + 22); usedH = 26; }
         else usedH = SensorList(g, rx, y + 22, rw, 9, cpuRows);
         y += 22 + usedH + 14;
         T(g, Loc.Pick("Zwaarste programma's (CPU)", "Top programs (CPU)"), _fs, Dim, rx, y);

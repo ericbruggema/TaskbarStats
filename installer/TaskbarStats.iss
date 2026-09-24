@@ -65,7 +65,7 @@ Filename: "{app}\{#ExeName}"; Description: "{#AppName} nu starten"; Flags: nowai
 
 [UninstallRun]
 ; App afsluiten en de autostart-taak weghalen voordat de bestanden verdwijnen.
-Filename: "{sys}	askkill.exe"; Parameters: "/F /IM {#ExeName}"; Flags: runhidden; RunOnceId: "StopApp"
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#ExeName}"; Flags: runhidden; RunOnceId: "StopApp"
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""TaskbarStats"" /F"; Flags: runhidden; RunOnceId: "DelTask"
 
 [Code]
@@ -83,20 +83,11 @@ begin
   Result := '';
 end;
 
-procedure CurrentUninstallStepChanged(CurUninstallStep: TUninstallStep);
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  rc: Integer;
   DataDir: String;
 begin
-  if CurUninstallStep = usUninstall then
-  begin
-    // Autostart-taak verwijderen en de app afsluiten, vóórdat de bestanden verdwijnen.
-    StopApp;
-    // Rechtstreeks via schtasks: betrouwbaarder dan de app zelf starten tijdens het verwijderen.
-    Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "TaskbarStats" /F', '', SW_HIDE, ewWaitUntilTerminated, rc);
-    Log('autostart-taak verwijderen, code ' + IntToStr(rc));
-  end
-  else if CurUninstallStep = usPostUninstall then
+  if CurUninstallStep = usPostUninstall then
   begin
     DataDir := ExpandConstant('{userappdata}\{#AppName}');
     if DirExists(DataDir) and (not UninstallSilent) then

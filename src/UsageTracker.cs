@@ -56,7 +56,7 @@ public sealed class UsageTracker
     public void Sample()
     {
         long now = Environment.TickCount64;
-        if (now - _lastSample < 1000) return;
+        if (now - _lastSample < 5000) return;
         _lastSample = now;
         string day = Key(DateTime.Now);
         var seen = new Dictionary<string, int>();

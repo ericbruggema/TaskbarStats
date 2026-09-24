@@ -119,7 +119,7 @@ public sealed class WelcomeForm : Form
         Heading("Zo gebruik je het");
         Para("Verplaatsen: houd de linkermuisknop ingedrukt en sleep het widget. Je kunt het overal neerzetten; met " +
              "\"Positie vergrendelen\" zet je het vast.", bullet: true);
-        Para("Instellingen: klik met de rechtermuisknop op het widget. Het menu blijft open terwijl je meerdere dingen kiest.", bullet: true);
+        Para("Instellingen: klik met de rechtermuisknop op het widget en kies \"Instellingen…\": uiterlijk, kleuren, indeling en thema's, allemaal met direct effect. Het menu zelf blijft open terwijl je meerdere dingen kiest.", bullet: true);
         Para("Details: houd de muis erboven voor een tooltip met alle informatie. De middelste muisknop kopieert die naar het klembord.", bullet: true);
         Para("Dubbelklik: opent Taakbeheer.", bullet: true);
         Para("Dashboard: zet via het menu (Bureaublad-dashboard) een groot dashboard op je bureaublad, en druk op Ctrl+Alt+F voor een " +
@@ -160,7 +160,7 @@ public sealed class WelcomeForm : Form
 
         Heading("How to use it");
         Para("Move it: hold the left mouse button and drag the widget. Place it anywhere; use \"Lock position\" to fix it.", bullet: true);
-        Para("Settings: right-click the widget. The menu stays open while you pick several options.", bullet: true);
+        Para("Settings: right-click the widget and choose \"Settings…\": looks, colors, layout and themes, all with immediate effect. The menu itself stays open while you pick several options.", bullet: true);
         Para("Details: hover for a tooltip with all information. Middle-click copies it to the clipboard.", bullet: true);
         Para("Double-click: opens Task Manager.", bullet: true);
         Para("Dashboard: use the menu (Desktop dashboard) to put a large dashboard on your desktop, and press Ctrl+Alt+F for a " +

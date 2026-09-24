@@ -80,6 +80,7 @@ public sealed class Metrics : IDisposable
     private readonly List<PerformanceCounter> _vram = new();
     private Dictionary<string, double> _vramRates = new();
     private readonly List<PerformanceCounter> _cpuCores = new();
+    private PdhWildcard? _coreQuery, _netRecvQuery, _netSentQuery;   // één query per teller: veel goedkoper dan een PerformanceCounter per instantie
     private PdhWildcard? _gpuQuery;   // één gezamenlijke query voor alle "GPU Engine"-instanties
     private readonly Dictionary<string, (PerformanceCounter recv, PerformanceCounter sent)> _net = new();
     private readonly Dictionary<string, (PerformanceCounter read, PerformanceCounter write)> _disks = new();
@@ -117,9 +118,28 @@ public sealed class Metrics : IDisposable
 
         _gpuQuery = PdhWildcard.TryCreate(@"\GPU Engine(*)\Utilization Percentage");
         RebuildVramCounters();
-        RebuildNetCounters();
+        _netRecvQuery = PdhWildcard.TryCreate(@"\Network Interface(*)\Bytes Received/sec");
+        _netSentQuery = PdhWildcard.TryCreate(@"\Network Interface(*)\Bytes Sent/sec");
+        if (_netRecvQuery is null || _netSentQuery is null) RebuildNetCounters();   // terugval
         RebuildDiskCounters();
         _rebuiltAt = Environment.TickCount64;
+    }
+
+    // Instances heten "0" (Processor) of "groep,core" (Processor Information).
+    private static (int g, int c) CoreKey(string n)
+    {
+        var p = n.Split(',');
+        return p.Length == 2 ? (int.Parse(p[0]), int.Parse(p[1])) : (0, int.Parse(n));
+    }
+
+    private double[] ReadCores()
+    {
+        if (_coreQuery is null) return _cpuCores.Select(c => { try { return Math.Min(100.0, c.NextValue()); } catch { return 0.0; } }).ToArray();
+        return _coreQuery.Read()
+            .Where(r => !r.instance.Contains("_Total") && r.instance.Split(',').All(x => int.TryParse(x, out _)))
+            .OrderBy(r => CoreKey(r.instance))
+            .Select(r => Math.Min(100.0, Math.Max(0, r.value)))
+            .ToArray();
     }
 
     private void InitCpu(string category, string counter)
@@ -134,11 +154,9 @@ public sealed class Metrics : IDisposable
         try
         {
             // Instances heten "0" (Processor) of "groep,core" (Processor Information).
-            static (int g, int c) Key(string n)
-            {
-                var p = n.Split(',');
-                return p.Length == 2 ? (int.Parse(p[0]), int.Parse(p[1])) : (0, int.Parse(n));
-            }
+            static (int g, int c) Key(string n) => CoreKey(n);
+            _coreQuery = PdhWildcard.TryCreate($@"\{category}(*)\{counter}");
+            if (_coreQuery is not null) return;
             var cat = new PerformanceCounterCategory(category);
             foreach (var n in cat.GetInstanceNames()
                                  .Where(n => !n.Contains("_Total") &&
@@ -405,7 +423,7 @@ public sealed class Metrics : IDisposable
     {
         try { CpuPercent = _cpu is null ? 0 : Math.Min(100, _cpu.NextValue()); } catch { CpuPercent = 0; }
 
-        try { CpuCores = _cpuCores.Select(c => { try { return Math.Min(100.0, c.NextValue()); } catch { return 0.0; } }).ToArray(); }
+        try { CpuCores = ReadCores(); }
         catch { }
 
         try
@@ -458,13 +476,24 @@ public sealed class Metrics : IDisposable
         {
             var rates = new Dictionary<string, (double, double)>();
             double down = 0, up = 0;
-            foreach (var (name, (r, s)) in _net)
+            if (_netRecvQuery is not null && _netSentQuery is not null)
             {
-                double d, u;
-                try { d = r.NextValue(); u = s.NextValue(); } catch { continue; }
-                rates[name] = (d, u);
-                if (_netFilter is null || _netFilter == name) { down += d; up += u; }
+                var sent = _netSentQuery.Read().ToDictionary(x => x.instance, x => x.value);
+                foreach (var (name, d) in _netRecvQuery.Read())
+                {
+                    double u = sent.GetValueOrDefault(name);
+                    rates[name] = (d, u);
+                    if (_netFilter is null || _netFilter == name) { down += d; up += u; }
+                }
             }
+            else
+                foreach (var (name, (r, s)) in _net)
+                {
+                    double d, u;
+                    try { d = r.NextValue(); u = s.NextValue(); } catch { continue; }
+                    rates[name] = (d, u);
+                    if (_netFilter is null || _netFilter == name) { down += d; up += u; }
+                }
             _netRates = rates;
             NetDownBytesPerSec = down; NetUpBytesPerSec = up;
         }
@@ -506,7 +535,7 @@ public sealed class Metrics : IDisposable
         {
             _rebuiltAt = Environment.TickCount64;
             RebuildVramCounters();
-            if (!_net.Keys.OrderBy(x => x).SequenceEqual(GetNetworkAdapters())) RebuildNetCounters();
+            if (_netRecvQuery is null && !_net.Keys.OrderBy(x => x).SequenceEqual(GetNetworkAdapters())) RebuildNetCounters();
             if (!_disks.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
                             .SequenceEqual(GetDiskInstances())) RebuildDiskCounters();
         }
@@ -543,6 +572,7 @@ public sealed class Metrics : IDisposable
         foreach (var c in _vram) c.Dispose();
         foreach (var c in _cpuCores) c.Dispose();
         _gpuQuery?.Dispose();
+        _coreQuery?.Dispose(); _netRecvQuery?.Dispose(); _netSentQuery?.Dispose();
         foreach (var (r, s) in _net.Values) { r.Dispose(); s.Dispose(); }
         foreach (var (r, w) in _disks.Values) { r.Dispose(); w.Dispose(); }
         lock (_lhmLock) CloseLhm();

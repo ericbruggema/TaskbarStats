@@ -12,9 +12,13 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Widget met meters](docs/screenshots/widget-gauges.png)
 ![Compacte widget](docs/screenshots/widget-compact.png)
 
-**Rechtermuisknop-menu** (blijft open terwijl je meerdere dingen kiest):
+**Rechtermuisknop-menu** (kort, en blijft open terwijl je meerdere dingen kiest) en het **instellingenvenster** met tabbladen
+(uiterlijk, kleuren, dashboard, fullscreen, thema's) waarvan elke wijziging direct zichtbaar is:
 
-![Menu](docs/screenshots/menu.png) ![Menu Weergave](docs/screenshots/menu-display.png)
+![Menu](docs/screenshots/menu.png)
+![Instellingen: widget](docs/screenshots/settings-widget.png)
+![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
+![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
 **Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):
 
@@ -27,6 +31,7 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Fullscreen netwerk-details](docs/screenshots/fullscreen-net.png)
 ![Fullscreen GPU-details met sensoren](docs/screenshots/fullscreen-gpu.png)
 ![Fullscreen schijf-details met temperatuur en gezondheid](docs/screenshots/fullscreen-disk.png)
+![Fullscreen met eigen volgorde en een onderdeel uit (Neon-thema)](docs/screenshots/fullscreen-layout.png)
 
 *(Computernaam en programmanamen in de screenshots zijn geanonimiseerd.)*
 
@@ -111,17 +116,19 @@ bij loslaten bewaard); het menu heeft "Reset positie".
 
 **Rechtermuisknop** op het widget opent het menu:
 
-- **Onderdelen**: CPU, GPU, geheugen, upload, download, CPU-/GPU-temperatuur.
-- **Weergave**: per onderdeel digitaal (percentage), meter (donut) of balk; CPU eventueel per core.
-- **Kleuren**: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand, plus drempels (bv. 85% / 95%).
-- **Ververssnelheid**, **Taal** (NL/EN), **Transparante achtergrond**.
+- **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard:
+  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen), weergave per onderdeel (digitaal, meter of balk; CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
+  - *Kleuren*: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand en drempels (bv. 85% / 95%).
+  - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
+  - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel (het scherm past zich aan het aantal onderdelen aan).
+  - *Thema's*: meegeleverde thema's (Standaard, Licht, Minimaal, Meters, Neon), je eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
 - **Netwerkadapter** en **GPU-bron**: achter elke adapter en GPU staat de actuele snelheid/het gebruik (live bijgewerkt terwijl het menu openstaat). GPU's worden met naam getoond.
 - **Schijven**: lees/schrijfsnelheid per fysieke schijf (live), vrije/totale ruimte per station, en een keuze wat het widget toont: uit, totaal, alle schijven apart of één schijf. De totale lees/schrijfsnelheid zet je aan via *Onderdelen → Schijf lezen/schrijven*.
 - **Tooltip**: houd de muis boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
 - **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand), een log per dag met CSV-export en een instelbare maandlimiet.
 - **Meldingen**: bijna volle schijf, langdurig hoge belasting, lage batterij, maandlimiet.
 - **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
-- **Hoogte** (automatisch = taakbalk), **Lettertype**, **Lettergrootte**, **Compact**, **Labels boven**, **Positie vergrendelen**, **Verbergen bij volledig scherm**.
+- **Positie vergrendelen**, **Verbergen bij volledig scherm**, **Reset positie**, **Taal** (NL/EN).
 - **Met Windows meestarten** (geplande taak, geen UAC-melding) en **Afsluiten**.
 
 Verder: dubbelklik opent Taakbeheer, de middelste muisknop kopieert de tooltip-informatie
@@ -135,7 +142,7 @@ Er draait maar één instantie tegelijk.
 
 ## Bureaublad-dashboard en fullscreen
 
-**Bureaublad-dashboard** (menu *Bureaublad-dashboard*, standaard uit): een groot, halfdoorzichtig venster met tegels
+**Bureaublad-dashboard** (instellingen → *Dashboard*, of menu *Bureaublad-dashboard*; standaard uit): een groot, halfdoorzichtig venster met tegels
 (CPU met per-core-balkjes, GPU per kaart met VRAM, geheugen, netwerk met een minigrafiekje per adapter, schijven,
 batterij, zwaarste programma's, systeem) en grafiekjes van de laatste 5 minuten. Alles is los aan/uit te zetten;
 verder instelbaar: voorgrond of achtergrond, schaal 50–300%, doorzichtigheid, 1–4 kolommen, vergrendelen en **klik-door**
@@ -151,6 +158,10 @@ Toets **1/2/3** kiest de grafiek: 1 min / 5 min / 1 uur.
 GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
 geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder
 die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen, batterij) en een korte uitleg.
+
+**Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
+
+**Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het.
 
 **Netwerkschijven** (gekoppelde stations) neem je mee via *Schijven → Netwerkschijven meenemen*; ze worden op de
 achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt.
@@ -193,6 +204,7 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/AppSettings.cs` | Instellingen (JSON). |
 | `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak/de taakbalk. |
 | `src/StartupManager.cs` | Autostart via een geplande taak (hoogste rechten). |
+| `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Instellingenvenster met tabbladen (live toegepast), thema's (meegeleverd + eigen JSON-bestanden), onderdelen-ids/volgorde. |
 | `src/LogForm.cs` | Venster met het verbruikslog. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
 | `src/Loc.cs` | Nederlandse/Engelse teksten (`Loc.Pick`). |
@@ -203,8 +215,9 @@ De UI-thread doet alleen tekenen en menu's; het zware werk zit elders:
 
 - Een **sampler-thread** leest de metingen (`Metrics.Update`) en houdt het verbruik bij (`UsageTracker.Sample`);
   de UI tekent met de laatste waarden. Gedeelde gegevens zijn thread-veilig (vergrendeld of atomair vervangen).
-- **GPU** gaat via één PDH-query met jokerteken (`\GPU Engine(*)\Utilization Percentage`), niet via honderden losse
-  `PerformanceCounter`-objecten (dat kostte 150–780 ms per tik).
+- **GPU, netwerk en CPU-cores** gaan via één PDH-query met jokerteken per teller (bv. `\GPU Engine(*)\Utilization Percentage`), niet via
+  losse `PerformanceCounter`-objecten (GPU kostte 150–780 ms per tik; het netwerk ging van ~39 naar ~7 ms).
+- **Zuinig**: bij een verborgen widget zonder dashboard/fullscreen wordt maar om de 5 s gemeten, het verbruik wordt om de 5 s bijgewerkt, de werkset wordt regelmatig teruggegeven aan Windows en de runtime draait zonder extra GC-thread. Gemeten in rust: ~2% van één kern en ~60 MB werkset (was ~2–5% en ~93 MB).
 - Het widget staat niet elke 200 ms opnieuw bovenop (`SetWindowPos` op een venster van de taakbalk kan 100+ ms blokkeren);
   dat gebeurt alleen als er echt een ander zichtbaar topmost-venster overheen staat.
 - Programma's bemonsteren (`ProcessSampler.SampleAsync`) en netwerkschijven (`DriveInfo`) draaien op de achtergrond.

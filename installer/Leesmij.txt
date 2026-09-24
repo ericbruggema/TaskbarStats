@@ -31,6 +31,11 @@ WAT KAN JE INSTELLEN (rechtermuisknop)
 - Onderdelen    : CPU, GPU, geheugen, batterij (alleen op laptops),
                   upload, download, schijf lezen/schrijven, CPU- en
                   GPU-temperatuur.
+- Instellingen  : vetgedrukt bovenaan het menu: een venster met tabbladen
+                  (Widget, Kleuren, Dashboard, Fullscreen, Thema's); elke
+                  wijziging is direct zichtbaar. Ook de volgorde en aan/uit van de
+                  hoofdonderdelen van het dashboard en het fullscreen-scherm, en
+                  thema's opslaan/laden/delen.
 - Weergave      : per onderdeel digitaal, meter (donut) of balk; CPU
                   eventueel per core.
 - Kleuren       : tekst, achtergrond, meter/balk, waarschuwing, kritiek,
@@ -169,4 +174,4 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
- Versie / Version 1.1.0
+ Versie / Version 1.2.0

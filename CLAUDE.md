@@ -27,6 +27,8 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 | `Metrics.cs` | tellers: CPU (`Processor Information\% Processor Utility`), GPU via **PDH-wildcard** (`PdhWildcard`), geheugen, netwerk, schijf, VRAM, batterij, DXGI-namen; LibreHardwareMonitor: temps (widget) en `Sensors` (alleen als het fullscreen-scherm open is, elke 2 s, op de sampler-thread) |
 | `DashboardForm.cs` | bureaublad-dashboard (tegels, masonry), plus `Ring`, `MetricHistory`, `DashContext` |
 | `FullscreenForm.cs` | fullscreen cockpit: vast canvas 1920×1080 dat meeschaalt; overzicht + detail per tegel; Esc = terug/sluiten |
+| `SettingsForm.cs` | instellingenvenster met tabbladen (Widget, Kleuren, Dashboard, Fullscreen, Thema's); elke wijziging gaat direct via `WidgetForm.ApplyAll()` naar widget/dashboard/fullscreen |
+| `Themes.cs`, `Tiles.cs` | `ThemeData` (uiterlijk + indeling als JSON, meegeleverd + `%AppData%\TaskbarStats	hemes\`); `Tiles`: ids, volgorde (`DashOrder`/`FullOrder`) en zichtbaarheid van de 8 hoofdonderdelen |
 | `UsageTracker.cs` | verbruik per adapter/dag → `usage.json` (thread-veilig) |
 | `ProcessSampler.cs` | top-processen; gebruik `SampleAsync()` |
 | `AppSettings.cs` | JSON-instellingen in `%AppData%\TaskbarStats\settings.json` (`TASKBARSTATS_DATA` overschrijft de map) |
@@ -45,12 +47,14 @@ zodat het rechtermuismenu soms niet verscheen.
 - GPU-engines: **één PDH-query**, nooit een `PerformanceCounter` per instantie (kostte 150–780 ms per tik).
 - `SetWindowPos(HWND_TOPMOST)` op een venster dat eigendom is van de taakbalk blokkeert 100–700 ms. Niet periodiek
   aanroepen; `KeepOnTop` doet het alleen als er echt iets bovenop staat, max. elke 2 s.
+- Meetteller-kosten: gebruik **PDH-wildcardqueries** (`PdhWildcard`) voor tellers met veel instanties (GPU-engines, netwerk, CPU-cores); losse `PerformanceCounter`-objecten kostten o.a. 39 ms/s voor het netwerk. Meten met een `Stopwatch` per blok in de testkopie (zie `scratchpad/prof_patch.py`-aanpak).
+- Zuinig: sampler meet om de 5 s als niemand kijkt (`_idle` in `WidgetForm`), verbruik om de 5 s, werkset-trim elke minuut, `ConcurrentGarbageCollection=false`. Baseline in rust: ~2% van één kern, ~60 MB werkset.
 - Geen extern proces starten per menu-opening (`schtasks` wordt daarom gecachet). Netwerkschijven (`DriveInfo`) alleen async.
 - Meten in plaats van gokken: een 15 ms-timer die de UI-hapering logt + `Stopwatch` rond verdachte stukken werkte goed.
 
 **Menu (ContextMenuStrip).** Volgorde in WinForms: `ItemClicked` → `Closing` → pas daarna de `Click`-handler. "Menu blijft
 open" wordt daarom in `OnDropDownItemClicked` bepaald (standaard open; items met `Tag = "close"` sluiten). Na een
-taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu bouwt zich bij elke opening opnieuw op
+taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu is kort gehouden: alles rond uiterlijk/indeling zit in het **instellingenvenster** (`SettingsForm`); nieuwe uiterlijk-instellingen daar toevoegen en (als ze in een thema horen) ook in `ThemeData.Capture/ApplyTo`. Het menu bouwt zich bij elke opening opnieuw op
 (`RefreshMenu`); houd dat goedkoop. `Application.Exit()` niet gebruiken bij afsluiten (vensters sluiten zichzelf tijdens
 het sluiten -> "Collection was modified"); `Close()` op het widget.
 
@@ -87,7 +91,8 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Ideeën / nog te doen
 
-- Tegels in het dashboard slepen/herordenen; thema's; controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
+- Tegels slepen i.p.v. pijlknoppen; thema per situatie automatisch (bv. op batterij); controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
+- **v1.2.0 in ontwikkeling**: instellingenvenster + thema's + volgorde/aan-uit van dashboard- en fullscreen-onderdelen + zuiniger meten (zie README). Installer 1.2.0 nog testen en releasen (alleen na akkoord van de gebruiker publiceren; screenshots altijd meenemen en bijwerken).
 - **Release v1.1.0 is gepubliceerd.** Installer elevated getest: installeren, Startmenu, register, autostart-taak (HighestAvailable), verwijderen. Les: `[Code]`-`CurrentUninstallStepChanged` bleek bij het verwijderen niet te draaien; de taak wordt nu via `[UninstallRun]` (schtasks /Delete) weggehaald. Elevated testen kan via een script dat zichzelf met `Start-Process -Verb RunAs` start; omgevingsvariabelen gaan niet mee door RunAs, zet ze binnen het elevated script. Sensoren elevated: schijven (temp/SMART) werken; CPU-temperatuur/-vermogen en hoofdbord ontbreken op de Ryzen AI 7 350 met LibreHardwareMonitor 0.9.3 (waarschijnlijk niet ondersteund).
 - Kleinere download: installer die .NET 8 controleert, of port naar .NET Framework 4.8 (zit in Windows).
-- Meting van de `Metrics.Update` (nu ~20 ms op de sampler-thread) verder verlagen door meer tellers te bundelen in PDH-queries.
+- `Metrics.Update` kost nu ~12 ms per meting (netwerk-PDH ~7 ms is het grootste stuk); schijftellers en VRAM kunnen ook nog naar PDH.

@@ -163,6 +163,8 @@ public sealed class WidgetForm : Form
     {
         // Metingen (PerformanceCounters, ~20 ms) en verbruik bijhouden (~7 ms) draaien op de sampler-thread; de UI-thread
         // tekent hier alleen met de meest recente waarden, zodat slepen en het menu soepel blijven.
+        _idle = !Visible && _dash is not { Visible: true } && _full is null;
+        if (_idle) { CheckAlerts(); return; }
         _history.Sample(_metrics);
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
         RefreshDrives(false);
@@ -171,9 +173,15 @@ public sealed class WidgetForm : Form
         else UpdateTooltip();
         Render();
         _dash?.Tick();
+        // Ongebruikt geheugen teruggeven aan Windows (de werkset kruipt anders op door het tekenen en de runtime).
+        if (Environment.TickCount64 - _trimAt > 60_000) { _trimAt = Environment.TickCount64; SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1); }
     }
 
+    [DllImport("kernel32.dll")] private static extern bool SetProcessWorkingSetSize(IntPtr process, nint min, nint max);
+
     // ---------- Sampler-thread ----------
+    private volatile bool _idle;
+    private long _trimAt;
     private Thread? _samplerThread;
     private readonly ManualResetEventSlim _stopSampler = new(false);
 
@@ -185,9 +193,10 @@ public sealed class WidgetForm : Form
             while (!_stopSampler.IsSet)
             {
                 long t0 = Environment.TickCount64;
+                // Niemand kijkt (widget verborgen, geen dashboard/fullscreen): zeldzamer meten (meldingen blijven werken).
                 try { _metrics.Update(); } catch { }
-                if (t0 - lastUsage >= 1000) { lastUsage = t0; try { _usage.Sample(); } catch { } }
-                int wait = Math.Max(20, _cfg.RefreshMs - (int)(Environment.TickCount64 - t0));
+                if (t0 - lastUsage >= 5000) { lastUsage = t0; try { _usage.Sample(); } catch { } }
+                int wait = _idle ? 5000 : Math.Max(20, _cfg.RefreshMs - (int)(Environment.TickCount64 - t0));
                 _stopSampler.Wait(wait);
             }
         })
@@ -1207,16 +1216,6 @@ public sealed class WidgetForm : Form
 
         menu.Items.Add(new ToolStripSeparator());
 
-        // Ververssnelheid
-        var interval = new ToolStripMenuItem(Loc.S("interval"));
-        foreach (var (label, ms) in new[] { ("0,1 s", 100), ("0,2 s", 200), ("0,25 s", 250), ("0,5 s", 500), ("1 s", 1000) })
-        {
-            var it = new ToolStripMenuItem(label) { Checked = _cfg.RefreshMs == ms };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.RefreshMs = ms; _timer.Interval = Math.Max(50, ms); Persist(); };
-            interval.DropDownItems.Add(it);
-        }
-        menu.Items.Add(interval);
-
         // Taal
         var lang = new ToolStripMenuItem(Loc.S("language")) { Tag = "lang" };
         void addLang(string code, string label)
@@ -1336,77 +1335,6 @@ public sealed class WidgetForm : Form
 
     private readonly List<Font> _menuFonts = new();
 
-    private ToolStripMenuItem BuildHeightMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.Pick("Hoogte", "Height"));
-        var hAuto = new ToolStripMenuItem(Loc.Pick("Automatisch (taakbalk)", "Automatic (taskbar)")) { Checked = _cfg.AutoHeight };
-        hAuto.Click += (_, _) => { Keep(); MarkOnly(hAuto); _cfg.AutoHeight = true; ApplyHeight(); Persist(); };
-        m.DropDownItems.Add(hAuto);
-        m.DropDownItems.Add(new ToolStripSeparator());
-        foreach (int h in new[] { 32, 36, 40, 44, 48, 56 })
-        {
-            var it = new ToolStripMenuItem($"{h} px") { Checked = !_cfg.AutoHeight && _cfg.WidgetHeight == h };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.AutoHeight = false; _cfg.WidgetHeight = h; ApplyHeight(); Persist(); };
-            m.DropDownItems.Add(it);
-        }
-        return m;
-    }
-
-    private static readonly string[] FontCandidates =
-    {
-        "Segoe UI", "Segoe UI Semibold", "Segoe UI Variable Text", "Bahnschrift", "Calibri", "Arial",
-        "Tahoma", "Verdana", "Trebuchet MS", "Georgia", "Consolas", "Cascadia Mono", "Cascadia Code",
-        "Lucida Console", "Courier New",
-    };
-
-    private ToolStripMenuItem BuildFontMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.Pick("Lettertype", "Font"));
-        var installed = new HashSet<string>(FontFamily.Families.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
-        var names = FontCandidates.Where(installed.Contains).ToList();
-        if (!names.Contains(_cfg.FontFamily, StringComparer.OrdinalIgnoreCase)) names.Insert(0, _cfg.FontFamily);
-
-        foreach (var name in names)
-        {
-            var it = new ToolStripMenuItem(name) { Checked = string.Equals(_cfg.FontFamily, name, StringComparison.OrdinalIgnoreCase) };
-            try
-            {
-                var preview = new Font(name, 9f);
-                _menuFonts.Add(preview);
-                it.Font = preview;   // toont de naam in het lettertype zelf
-            }
-            catch { }
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.FontFamily = name; ApplyFonts(); Relayout(); };
-            m.DropDownItems.Add(it);
-        }
-
-        m.DropDownItems.Add(new ToolStripSeparator());
-        var more = new ToolStripMenuItem(Loc.Pick("Meer lettertypen…", "More fonts…")) { Tag = "close" };
-        more.Click += (_, _) =>
-        {
-            using var dlg = new FontDialog { Font = _font, FontMustExist = true, ShowEffects = false };
-            if (dlg.ShowDialog(this) != DialogResult.OK) return;
-            _cfg.FontFamily = dlg.Font.FontFamily.Name;
-            _cfg.FontSize = Math.Clamp((int)Math.Round(dlg.Font.SizeInPoints), 6, 16);
-            ApplyFonts();
-            Relayout();
-        };
-        m.DropDownItems.Add(more);
-        return m;
-    }
-
-    private ToolStripMenuItem BuildFontSizeMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.Pick("Lettergrootte", "Font size"));
-        foreach (int pt in new[] { 7, 8, 9, 10, 11, 12, 14 })
-        {
-            var it = new ToolStripMenuItem($"{pt} pt") { Checked = _cfg.FontSize == pt };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.FontSize = pt; ApplyFonts(); Relayout(); };
-            m.DropDownItems.Add(it);
-        }
-        return m;
-    }
-
     private ToolStripMenuItem BuildUsageMenu()
     {
         var m = new ToolStripMenuItem(Loc.Pick("Verbruik", "Usage"));
@@ -1483,61 +1411,6 @@ public sealed class WidgetForm : Form
         }
         m.DropDownItems.Add(dur);
         return m;
-    }
-
-    private ToolStripMenuItem BuildThresholdMenu()
-    {
-        var m = new ToolStripMenuItem(Loc.S("thresholds"));
-        void add(int warn, int crit)
-        {
-            var it = new ToolStripMenuItem($"{warn}% / {crit}%")
-            { Checked = _cfg.WarnThreshold == warn && _cfg.CritThreshold == crit };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.WarnThreshold = warn; _cfg.CritThreshold = crit; Persist(); };
-            m.DropDownItems.Add(it);
-        }
-        add(70, 85); add(80, 90); add(85, 95); add(90, 98);
-        return m;
-    }
-
-    private ToolStripMenuItem BuildBorderMenu()
-    {
-        var colors = new ToolStripMenuItem(Loc.S("borderColor"));
-        var none = new ToolStripMenuItem(Loc.S("noBorder")) { Checked = string.IsNullOrWhiteSpace(_cfg.BorderColor) };
-        none.Click += (_, _) => { Keep(); MarkOnly(none); _cfg.BorderColor = ""; Persist(); };
-        colors.DropDownItems.Add(none);
-        foreach (var (name, hex) in BorderPalette)
-        {
-            var it = new ToolStripMenuItem(name)
-            {
-                Checked = string.Equals(_cfg.BorderColor, hex, StringComparison.OrdinalIgnoreCase),
-                Image = SwatchImage(hex)
-            };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.BorderColor = hex; Persist(); };
-            colors.DropDownItems.Add(it);
-        }
-        return colors;
-    }
-
-    private void AddStyle(ToolStripMenuItem parent, DisplayStyle current, Action<DisplayStyle> set)
-    {
-        foreach (var (label, style) in new[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar) })
-        {
-            var it = new ToolStripMenuItem(label) { Checked = current == style };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); set(style); };
-            parent.DropDownItems.Add(it);
-        }
-    }
-
-    private void AddColorPick(ToolStripMenuItem parent, string label, string current, Action<string> set)
-    {
-        var it = new ToolStripMenuItem(label) { Image = SwatchImage(current), Tag = "close" };
-        it.Click += (_, _) =>
-        {
-            using var dlg = new ColorDialog { Color = C(current, Color.White), FullOpen = true };
-            if (dlg.ShowDialog(this) == DialogResult.OK)
-                set(ColorTranslator.ToHtml(dlg.Color));
-        };
-        parent.DropDownItems.Add(it);
     }
 
     private static readonly (string name, string hex)[] BorderPalette =

@@ -20,6 +20,8 @@ public sealed class MiniForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false; MinimizeBox = false;
         StartPosition = FormStartPosition.Manual;
+        TopMost = true;   // boven het (altijd-bovenop) fullscreen-scherm
+        ShowInTaskbar = false;
         AutoScaleMode = AutoScaleMode.None;   // we rekenen zelf met de schaling van het scherm
         ClientSize = new Size(N * Px, N * Px + Bar);
         BackColor = Color.FromArgb(18, 18, 20);
@@ -44,6 +46,13 @@ public sealed class MiniForm : Form
         Px = Math.Max(10, Math.Min((int)(20 * k), maxPx));
         ClientSize = new Size(N * Px, N * Px + Bar);
         Location = new Point(Math.Max(wa.Left, wa.Left + (wa.Width - Width) / 2), Math.Max(wa.Top, wa.Top + (wa.Height - Height) / 2));
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        Activate();
+        BringToFront();
     }
 
     private void Reset()

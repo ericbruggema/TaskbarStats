@@ -178,6 +178,7 @@ public sealed class FullscreenForm : Form
     {
         base.OnMouseDown(e);
         if (e.Button == MouseButtons.Right) { _c.ShowMenu(Cursor.Position); return; }
+        if (e.Button == MouseButtons.Left && _hover == "exit") { Close(); return; }
         if (_tour && e.Button == MouseButtons.Left) { StopTour(); Invalidate(); return; }
         if (e.Button == MouseButtons.Left && _hover is null)
         {
@@ -580,7 +581,16 @@ public sealed class FullscreenForm : Form
         T(g, DateTime.Now.ToString("dddd d MMMM yyyy"), _f, Dim, CW / 2 + 40, 26);
 
         // tijdvenster
-        float x = CW - M - 4;
+        // afsluitknop uiterst rechts (zelfde als Esc in het overzicht)
+        var exit = new RectangleF(CW - M - 44, 16, 44, 32);
+        _hits.Add(("exit", exit));
+        bool exitHot = _hover == "exit";
+        using (var path = Rounded(exit, 8))
+        using (var bg = new SolidBrush(exitHot ? Color.FromArgb(220, 200, 40, 40) : Color.FromArgb(26, 255, 255, 255)))
+            g.FillPath(bg, path);
+        TC(g, "✕", _fb, TextCol, exit.X + exit.Width / 2, exit.Y + exit.Height / 2);
+
+        float x = CW - M - 4 - 56;
         var chips = new (int w, string l)[] { (3600, Loc.Pick("1 u", "1 h")), (300, "5 m"), (60, "1 m") };
         foreach (var (w, l) in chips)
         {
@@ -595,7 +605,7 @@ public sealed class FullscreenForm : Form
         }
         TR(g, Loc.Pick("grafiek:", "graph:"), _fs, Dim, x - 4, 24);
         string hint = _tour ? Loc.Pick($"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  klik of toets = stop", $"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  click or key = stop")
-                    : _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  spatie = tour  ·  Esc sluit", "Click a tile for details  ·  space = tour  ·  Esc closes")
+                    : _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  spatie = tour  ·  Esc of ✕ sluit", "Click a tile for details  ·  space = tour  ·  Esc or ✕ closes")
                     : Loc.Pick("Esc: terug naar het overzicht", "Esc: back to the overview");
         TR(g, hint, _fs, _tour ? Accent : Dim, x - 110, 24);
         if (_tour)   // voortgang van de huidige pagina

@@ -14,7 +14,8 @@ namespace TaskbarStats;
 /// </summary>
 public static class StartupManager
 {
-    private const string TaskName = "TaskbarStats";
+    // TASKBARSTATS_TASK = andere taaknaam (voor installatietests, zodat de echte autostart-taak ongemoeid blijft).
+    private static readonly string TaskName = Environment.GetEnvironmentVariable("TASKBARSTATS_TASK") ?? "TaskbarStats";
     private const string LegacyRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     // schtasks.exe starten kost ~30 ms; het resultaat onthouden zodat het menu niet bij elke rechtsklik wacht.

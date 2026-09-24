@@ -4,6 +4,28 @@ using LibreHardwareMonitor.Hardware;
 
 namespace TaskbarStats;
 
+/// <summary>Eén sensormeting uit LibreHardwareMonitor (temperatuur, klok, vermogen, ventilator, ...).</summary>
+public sealed record SensorInfo(string Hardware, HardwareType HwType, string Name, SensorType Type, double? Value, double? Min, double? Max)
+{
+    public static string FormatValue(SensorType t, double v) => t switch
+    {
+        SensorType.Temperature => $"{v:0.#} °C",
+        SensorType.Load or SensorType.Level or SensorType.Control => $"{v:0.#} %",
+        SensorType.Clock => v >= 1000 ? $"{v / 1000:0.00} GHz" : $"{v:0} MHz",
+        SensorType.Power => $"{v:0.#} W",
+        SensorType.Voltage => $"{v:0.000} V",
+        SensorType.Current => $"{v:0.###} A",
+        SensorType.Fan => $"{v:0} RPM",
+        SensorType.Flow => $"{v:0} L/h",
+        SensorType.Data => $"{v:0.#} GB",
+        SensorType.SmallData => $"{v:0.#} MB",
+        SensorType.Throughput => Metrics.FormatRate(v),
+        SensorType.Energy => $"{v:0} mWh",
+        SensorType.Noise => $"{v:0} dBA",
+        _ => $"{v:0.##}",
+    };
+}
+
 /// <summary>Vrije/totale ruimte van één schijf (station).</summary>
 public readonly record struct DriveSpace(string Name, long Total, long Free, bool Network = false)
 {
@@ -68,7 +90,13 @@ public sealed class Metrics : IDisposable
     private string? _gpuLuidFilter;
     private string? _netFilter;
     private Computer? _lhm;
-    private readonly object _lhmLock = new();   // EnableTemperatures (UI) en UpdateTemperatures (sampler-thread)
+    private readonly object _lhmLock = new();   // alle LibreHardwareMonitor-toegang (UI zet vlaggen, sampler-thread voert uit)
+    private bool _wantTemps, _wantSensors, _lhmExtended, _lhmDirty;
+    private long _sensorsAt;
+    private volatile SensorInfo[] _sensors = Array.Empty<SensorInfo>();
+
+    /// <summary>Alle sensoren (CPU, GPU, hoofdbord, schijven, geheugen, batterij); alleen gevuld zolang <see cref="SetSensorsWanted"/> aan staat.</summary>
+    public IReadOnlyList<SensorInfo> Sensors => _sensors;
     private long _rebuiltAt;
 
     public Metrics()
@@ -127,52 +155,103 @@ public sealed class Metrics : IDisposable
 
     // ---------- Temperatuur ----------
 
+    /// <summary>Temperaturen in het widget (CPU/GPU). Het openen van LibreHardwareMonitor gebeurt op de sampler-thread.</summary>
     public void EnableTemperatures(bool on)
     {
+        lock (_lhmLock) { _wantTemps = on; _lhmDirty = true; }
+    }
+
+    /// <summary>Volledige sensorlijst (fullscreen-scherm): zet ook hoofdbord, schijven, geheugen en batterij aan.</summary>
+    public void SetSensorsWanted(bool on)
+    {
+        lock (_lhmLock) { _wantSensors = on; _lhmDirty = true; if (!on) _sensors = Array.Empty<SensorInfo>(); }
+    }
+
+    // Op de sampler-thread: LibreHardwareMonitor openen/sluiten of uitbreiden als de wensen zijn veranderd.
+    private void SyncLhm()
+    {
         lock (_lhmLock)
-        try
         {
-            if (on && _lhm is null)
+            if (!_lhmDirty) return;
+            _lhmDirty = false;
+            try
             {
-                _lhm = new Computer { IsCpuEnabled = true, IsGpuEnabled = true };
+                if (!(_wantTemps || _wantSensors)) { CloseLhm(); return; }
+                if (_lhm is not null && _lhmExtended == _wantSensors) return;
+                CloseLhm();
+                _lhm = new Computer
+                {
+                    IsCpuEnabled = true, IsGpuEnabled = true,
+                    IsMemoryEnabled = _wantSensors, IsMotherboardEnabled = _wantSensors, IsStorageEnabled = _wantSensors,
+                    IsBatteryEnabled = _wantSensors, IsControllerEnabled = _wantSensors,
+                };
                 _lhm.Open();
+                _lhmExtended = _wantSensors;
             }
-            else if (!on && _lhm is not null)
-            {
-                _lhm.Close();
-                _lhm = null;
-                CpuTempC = null;
-                GpuTempC = null;
-            }
+            catch { _lhm = null; }
         }
-        catch { _lhm = null; }
+    }
+
+    private void CloseLhm()
+    {
+        try { _lhm?.Close(); } catch { }
+        _lhm = null;
+        CpuTempC = null;
+        GpuTempC = null;
+        _sensors = Array.Empty<SensorInfo>();
     }
 
     private void UpdateTemperatures()
     {
         lock (_lhmLock)
         {
-        if (_lhm is null) return;
-        try
-        {
-            foreach (var hw in _lhm.Hardware)
+            if (_lhm is null) return;
+            try
             {
-                hw.Update();
-                foreach (var s in hw.Sensors)
+                foreach (var hw in _lhm.Hardware)
                 {
-                    if (s.SensorType != SensorType.Temperature || s.Value is null) continue;
-                    if (hw.HardwareType == HardwareType.Cpu &&
-                        (s.Name.Contains("Package") || s.Name.Contains("Core (Tctl", StringComparison.OrdinalIgnoreCase) ||
-                         s.Name.Contains("Tdie", StringComparison.OrdinalIgnoreCase) || s.Name.StartsWith("Core")))
-                        CpuTempC = s.Value;
-                    if ((hw.HardwareType == HardwareType.GpuNvidia || hw.HardwareType == HardwareType.GpuAmd ||
-                         hw.HardwareType == HardwareType.GpuIntel) && s.Name.Contains("Core"))
-                        GpuTempC = s.Value;
+                    bool gpu = hw.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel;
+                    if (hw.HardwareType != HardwareType.Cpu && !gpu) continue;   // schijven/hoofdbord alleen in de sensor-snapshot
+                    hw.Update();
+                    foreach (var s in hw.Sensors)
+                    {
+                        if (s.SensorType != SensorType.Temperature || s.Value is null) continue;
+                        if (hw.HardwareType == HardwareType.Cpu &&
+                            (s.Name.Contains("Package") || s.Name.Contains("Core (Tctl", StringComparison.OrdinalIgnoreCase) ||
+                             s.Name.Contains("Tdie", StringComparison.OrdinalIgnoreCase) || s.Name.StartsWith("Core")))
+                            CpuTempC = s.Value;
+                        if (gpu && s.Name.Contains("Core"))
+                            GpuTempC = s.Value;
+                    }
                 }
             }
+            catch { }
         }
-        catch { }
+    }
+
+    // Elke 2 s alle sensoren uitlezen (zwaarder dan de temperaturen: schijven/hoofdbord), alleen als het fullscreen-scherm open is.
+    private void SnapshotSensors()
+    {
+        if (!_wantSensors) return;
+        long now = Environment.TickCount64;
+        if (now - _sensorsAt < 2000) return;
+        _sensorsAt = now;
+        lock (_lhmLock)
+        {
+            if (_lhm is null || !_lhmExtended) return;
+            var list = new List<SensorInfo>();
+            try { foreach (var hw in _lhm.Hardware) VisitHardware(hw, list); } catch { }
+            _sensors = list.ToArray();
         }
+    }
+
+    private static void VisitHardware(IHardware hw, List<SensorInfo> list)
+    {
+        try { hw.Update(); } catch { }
+        foreach (var s in hw.Sensors)
+            list.Add(new SensorInfo(hw.Name, hw.HardwareType, s.Name, s.SensorType,
+                                    s.Value is float v ? v : null, s.Min is float mn ? mn : null, s.Max is float mx ? mx : null));
+        foreach (var sub in hw.SubHardware) VisitHardware(sub, list);
     }
 
     // ---------- Netwerk ----------
@@ -418,7 +497,9 @@ public sealed class Metrics : IDisposable
         }
         catch { BatteryPresent = false; }
 
+        SyncLhm();
         UpdateTemperatures();
+        SnapshotSensors();
 
         // Instances (adapters, schijven, VRAM) komen en gaan; af en toe opnieuw opbouwen.
         if (Environment.TickCount64 - _rebuiltAt > 5000)
@@ -464,7 +545,7 @@ public sealed class Metrics : IDisposable
         _gpuQuery?.Dispose();
         foreach (var (r, s) in _net.Values) { r.Dispose(); s.Dispose(); }
         foreach (var (r, w) in _disks.Values) { r.Dispose(); w.Dispose(); }
-        lock (_lhmLock) { try { _lhm?.Close(); } catch { } }
+        lock (_lhmLock) CloseLhm();
     }
 
     // ---------- P/Invoke ----------

@@ -1,4 +1,6 @@
 using System.Drawing.Drawing2D;
+using System.Text.RegularExpressions;
+using LibreHardwareMonitor.Hardware;
 using Microsoft.Win32;
 
 namespace TaskbarStats;
@@ -24,7 +26,7 @@ public sealed class FullscreenForm : Form
     private string? _detail, _hover;
     private int _win = 300;
     private float _s = 1, _ox, _oy;
-    private long _procAt;
+    private long _procAt, _openedAt;
     private static string? _cpuName;
 
     public FullscreenForm(DashContext c, Screen screen)
@@ -50,6 +52,8 @@ public sealed class FullscreenForm : Form
 
         _timer.Tick += (_, _) => { SampleProcs(); Invalidate(); };
         _timer.Start();
+        _openedAt = Environment.TickCount64;
+        _c.Metrics.SetSensorsWanted(true);   // LibreHardwareMonitor: hoofdbord, schijven, ventilatoren, klokken, vermogen
         SampleProcs(true);
     }
 
@@ -112,6 +116,7 @@ public sealed class FullscreenForm : Form
     {
         _timer.Stop();
         _timer.Dispose();
+        _c.Metrics.SetSensorsWanted(false);
         foreach (var f in new[] { _f, _fs, _fb, _fh, _fbig, _fhuge }) f.Dispose();
         base.OnFormClosed(e);
     }
@@ -333,6 +338,129 @@ public sealed class FullscreenForm : Form
     private List<KeyValuePair<string, double>> Gpus()
         => _c.Metrics.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
 
+    // ---------- Sensoren (LibreHardwareMonitor) ----------
+    private sealed record SRow(string Name, string Value, SensorType Type, double Raw);
+    private static readonly Regex NumSuffix = new(@"^(.*?)\s*#?(\d+)(\s*\(.*\))?$", RegexOptions.Compiled);
+
+    private static bool IsGpuHw(HardwareType t) => t is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel;
+    private static string Fmt(SensorType t, double v) => SensorInfo.FormatValue(t, v);
+    private Color TempColor(double v) => v >= 90 ? Col(Cfg.CritColor, Color.Red) : v >= 75 ? Col(Cfg.WarnColor, Color.Orange) : TextCol;
+
+    private static int Prio(SensorType t) => t switch
+    {
+        SensorType.Power => 0, SensorType.Temperature => 1, SensorType.Clock => 2, SensorType.Voltage => 3, SensorType.Current => 4,
+        SensorType.Fan => 5, SensorType.Control => 6, SensorType.Level => 7, SensorType.Load => 8, _ => 9,
+    };
+
+    /// <summary>Sensoren die "niet ondersteund" melden (bijv. 255 °C, -1 FPS) horen niet in de lijst.</summary>
+    private static bool PlausibleValue(SensorInfo s)
+    {
+        double v = s.Value ?? 0;
+        return s.Type switch
+        {
+            SensorType.Temperature => v > -30 && v < 150,
+            SensorType.Fan or SensorType.Clock or SensorType.Data or SensorType.SmallData or SensorType.Throughput or SensorType.Factor => v >= 0,
+            _ => true,
+        };
+    }
+
+    /// <summary>Sensoren met een oplopend nummer ("Core #1..#16", "Fan #2") worden één regel met bereik.</summary>
+    private static List<SRow> Rows(IEnumerable<SensorInfo> sensors)
+    {
+        var rows = new List<SRow>();
+        var groups = sensors.Where(s => s.Value.HasValue && PlausibleValue(s)).GroupBy(s =>
+        {
+            var m = NumSuffix.Match(s.Name);
+            string key = m.Success && m.Groups[1].Value.Length > 0 ? m.Groups[1].Value + m.Groups[3].Value : s.Name;
+            return (key, s.Type, s.Hardware);
+        });
+        foreach (var grp in groups)
+        {
+            var list = grp.ToList();
+            if (list.Count > 1 && NumSuffix.IsMatch(list[0].Name))
+            {
+                double mn = list.Min(x => x.Value!.Value), mx = list.Max(x => x.Value!.Value);
+                string val = Math.Abs(mx - mn) < 1e-9 ? Fmt(grp.Key.Type, mx) : $"{Fmt(grp.Key.Type, mn)} – {Fmt(grp.Key.Type, mx)}";
+                rows.Add(new SRow($"{grp.Key.Item1} (×{list.Count})", val, grp.Key.Type, mx));
+            }
+            else foreach (var s in list) rows.Add(new SRow(s.Name, Fmt(s.Type, s.Value!.Value), s.Type, s.Value!.Value));
+        }
+        return rows.OrderBy(r => Prio(r.Type)).ThenBy(r => r.Name).ToList();
+    }
+
+    private float SensorList(Graphics g, float x, float y, float w, int maxRows, List<SRow> rows)
+    {
+        int shown = Math.Min(maxRows, rows.Count);
+        for (int i = 0; i < shown; i++)
+        {
+            var r = rows[i];
+            float yy = y + i * 24;
+            T(g, Trunc(r.Name, Math.Max(12, (int)(w / 8.5f))), _f, Dim, x, yy);
+            TR(g, r.Value, _f, r.Type == SensorType.Temperature ? TempColor(r.Raw) : TextCol, x + w, yy);
+        }
+        if (rows.Count > shown) T(g, $"+{rows.Count - shown} …", _fs, Dim, x, y + shown * 24);
+        return shown * 24 + (rows.Count > shown ? 20 : 0);
+    }
+
+    private string? SensorHint()
+    {
+        if (_c.Metrics.Sensors.Count > 0) return null;
+        return Environment.TickCount64 - _openedAt < 10000
+            ? Loc.Pick("Sensoren laden…", "Loading sensors…")
+            : Loc.Pick("Geen sensorgegevens — LibreHardwareMonitor heeft administrator-rechten nodig.", "No sensor data — LibreHardwareMonitor needs administrator rights.");
+    }
+
+    private string? CpuPower()
+    {
+        var p = _c.Metrics.Sensors.Where(s => s.HwType == HardwareType.Cpu && s.Type == SensorType.Power && s.Value.HasValue).ToList();
+        var pick = p.FirstOrDefault(s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase)) ?? p.FirstOrDefault();
+        return pick is null ? null : Fmt(pick.Type, pick.Value!.Value);
+    }
+
+    private List<SensorInfo> GpuSensors(string gpuName)
+    {
+        var all = _c.Metrics.Sensors.Where(s => IsGpuHw(s.HwType) && s.Value.HasValue).ToList();
+        var hws = all.Select(s => s.Hardware).Distinct().ToList();
+        string? hw = hws.FirstOrDefault(h => h.Contains(gpuName, StringComparison.OrdinalIgnoreCase) || gpuName.Contains(h, StringComparison.OrdinalIgnoreCase))
+                     ?? (hws.Count == 1 ? hws[0] : null);
+        return hw is null ? new List<SensorInfo>() : all.Where(s => s.Hardware == hw).ToList();
+    }
+
+    private string GpuInfo(string gpuName)
+    {
+        var mine = GpuSensors(gpuName);
+        if (mine.Count == 0) return "";
+        var parts = new List<string>();
+        var temp = mine.FirstOrDefault(s => s.Type == SensorType.Temperature && s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+                   ?? mine.FirstOrDefault(s => s.Type == SensorType.Temperature);
+        if (temp is not null) parts.Add(Fmt(temp.Type, temp.Value!.Value));
+        var pw = mine.FirstOrDefault(s => s.Type == SensorType.Power);
+        if (pw is not null) parts.Add(Fmt(pw.Type, pw.Value!.Value));
+        var ck = mine.FirstOrDefault(s => s.Type == SensorType.Clock && s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase));
+        if (ck is not null) parts.Add(Fmt(ck.Type, ck.Value!.Value));
+        var fan = mine.FirstOrDefault(s => s.Type == SensorType.Fan);
+        if (fan is not null) parts.Add(Fmt(fan.Type, fan.Value!.Value));
+        return string.Join("  ·  ", parts);
+    }
+
+    /// <summary>Per fysieke schijf: temperatuur en gezondheid (uit SMART via LibreHardwareMonitor).</summary>
+    private List<(string name, string text)> StorageLines()
+    {
+        var res = new List<(string, string)>();
+        foreach (var grp in _c.Metrics.Sensors.Where(s => s.HwType == HardwareType.Storage && s.Value.HasValue).GroupBy(s => s.Hardware))
+        {
+            var parts = new List<string>();
+            var t = grp.FirstOrDefault(s => s.Type == SensorType.Temperature);
+            if (t is not null) parts.Add(Fmt(t.Type, t.Value!.Value));
+            var used = grp.FirstOrDefault(s => s.Name.Contains("Percentage Used", StringComparison.OrdinalIgnoreCase));
+            var life = grp.FirstOrDefault(s => s.Name.Contains("Remaining Life", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Life", StringComparison.OrdinalIgnoreCase));
+            if (used is not null) parts.Add($"{100 - used.Value!.Value:0}% {Loc.Pick("gezond", "health")}");
+            else if (life is not null) parts.Add($"{life.Value!.Value:0}% {Loc.Pick("levensduur", "life")}");
+            if (parts.Count > 0) res.Add((grp.Key, string.Join("  ·  ", parts)));
+        }
+        return res;
+    }
+
     // ---------- Kop ----------
     private void DrawHeader(Graphics g)
     {
@@ -394,7 +522,7 @@ public sealed class FullscreenForm : Form
     private void TileCpu(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        string sub = $"{m.CpuCores.Length} {Loc.Pick("kernen", "cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "");
+        string sub = $"{m.CpuCores.Length} {Loc.Pick("kernen", "cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "") + (CpuPower() is string pw ? $"  ·  {pw}" : "");
         Card(g, "cpu", r, "CPU", sub);
         T(g, Trunc(CpuName(), 60), _fs, Dim, r.X + 16, r.Y + 36);
         Gauge(g, r.X + 96, r.Y + 140, 62, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
@@ -444,6 +572,8 @@ public sealed class FullscreenForm : Form
                 Bar(g, r.X + 190, y0 + 50, r.Width - 206, 100.0 * used / ded, Green, 6);
                 gy = y0 + 66;
             }
+            string info = GpuInfo(Metrics.GpuName(luid));
+            if (info != "") { T(g, info, _fs, Dim, r.X + 16, gy); gy += 20; }
             if (_c.History.GpuPer.TryGetValue(luid, out var ring))
                 Graph(g, new RectangleF(r.X + 16, gy, r.Width - 32, Math.Max(50, y0 + sh - gy - 14)), new[] { (ring, Accent) }, 100, Pct, false);
         }
@@ -527,6 +657,13 @@ public sealed class FullscreenForm : Form
             if (y > r.Bottom - 26) break;
             T(g, Trunc(name, 22), _fs, Dim, r.X + 16, y);
             TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _fs, TextCol, r.Right - 16, y);
+            y += 21;
+        }
+        foreach (var (name, text) in StorageLines())
+        {
+            if (y > r.Bottom - 26) break;
+            T(g, TruncMid(name, 26), _fs, Dim, r.X + 16, y);
+            TR(g, text, _fs, TextCol, r.Right - 16, y);
             y += 21;
         }
     }
@@ -651,9 +788,15 @@ public sealed class FullscreenForm : Form
         KeyValue(g, rx, y, rw, Loc.Pick("Kernen", "Cores"), $"{cores.Length}"); y += 24;
         if (m.CpuMHz is double f) { KeyValue(g, rx, y, rw, Loc.Pick("Klokfrequentie", "Clock speed"), $"{f / 1000:0.00} GHz"); y += 24; }
         if (m.CpuTempC is double t) { KeyValue(g, rx, y, rw, Loc.Pick("Temperatuur", "Temperature"), $"{t:0}°C"); y += 24; }
-        y += 16;
+        y += 12;
+        T(g, Loc.Pick("Sensoren", "Sensors"), _fs, Dim, rx, y);
+        var cpuRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Cpu && x.Type != SensorType.Load));
+        float usedH;
+        if (cpuRows.Count == 0) { T(g, SensorHint() ?? Loc.Pick("Geen CPU-sensoren beschikbaar (administrator-rechten nodig).", "No CPU sensors available (administrator rights needed)."), _fs, Dim, rx, y + 22); usedH = 26; }
+        else usedH = SensorList(g, rx, y + 22, rw, 9, cpuRows);
+        y += 22 + usedH + 14;
         T(g, Loc.Pick("Zwaarste programma's (CPU)", "Top programs (CPU)"), _fs, Dim, rx, y);
-        ProcList(g, rx, y + 22, rw, 12, true);
+        ProcList(g, rx, y + 22, rw, 8, true);
     }
 
     private void DetailGpu(Graphics g, RectangleF R)
@@ -663,32 +806,39 @@ public sealed class FullscreenForm : Form
         Card(g, null, R, "GPU — " + Loc.Pick("details", "details"), m.GpuTempC is double tt ? $"{tt:0}°C" : null);
         if (gpus.Count == 0) { T(g, Loc.Pick("Geen GPU-gegevens", "No GPU data"), _f, Dim, R.X + 16, R.Y + 56); return; }
         float sh = (R.Height - 50) / gpus.Count;
+        float col = (R.Width - 64) / 3;
         for (int i = 0; i < gpus.Count; i++)
         {
             var (luid, v) = (gpus[i].Key, gpus[i].Value);
+            string gpuName = Metrics.GpuName(luid);
             float y0 = R.Y + 48 + i * sh, hh = sh - 20;
-            T(g, Metrics.GpuName(luid), _fh, TextCol, R.X + 16, y0);
+            T(g, gpuName, _fh, TextCol, R.X + 16, y0);
             TR(g, $"{v:0}%", _fbig, Thr(v), R.Right - 16, y0 - 8);
             float gh = hh - 50;
-            float half = (R.Width - 48) / 2;
-            T(g, Loc.Pick("Belasting", "Load"), _fs, Dim, R.X + 16, y0 + 34);
+            float x1 = R.X + 16, x2 = R.X + 32 + col, x3 = R.X + 48 + 2 * col;
+
+            T(g, Loc.Pick("Belasting", "Load"), _fs, Dim, x1, y0 + 34);
             if (_c.History.GpuPer.TryGetValue(luid, out var ring))
             {
-                Graph(g, new RectangleF(R.X + 16, y0 + 54, half - 200, gh), new[] { (ring, Accent) }, 100, Pct);
-                StatRows(g, R.X + 16 + half - 180, y0 + 60, 170, ring, Pct);
+                Graph(g, new RectangleF(x1, y0 + 54, col - 190, gh), new[] { (ring, Accent) }, 100, Pct);
+                StatRows(g, x1 + col - 170, y0 + 60, 170, ring, Pct);
             }
             long ded = Metrics.GpuDedicatedBytes(luid);
-            float x2 = R.X + 32 + half;
             T(g, Loc.Pick("Videogeheugen (VRAM)", "Video memory (VRAM)"), _fs, Dim, x2, y0 + 34);
             if (ded > 0 && _c.History.VramPer.TryGetValue(luid, out var vr))
             {
-                Graph(g, new RectangleF(x2, y0 + 54, half - 200, gh), new[] { (vr, Green) }, ded, SizeStr);
-                var s = Stat(vr);
-                KeyValue(g, x2 + half - 180, y0 + 60, 170, Loc.Pick("In gebruik", "Used"), SizeStr(s.cur));
-                KeyValue(g, x2 + half - 180, y0 + 84, 170, Loc.Pick("Totaal", "Total"), SizeStr(ded));
-                KeyValue(g, x2 + half - 180, y0 + 108, 170, "Max", SizeStr(s.max));
+                Graph(g, new RectangleF(x2, y0 + 54, col - 190, gh), new[] { (vr, Green) }, ded, SizeStr);
+                var s2 = Stat(vr);
+                KeyValue(g, x2 + col - 170, y0 + 60, 170, Loc.Pick("In gebruik", "Used"), SizeStr(s2.cur));
+                KeyValue(g, x2 + col - 170, y0 + 84, 170, Loc.Pick("Totaal", "Total"), SizeStr(ded));
+                KeyValue(g, x2 + col - 170, y0 + 108, 170, "Max", SizeStr(s2.max));
             }
             else T(g, Loc.Pick("Geen VRAM-gegevens", "No VRAM data"), _f, Dim, x2, y0 + 60);
+
+            T(g, Loc.Pick("Sensoren", "Sensors"), _fs, Dim, x3, y0 + 34);
+            var rows = Rows(GpuSensors(gpuName).Where(x => x.Type != SensorType.Load));
+            if (rows.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen sensoren voor deze kaart.", "No sensors for this card."), _fs, Dim, x3, y0 + 60);
+            else SensorList(g, x3, y0 + 58, col - 8, Math.Max(4, (int)((gh - 4) / 24)), rows);
         }
     }
 
@@ -849,6 +999,24 @@ public sealed class FullscreenForm : Form
             TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _f, Dim, rx + rw, ry);
             ry += 26;
         }
+        var stLines = StorageLines();
+        ry += 14;
+        T(g, Loc.Pick("Temperatuur en gezondheid", "Temperature and health"), _fs, Dim, rx, ry);
+        ry += 24;
+        if (stLines.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen SMART-gegevens beschikbaar.", "No SMART data available."), _fs, Dim, rx, ry);
+        foreach (var (name, text) in stLines)
+        {
+            T(g, TruncMid(name, 30), _f, TextCol, rx, ry);
+            TR(g, text, _f, Dim, rx + rw, ry);
+            ry += 26;
+        }
+        var stRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Storage && x.Type != SensorType.Load));
+        if (stRows.Count > 0)
+        {
+            ry += 10;
+            T(g, Loc.Pick("Alle schijfsensoren", "All disk sensors"), _fs, Dim, rx, ry);
+            SensorList(g, rx, ry + 22, rw, Math.Max(3, (int)((R.Bottom - 20 - (ry + 22)) / 24)), stRows);
+        }
     }
 
     private void DetailSys(Graphics g, RectangleF R)
@@ -905,6 +1073,23 @@ public sealed class FullscreenForm : Form
         {
             KeyValue(g, x, by, half - 16, sc.DeviceName.TrimStart('\\', '.') + (sc.Primary ? " *" : ""), $"{sc.Bounds.Width} × {sc.Bounds.Height}");
             by += 26;
+        }
+
+        // Hoofdbord, ventilatoren, geheugen, batterij en overige sensoren (LibreHardwareMonitor)
+        float sy2 = R.Y + 470;
+        T(g, Loc.Pick("Hoofdbord, ventilatoren en overige sensoren", "Motherboard, fans and other sensors"), _fs, Dim, sx, sy2);
+        var others = Rows(_c.Metrics.Sensors.Where(x => x.HwType != HardwareType.Cpu && !IsGpuHw(x.HwType) && x.HwType != HardwareType.Storage));
+        if (others.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen extra sensoren gevonden.", "No additional sensors found."), _fs, Dim, sx, sy2 + 24);
+        else
+        {
+            int perCol = Math.Max(3, (int)((R.Bottom - 16 - (sy2 + 24)) / 24));
+            float cw2 = (half - 40) / 2;
+            for (int ci = 0; ci < 2; ci++)
+            {
+                var slice = others.Skip(ci * perCol).Take(perCol).ToList();
+                if (slice.Count == 0) break;
+                SensorList(g, sx + ci * (cw2 + 24), sy2 + 24, cw2, perCol, slice);
+            }
         }
     }
 

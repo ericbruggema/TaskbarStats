@@ -3,10 +3,10 @@
 ; Handmatig: 1) dotnet publish -c Release -r win-x64 --self-contained true
 ;                 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 ;            2) ISCC.exe installer\TaskbarStats.iss
-; Resultaat: installer\Output\TaskbarStats-Setup.exe
+; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -22,7 +22,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
 OutputDir=Output
-OutputBaseFilename={#AppName}-Setup
+OutputBaseFilename={#AppName}-Setup-{#AppVersion}
 UninstallDisplayIcon={app}\{#ExeName}
 UninstallDisplayName={#AppName}
 Compression=lzma2

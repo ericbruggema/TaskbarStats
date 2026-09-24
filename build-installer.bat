@@ -24,7 +24,7 @@ echo [3/3] Installer bouwen...
 if errorlevel 1 goto :fail
 
 echo.
-echo Klaar: installer\Output\TaskbarStats-Setup.exe
+echo Klaar: installer\Output\  (TaskbarStats-Setup-versie.exe)
 start "" "installer\Output"
 endlocal
 exit /b 0

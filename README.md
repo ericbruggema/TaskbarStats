@@ -84,7 +84,7 @@ De app vraagt administrator-rechten (`app.manifest`); voor geautomatiseerde test
 Eenmalig Inno Setup installeren: `winget install JRSoftware.InnoSetup`
 (of https://jrsoftware.org/isdl.php). Daarna dubbelklik je **`build-installer.bat`**: dat
 publiceert de app en compileert `installer\TaskbarStats.iss` tot
-`installer\Output\TaskbarStats-Setup.exe`.
+`installer\Output\TaskbarStats-Setup-<versie>.exe`.
 
 De installer:
 
@@ -144,6 +144,11 @@ rechtsklikken niet meer). Het blijft staan als je "Bureaublad weergeven" gebruik
 (kiesbaar welk). Klik op een tegel voor de diepgaande weergave (grafiek tot 1 uur, min/gemiddeld/max, per kern, per GPU
 met VRAM, per adapter, per schijf, top-programma's, systeeminfo); **Esc** gaat terug en sluit vanuit het overzicht.
 Toets **1/2/3** kiest de grafiek: 1 min / 5 min / 1 uur.
+
+**Sensoren** (LibreHardwareMonitor, alleen actief zolang het fullscreen-scherm open is): CPU-vermogen, -temperaturen en -klokken,
+GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
+geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder
+die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen, batterij) en een korte uitleg.
 
 **Netwerkschijven** (gekoppelde stations) neem je mee via *Schijven → Netwerkschijven meenemen*; ze worden op de
 achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt.

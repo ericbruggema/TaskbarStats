@@ -55,6 +55,9 @@ WAT KAN JE INSTELLEN (rechtermuisknop)
                   scherm; klik op een tegel voor details, Esc = terug/sluiten,
                   toets 1/2/3 = grafiek 1 min / 5 min / 1 uur.
 - Netwerkschijven: Schijven > "Netwerkschijven meenemen".
+- Sensoren      : in het fullscreen-scherm (Ctrl+Alt+F): CPU-vermogen/-temperatuur/
+                  -klokken, GPU-details, schijftemperatuur en -gezondheid,
+                  hoofdbord, ventilatoren, geheugen, batterij (LibreHardwareMonitor).
 - Meldingen     : een melding als de batterij bijna leeg is (20% en 10%),
                   een schijf bijna vol is, CPU/GPU/
                   geheugen te lang op kritiek staat, of je 80% / 100%
@@ -166,4 +169,4 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
- Versie / Version 1.0.0
+ Versie / Version 1.1.0

@@ -16,7 +16,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 - De app heeft `requireAdministrator` (LibreHardwareMonitor voor temperaturen). Je kunt hem dus niet zomaar vanuit een
   niet-elevated shell starten; een `taskkill` op de draaiende app vereist ook admin.
 - Inno Setup is mogelijk niet geïnstalleerd (`winget install JRSoftware.InnoSetup`). De installer is nog nooit gebouwd/uitgeprobeerd.
-- Versie staat op één plek: `<Version>` in `TaskbarStats.csproj` (het Over-scherm leest die uit). Ook `installer\TaskbarStats.iss` en `Leesmij.txt` noemen hem.
+- Versie staat op één plek: `<Version>` in `TaskbarStats.csproj` (het Over-scherm leest die uit). Ook `installer\TaskbarStats.iss` (AppVersion, bepaalt de bestandsnaam `TaskbarStats-Setup-<versie>.exe`) en `installer\Leesmij.txt` noemen hem.
 
 ## Architectuur (kort)
 
@@ -24,7 +24,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 |---------|-----|
 | `Program.cs` | mutex (`TASKBARSTATS_INSTANCE` als achtervoegsel), `--autostart-on/off` (voor de installer) |
 | `WidgetForm.cs` | het widget: layered window, tekenen, muis, **menu**, tooltip, meldingen, hotkeys, sampler-thread (groot bestand) |
-| `Metrics.cs` | tellers: CPU (`Processor Information\% Processor Utility`), GPU via **PDH-wildcard** (`PdhWildcard`), geheugen, netwerk, schijf, VRAM, batterij, LHM-temps, DXGI-namen |
+| `Metrics.cs` | tellers: CPU (`Processor Information\% Processor Utility`), GPU via **PDH-wildcard** (`PdhWildcard`), geheugen, netwerk, schijf, VRAM, batterij, DXGI-namen; LibreHardwareMonitor: temps (widget) en `Sensors` (alleen als het fullscreen-scherm open is, elke 2 s, op de sampler-thread) |
 | `DashboardForm.cs` | bureaublad-dashboard (tegels, masonry), plus `Ring`, `MetricHistory`, `DashContext` |
 | `FullscreenForm.cs` | fullscreen cockpit: vast canvas 1920×1080 dat meeschaalt; overzicht + detail per tegel; Esc = terug/sluiten |
 | `UsageTracker.cs` | verbruik per adapter/dag → `usage.json` (thread-veilig) |
@@ -84,7 +84,6 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Ideeën / nog te doen
 
-- LibreHardwareMonitor-sensoren in het fullscreen-scherm (vermogen, klokken, ventilatoren, SMART-temperatuur/-gezondheid).
 - Tegels in het dashboard slepen/herordenen; thema's; controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
 - Installer bouwen en uitproberen (Inno Setup); een release met de installer op GitHub.
 - Kleinere download: installer die .NET 8 controleert, of port naar .NET Framework 4.8 (zit in Windows).

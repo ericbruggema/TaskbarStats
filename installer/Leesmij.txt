@@ -35,7 +35,8 @@ WAT KAN JE INSTELLEN (rechtermuisknop)
                   (Widget, Kleuren, Dashboard, Fullscreen, Thema's); elke
                   wijziging is direct zichtbaar. Ook de volgorde en aan/uit van de
                   hoofdonderdelen van het dashboard en het fullscreen-scherm, en
-                  thema's opslaan/laden/delen.
+                  thema's opslaan/laden/delen (16 meegeleverd, o.a. Donker,
+                  Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy).
 - Weergave      : per onderdeel digitaal, meter (donut) of balk; CPU
                   eventueel per core.
 - Kleuren       : tekst, achtergrond, meter/balk, waarschuwing, kritiek,

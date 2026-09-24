@@ -354,6 +354,14 @@ public sealed class DashboardForm : Form
     // ---------- Tekenhulpjes ----------
     private static GraphicsPath Rounded(RectangleF r, float radius) => WidgetForm.RoundedRect(r, radius);
 
+    // Kort een tekst in met "…" zodat hij binnen de beschikbare breedte past (brede lettertypen overlapten de waarden ernaast).
+    private static string Fit(Graphics g, string s, Font f, float maxWidth)
+    {
+        if (g.MeasureString(s, f).Width <= maxWidth) return s;
+        while (s.Length > 1 && g.MeasureString(s + "…", f).Width > maxWidth) s = s[..^1];
+        return s + "…";
+    }
+
     private void DrawText(Graphics g, string s, Font f, Color c, float x, float y)
     {
         using var b = new SolidBrush(c);
@@ -455,7 +463,7 @@ public sealed class DashboardForm : Form
         {
             var (luid, v) = (gpus[i].Key, gpus[i].Value);
             float y0 = r.Y + 30 + i * 54;
-            DrawText(g, Metrics.GpuName(luid), _f, TextCol, r.X + 14, y0);
+            DrawText(g, Fit(g, Metrics.GpuName(luid), _f, r.Width - 28 - 60), _f, TextCol, r.X + 14, y0);
             DrawTextRight(g, $"{v:0}%", _fb, Thr(v), r.Right - 14, y0 - 1);
             Bar(g, r.X + 14, y0 + 20, r.Width - 28, v, Thr(v), 7);
             long ded = Metrics.GpuDedicatedBytes(luid);
@@ -512,7 +520,7 @@ public sealed class DashboardForm : Form
         }
         foreach (var (name, rt) in adapters)
         {
-            DrawText(g, name.Length > 24 ? name[..24] + "…" : name, _fs, Dim, r.X + 14, y);
+            DrawText(g, Fit(g, name, _fs, r.Width - 28 - g.MeasureString($"↓ {Metrics.FormatRate(rt.down)}  ↑ {Metrics.FormatRate(rt.up)}", _fs).Width - 10), _fs, Dim, r.X + 14, y);
             DrawTextRight(g, $"↓ {Metrics.FormatRate(rt.down)}  ↑ {Metrics.FormatRate(rt.up)}", _fs, TextCol, r.Right - 14, y);
             if (_c.History.NetPer.TryGetValue(name, out var pr))
             {

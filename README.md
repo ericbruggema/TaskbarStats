@@ -21,6 +21,10 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
+De meegeleverde thema's, hier op het bureaublad-dashboard:
+
+![Alle meegeleverde thema's](docs/screenshots/themes.png)
+
 **Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):
 
 ![Bureaublad-dashboard](docs/screenshots/dashboard.png)
@@ -122,7 +126,7 @@ bij loslaten bewaard); het menu heeft "Reset positie".
   - *Kleuren*: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand en drempels (bv. 85% / 95%).
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
   - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel (het scherm past zich aan het aantal onderdelen aan).
-  - *Thema's*: meegeleverde thema's (Standaard, Licht, Minimaal, Meters, Neon), je eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
+  - *Thema's*: meegeleverde thema's (16 stuks: Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon), je eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
 - **Netwerkadapter** en **GPU-bron**: achter elke adapter en GPU staat de actuele snelheid/het gebruik (live bijgewerkt terwijl het menu openstaat). GPU's worden met naam getoond.
 - **Schijven**: lees/schrijfsnelheid per fysieke schijf (live), vrije/totale ruimte per station, en een keuze wat het widget toont: uit, totaal, alle schijven apart of één schijf. De totale lees/schrijfsnelheid zet je aan via *Onderdelen → Schijf lezen/schrijven*.
 - **Tooltip**: houd de muis boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).

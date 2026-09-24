@@ -115,8 +115,71 @@ public static class ThemeStore
         new ThemeData { Name = "Standaard" },
         new ThemeData
         {
+            Name = "Donker", TextColor = "#E0E0E0", BackgroundColor = "#000000", AccentColor = "#0A84FF", WarnColor = "#FF9F0A",
+            CritColor = "#FF453A", BorderColor = "", DashOpacity = 100,
+        },
+        new ThemeData
+        {
             Name = "Licht", TextColor = "#1C1C1E", BackgroundColor = "#F2F2F7", AccentColor = "#0A64D6",
             WarnColor = "#E07B00", CritColor = "#D70015", BorderColor = "#C7C7CC",
+        },
+        new ThemeData
+        {
+            // Hoe helderder, hoe drukker: grijs -> lichtgrijs -> wit
+            Name = "Zwart-wit", TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#7A7A7A", WarnColor = "#C8C8C8",
+            CritColor = "#FFFFFF", BorderColor = "#FFFFFF", DashOpacity = 100,
+        },
+        new ThemeData
+        {
+            Name = "Liefde", TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
+            CritColor = "#FF1744", BorderColor = "#FF69B4", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
+            FontFamily = "Segoe UI Semibold",
+        },
+        new ThemeData
+        {
+            // De vier CGA-kleuren van de eerste pc's: zwart, cyaan, magenta, wit (plus geel en rood voor waarschuwingen)
+            Name = "CGA", TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#55FFFF", WarnColor = "#FFFF55",
+            CritColor = "#FF5555", BorderColor = "#FF55FF", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
+            FontFamily = "Lucida Console", DashOpacity = 100,
+        },
+        new ThemeData
+        {
+            Name = "Matrix", TextColor = "#00FF41", BackgroundColor = "#000A00", AccentColor = "#00CC33", WarnColor = "#B6FF00",
+            CritColor = "#FF0033", BorderColor = "#00FF41", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
+            FontFamily = "Consolas", Compact = true, LabelsAbove = true, DashOpacity = 95,
+        },
+        new ThemeData
+        {
+            Name = "Amber", TextColor = "#FFB000", BackgroundColor = "#0A0500", AccentColor = "#FF8C00", WarnColor = "#FFD060",
+            CritColor = "#FF4500", BorderColor = "#FF8C00", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
+            FontFamily = "Consolas", DashOpacity = 100,
+        },
+        new ThemeData
+        {
+            // De groentinten van de eerste Game Boy (donkere variant); hoe lichter, hoe drukker
+            Name = "Game Boy", TextColor = "#9BBC0F", BackgroundColor = "#0F380F", AccentColor = "#8BAC0F", WarnColor = "#CADC9F",
+            CritColor = "#E0F8D0", BorderColor = "#306230", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
+            FontFamily = "Lucida Console", DashOpacity = 100,
+        },
+        new ThemeData
+        {
+            Name = "Dracula", TextColor = "#F8F8F2", BackgroundColor = "#282A36", AccentColor = "#BD93F9", WarnColor = "#FFB86C",
+            CritColor = "#FF5555", BorderColor = "#6272A4",
+        },
+        new ThemeData
+        {
+            Name = "Oceaan", TextColor = "#E6F7FF", BackgroundColor = "#06202B", AccentColor = "#00B4D8", WarnColor = "#FFD166",
+            CritColor = "#EF476F", BorderColor = "#0077B6", FontFamily = "Segoe UI Semibold",
+        },
+        new ThemeData
+        {
+            Name = "Zonsondergang", TextColor = "#FFF1E0", BackgroundColor = "#1A0B2E", AccentColor = "#FF7E5F", WarnColor = "#FEB47B",
+            CritColor = "#FF3CAC", BorderColor = "#FEB47B", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
+        },
+        new ThemeData
+        {
+            Name = "Bos", TextColor = "#E8F5E9", BackgroundColor = "#10201A", AccentColor = "#66BB6A", WarnColor = "#FFCA28",
+            CritColor = "#EF5350", BorderColor = "#2E7D32", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
         },
         new ThemeData
         {

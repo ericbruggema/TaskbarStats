@@ -68,6 +68,15 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Fullscreen    : Ctrl+Alt+F opent één dicht overzicht van alles op een heel
                   scherm; klik op een tegel voor details, Esc = terug/sluiten,
                   toets 1/2/3 = grafiek 1 min / 5 min / 1 uur.
+- Specificaties: in het fullscreen-scherm de knop bovenin of toets I: alle
+                  hardware en systeeminfo (processor, GPU, geheugen, schijven,
+                  schermen, netwerk, batterij, USB, ...); scrollen met het wiel.
+- Tour          : 3x klikken op een lege plek in het fullscreen-scherm (of
+                  spatie) loopt alle pagina's af; de tijd per pagina (standaard
+                  10 s) stel je in via het menu of Instellingen > Fullscreen.
+- Ping          : Instellingen > Widget > "Ping (latency)": het widget toont de
+                  ping naar een instelbaar doel; de tooltip en de fullscreen
+                  netwerk-details tonen min/gem/max, jitter en pakketverlies.
 - Netwerkschijven: Schijven > "Netwerkschijven meenemen".
 - Sensoren      : in het fullscreen-scherm (Ctrl+Alt+F): CPU-vermogen/-temperatuur/
                   -klokken, GPU-details, schijftemperatuur en -gezondheid,
@@ -99,7 +108,7 @@ PROBLEEMOPLOSSING
 - Menu of tooltip verschijnt niet: klik eerst op het widget en probeer
   opnieuw. Weg? Start menu > TaskbarStats, of "Reset positie" in het
   menu als het buiten beeld staat.
-- Geen temperatuur: start de app als administrator (standaard).
+- Geen temperatuur: start de app als administrator (standaard). Ontbreekt de CPU-sensor bij jouw processor, dan gebruikt de app de thermal zone van Windows.
 - GPU-waarde lijkt niet te kloppen: kies onder "GPU-bron" een vaste GPU.
 
 

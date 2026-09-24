@@ -119,6 +119,7 @@ public sealed class WidgetForm : Form
         _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
         StartSampler();
 
         BuildContextMenu();
@@ -200,6 +201,7 @@ public sealed class WidgetForm : Form
         // Metingen (PerformanceCounters, ~20 ms) en verbruik bijhouden (~7 ms) draaien op de sampler-thread; de UI-thread
         // tekent hier alleen met de meest recente waarden, zodat slepen en het menu soepel blijven.
         _idle = !Visible && _dash is not { Visible: true } && _full is null;
+        _metrics.Ping.Idle = _idle;
         if (_idle) { CheckAlerts(); return; }
         _history.Sample(_metrics);
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
@@ -325,6 +327,12 @@ public sealed class WidgetForm : Form
         }
         if (m.CpuTempC is double ct) sb.AppendLine($"CPU  {ct:0}°C");
         if (m.GpuTempC is double gt) sb.AppendLine($"GPU  {gt:0}°C");
+        if (_cfg.ShowPing)
+        {
+            var ps = m.Ping.Stats();
+            sb.AppendLine($"Ping  {ps.Host}  {ps.LastText}");
+            if (ps.Count > 1) sb.AppendLine($"   {ps.Details}");
+        }
 
         if (_hover || forceProcs)
         {
@@ -526,6 +534,28 @@ public sealed class WidgetForm : Form
         return open;
     }
 
+    // Fullscreen-tour: hoe lang elke pagina blijft staan (start in het fullscreen-scherm zelf).
+    private ToolStripMenuItem BuildTourMenu()
+    {
+        var m = new ToolStripMenuItem(Loc.Pick("Fullscreen-tour: tijd per pagina", "Fullscreen tour: time per page"));
+        var items = new List<(ToolStripMenuItem mi, int s)>();
+        foreach (int secs in new[] { 5, 10, 15, 20, 30, 60 })
+        {
+            var mi = new ToolStripMenuItem($"{secs} s") { Checked = _cfg.TourSeconds == secs };
+            mi.Click += (_, _) =>
+            {
+                _cfg.TourSeconds = secs;
+                foreach (var (x, v) in items) x.Checked = v == secs;
+                _cfg.Save();
+            };
+            items.Add((mi, secs));
+            m.DropDownItems.Add(mi);
+        }
+        m.DropDownItems.Add(new ToolStripSeparator());
+        m.DropDownItems.Add(new ToolStripMenuItem(Loc.Pick("Starten: 3× klikken op een lege plek (of spatie)", "Start: click 3× on an empty spot (or space)")) { Enabled = false });
+        return m;
+    }
+
     private void ToggleClickThrough()
     {
         _cfg.DashClickThrough = !_cfg.DashClickThrough;
@@ -613,6 +643,7 @@ public sealed class WidgetForm : Form
         ApplyHeight();
         ApplyFonts();
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
         if (_cfg.IncludeNetworkDrives != _lastNetDrives) { _lastNetDrives = _cfg.IncludeNetworkDrives; RefreshDrives(true); }
@@ -754,6 +785,9 @@ public sealed class WidgetForm : Form
             {
                 case "net":
                     if (_cfg.ShowNetUp || _cfg.ShowNetDown) x += DrawNetwork(g, x) + gap;
+                    break;
+                case "ping":
+                    if (_cfg.ShowPing) x += DrawPing(g, x) + gap;
                     break;
                 case "disk":
                     if (_cfg.ShowDisk) x += DrawDisk(g, x) + gap;
@@ -927,6 +961,17 @@ public sealed class WidgetForm : Form
         using var b = new SolidBrush(color);
         g.DrawString(value, _font, b, x + (cellW - sz.Width) / 2, top + (h - sz.Height) / 2);
         return cellW;
+    }
+
+    // Ping: "PING 12 ms", oranje vanaf 100 ms, rood vanaf 250 ms of als er geen antwoord komt.
+    private int DrawPing(Graphics g, int x)
+    {
+        var st = _metrics.Ping.Stats();
+        var textCol = C(_cfg.TextColor, Color.White);
+        Color col = st.Last is null ? textCol
+                  : st.Last < 0 || st.Last >= 250 ? C(_cfg.CritColor, Color.Red)
+                  : st.Last >= 100 ? C(_cfg.WarnColor, Color.Orange) : textCol;
+        return DrawTextCell(g, x, "PING", st.LastText, "999 ms", col);
     }
 
     private int DrawDisk(Graphics g, int x)
@@ -1286,6 +1331,7 @@ public sealed class WidgetForm : Form
         menu.Items.Add(BuildUsageMenu());
         menu.Items.Add(BuildDashMenu());
         menu.Items.Add(BuildFullMenu());
+        menu.Items.Add(BuildTourMenu());
 
         var resetItem = new ToolStripMenuItem(Loc.S("resetPos")) { Tag = "close" };
         resetItem.Click += (_, _) => ResetWidgetPosition();

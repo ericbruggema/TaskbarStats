@@ -49,7 +49,9 @@ De meegeleverde thema's, hier op het bureaublad-dashboard:
 | Geheugen | `GlobalMemoryStatusEx.dwMemoryLoad` | Exact het percentage dat Task Manager toont. |
 | GPU | Som van alle `GPU Engine\Utilization Percentage` per GPU (LUID) | Telt 3D + copy + video-engines samen, precies zoals Task Manager. De tellers worden elke 5 s opnieuw opgebouwd omdat engine-instances met processen komen en gaan. |
 | Netwerk | `Network Interface\Bytes Received/Sent per sec` | Per adapter of alle adapters samen. |
-| Temperatuur | LibreHardwareMonitorLib | CPU/GPU-temperatuur; vereist administrator. |
+| Temperatuur | LibreHardwareMonitorLib, met ACPI-thermal zone als CPU-terugval | CPU/GPU-temperatuur; vereist administrator. Heeft LibreHardwareMonitor geen CPU-sensor (bv. bij nieuwe Ryzen-chips), dan wordt de systeem-thermal zone van Windows gebruikt. |
+| Ping | `System.Net.NetworkInformation.Ping` | Latency, jitter en pakketverlies naar een instelbaar doel. |
+| Specificaties | WMI (`System.Management`), registry, Win32 | Hardware-inventaris voor de specificatiepagina. |
 
 GPU staat standaard op **automatisch**: het volgt de drukste GPU (handig bij een iGPU +
 dGPU). Je kunt ook een vaste GPU kiezen in de instellingen (tab Widget → Bronnen).
@@ -166,6 +168,21 @@ rechtsklikken niet meer). Het blijft staan als je "Bureaublad weergeven" gebruik
 met VRAM, per adapter, per schijf, top-programma's, systeeminfo); **Esc** gaat terug en sluit vanuit het overzicht.
 Toets **1/2/3** kiest de grafiek: 1 min / 5 min / 1 uur.
 
+**Specificaties** (knop bovenin of toets **I**): één pagina met alle hardware en systeeminfo — computer, hoofdbord en BIOS, Windows,
+processor (kernen/threads, klokken, cache, instructiesets), videokaarten (driver, VRAM, uitvoer), geheugenmodules (type, snelheid,
+fabrikant), schijven (type, gezondheid, firmware) en volumes, beeldschermen (formaat, verversing), netwerkadapters, batterij (slijtage,
+laadcycli), beveiliging (Secure Boot, TPM), geluid, invoerapparaten, Bluetooth en USB-apparaten. Scrollen met het muiswiel.
+
+![Fullscreen specificaties](docs/screenshots/fullscreen-specs.png)
+
+**Automatische tour**: klik 3× op een lege plek in het fullscreen-scherm (of druk op de spatiebalk) en het scherm loopt alle pagina's af
+(overzicht, elk detail, specificaties). De tijd per pagina (standaard 10 s) stel je in via het menu (*Fullscreen-tour*) of in
+Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
+
+**Ping**: zet *Ping (latency)* aan bij Instellingen → *Widget*; het widget toont dan bijvoorbeeld `PING 12 ms` (oranje vanaf 100 ms, rood vanaf 250 ms of bij geen antwoord). Het doel (standaard 1.1.1.1) is instelbaar. In de tooltip en de netwerk-details van het fullscreen-scherm staan min/gemiddeld/max, jitter en pakketverlies over de laatste ~2 minuten.
+
+![Widget met ping en temperaturen](docs/screenshots/widget-ping.png)
+
 **Sensoren** (LibreHardwareMonitor, alleen actief zolang het fullscreen-scherm open is): CPU-vermogen, -temperaturen en -klokken,
 GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
 geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder
@@ -211,7 +228,9 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/WidgetForm.cs` | Het taakbalk-widget: tekenen naar een ARGB-bitmap (`UpdateLayeredWindow`), muis, menu, tooltip, meldingen, sneltoetsen, sampler-thread. |
 | `src/Metrics.cs` | Prestatietellers (PDH-wildcard voor GPU), geheugen, batterij, temperatuur, DXGI-GPU-namen. |
 | `src/DashboardForm.cs` | Bureaublad-dashboard + `MetricHistory`/`Ring` (grafiekgeschiedenis) en `DashContext`. |
-| `src/FullscreenForm.cs` | Fullscreen "cockpit": dicht overzicht en detailweergaven per tegel. |
+| `src/FullscreenForm.cs` | Fullscreen "cockpit": dicht overzicht, detailweergaven per tegel, specificatiepagina en automatische tour. |
+| `src/HardwareInfo.cs` | Hardware-inventaris (WMI e.d.), eenmalig asynchroon verzameld voor de specificatiepagina. |
+| `src/PingMonitor.cs` | Ping-meting op een eigen thread (laatste, min/gem/max, jitter, verlies). |
 | `src/UsageTracker.cs` | Netwerkverbruik per adapter en per dag (`usage.json`), thread-veilig. |
 | `src/ProcessSampler.cs` | Zwaarste processen (asynchroon bemonsterd). |
 | `src/AppSettings.cs` | Instellingen (JSON). |

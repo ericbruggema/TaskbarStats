@@ -243,6 +243,7 @@ public sealed class SettingsForm : Form
         "space" => _c.DiskSpace != DiskSpaceMode.Off,
         "cputemp" => _c.ShowCpuTemp,
         "gputemp" => _c.ShowGpuTemp,
+        "ping" => _c.ShowPing,
         _ => true,
     };
 
@@ -364,7 +365,8 @@ public sealed class SettingsForm : Form
             Check(Loc.Pick("Batterij", "Battery"), _c.ShowBattery, v => _c.ShowBattery = v, ColW),
             Check(Loc.S("diskIo"), _c.ShowDisk, v => _c.ShowDisk = v, ColW),
             Check(Loc.S("cpuTemp"), _c.ShowCpuTemp, v => _c.ShowCpuTemp = v, ColW),
-            Check(Loc.S("gpuTemp"), _c.ShowGpuTemp, v => _c.ShowGpuTemp = v, ColW)));
+            Check(Loc.S("gpuTemp"), _c.ShowGpuTemp, v => _c.ShowGpuTemp = v, ColW),
+            Check(Loc.Pick("Ping (latency)", "Ping (latency)"), _c.ShowPing, v => _c.ShowPing = v, ColW)));
 
         p.Controls.Add(Head(Loc.Pick("Volgorde in het widget (van links naar rechts)", "Order in the widget (left to right)")));
         p.Controls.Add(WidgetOrderEditor());
@@ -405,8 +407,21 @@ public sealed class SettingsForm : Form
         p.Controls.Add(Row(Loc.Pick("Welke schijf", "Which drive"), driveBox));
         p.Controls.Add(Check(Loc.Pick("Netwerkschijven meenemen (ook in dashboard en fullscreen)", "Include network drives (also in dashboard and fullscreen)"),
                              _c.IncludeNetworkDrives, v => _c.IncludeNetworkDrives = v));
+        var pingHost = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Width = 200 };
+        pingHost.Items.AddRange(new object[] { "1.1.1.1", "8.8.8.8", "9.9.9.9", "google.com", "cloudflare.com" });
+        pingHost.Text = _c.PingHost;
+        pingHost.TextChanged += (_, _) =>
+        {
+            if (_building) return;
+            string t = pingHost.Text.Trim();
+            if (t.Length == 0) return;
+            _c.PingHost = t;
+            Changed();
+        };
+        p.Controls.Add(Row(Loc.Pick("Ping-doel", "Ping target"), pingHost));
         Dep(() =>
         {
+            pingHost.Enabled = _c.ShowPing;
             gpuSrc.Enabled = _c.ShowGpu;
             adapters.Enabled = _c.ShowNetUp || _c.ShowNetDown;
             driveBox.Enabled = _c.DiskSpace == DiskSpaceMode.Single;
@@ -561,6 +576,11 @@ public sealed class SettingsForm : Form
         var screens = new List<(string, string?)> { (Loc.Pick("Automatisch (waar het widget staat)", "Automatic (where the widget is)"), null) };
         foreach (var sc in Screen.AllScreens)
             screens.Add(($"{sc.DeviceName.TrimStart('\\', '.')}  {sc.Bounds.Width}×{sc.Bounds.Height}{(sc.Primary ? " *" : "")}", sc.DeviceName));
+        left.Controls.Add(Head(Loc.Pick("Automatische tour", "Automatic tour")));
+        left.Controls.Add(Note(Loc.Pick("Klik 3× op een lege plek in het fullscreen-scherm (of druk op de spatiebalk) om alle pagina's af te lopen. Tijd per pagina:",
+                                        "Click 3 times on an empty spot in the fullscreen screen (or press the space bar) to step through all pages. Time per page:"), 260));
+        left.Controls.Add(Seg(new (string, int)[] { ("5 s", 5), ("10 s", 10), ("15 s", 15), ("20 s", 20), ("30 s", 30), ("60 s", 60) },
+                              () => _c.TourSeconds, v => _c.TourSeconds = v, 44));
         left.Controls.Add(Head(Loc.Pick("Scherm", "Display")));
         var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
         foreach (var s in screens) cb.Items.Add(s.Item1);

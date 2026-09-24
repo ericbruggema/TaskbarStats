@@ -229,28 +229,66 @@ public sealed class Metrics : IDisposable
     {
         lock (_lhmLock)
         {
-            if (_lhm is null) return;
-            try
-            {
-                foreach (var hw in _lhm.Hardware)
+            if (!(_wantTemps || _wantSensors)) return;
+            double? cpu = null, gpuCore = null, gpuAlt = null;
+            if (_lhm is not null)
+                try
                 {
-                    bool gpu = hw.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel;
-                    if (hw.HardwareType != HardwareType.Cpu && !gpu) continue;   // schijven/hoofdbord alleen in de sensor-snapshot
-                    hw.Update();
-                    foreach (var s in hw.Sensors)
+                    foreach (var hw in _lhm.Hardware)
                     {
-                        if (s.SensorType != SensorType.Temperature || s.Value is null) continue;
-                        if (hw.HardwareType == HardwareType.Cpu &&
-                            (s.Name.Contains("Package") || s.Name.Contains("Core (Tctl", StringComparison.OrdinalIgnoreCase) ||
-                             s.Name.Contains("Tdie", StringComparison.OrdinalIgnoreCase) || s.Name.StartsWith("Core")))
-                            CpuTempC = s.Value;
-                        if (gpu && s.Name.Contains("Core"))
-                            GpuTempC = s.Value;
+                        bool gpu = hw.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel;
+                        if (hw.HardwareType != HardwareType.Cpu && !gpu) continue;   // schijven/hoofdbord alleen in de sensor-snapshot
+                        hw.Update();
+                        foreach (var s in hw.Sensors)
+                        {
+                            if (s.SensorType != SensorType.Temperature || s.Value is not float v || v < 1) continue;
+                            if (hw.HardwareType == HardwareType.Cpu &&
+                                (s.Name.Contains("Package") || s.Name.Contains("Core (Tctl", StringComparison.OrdinalIgnoreCase) ||
+                                 s.Name.Contains("Tdie", StringComparison.OrdinalIgnoreCase) || s.Name.StartsWith("Core")))
+                                cpu = cpu is null ? v : Math.Max(cpu.Value, v);
+                            if (gpu && s.Name.Contains("Core")) gpuCore = gpuCore is null ? v : Math.Max(gpuCore.Value, v);
+                            else if (gpu && (s.Name.Contains("Hot Spot") || s.Name.Contains("SoC"))) gpuAlt = gpuAlt is null ? v : Math.Max(gpuAlt.Value, v);
+                        }
                     }
                 }
-            }
-            catch { }
+                catch { }
+            // Sommige processors (bv. nieuwe Ryzen AI) hebben geen bruikbare sensor in LibreHardwareMonitor: dan de ACPI-thermal zone van Windows.
+            CpuTempC = cpu ?? ReadThermalZone();
+            GpuTempC = gpuCore ?? gpuAlt;
         }
+    }
+
+    // ACPI-thermal zone(s) van Windows ("Thermal Zone Information"): geeft op veel laptops een bruikbare (systeem/CPU-)temperatuur
+    // ook als de sensor-driver de processor niet kent. Hoogste zone, hooguit elke 2 s.
+    private readonly List<PerformanceCounter> _tz = new();
+    private bool _tzInit;
+    private long _tzAt;
+    private double? _tzTemp;
+
+    /// <summary>Temperatuur van de ACPI-thermal zone (°C), of null als Windows die niet geeft.</summary>
+    public double? ReadThermalZone()
+    {
+        long now = Environment.TickCount64;
+        if (now - _tzAt < 2000) return _tzTemp;
+        _tzAt = now;
+        try
+        {
+            if (!_tzInit)
+            {
+                _tzInit = true;
+                foreach (var inst in new PerformanceCounterCategory("Thermal Zone Information").GetInstanceNames())
+                    try { _tz.Add(new PerformanceCounter("Thermal Zone Information", "High Precision Temperature", inst, true)); } catch { }
+            }
+            double? best = null;
+            foreach (var c in _tz)
+            {
+                double k = c.NextValue() / 10.0 - 273.15;    // tienden Kelvin
+                if (k is > 5 and < 125) best = best is null ? k : Math.Max(best.Value, k);
+            }
+            _tzTemp = best;
+        }
+        catch { _tzTemp = null; }
+        return _tzTemp;
     }
 
     // Elke 2 s alle sensoren uitlezen (zwaarder dan de temperaturen: schijven/hoofdbord), alleen als het fullscreen-scherm open is.
@@ -265,6 +303,8 @@ public sealed class Metrics : IDisposable
             if (_lhm is null || !_lhmExtended) return;
             var list = new List<SensorInfo>();
             try { foreach (var hw in _lhm.Hardware) VisitHardware(hw, list); } catch { }
+            if (ReadThermalZone() is double tz)
+                list.Add(new SensorInfo("ACPI", HardwareType.Cpu, Loc.Pick("Thermal zone (ACPI, systeem)", "Thermal zone (ACPI, system)"), SensorType.Temperature, tz, null, null));
             _sensors = list.ToArray();
         }
     }
@@ -595,8 +635,12 @@ public sealed class Metrics : IDisposable
         return gb >= 1000 ? $"{gb / 1024:0.0} TB" : gb >= 10 ? $"{gb:0} GB" : $"{gb:0.0} GB";
     }
 
+    /// <summary>Ping naar een instelbaar doel (meet alleen als het is ingeschakeld).</summary>
+    public PingMonitor Ping { get; } = new();
+
     public void Dispose()
     {
+        Ping.Dispose();
         _cpu?.Dispose();
         _cpuFreq?.Dispose();
         _cpuPerf?.Dispose();

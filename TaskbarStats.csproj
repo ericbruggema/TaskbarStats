@@ -30,6 +30,8 @@
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     <!-- Temperatuur/klok/VRAM (optioneel, dezelfde engine als HWiNFO) -->
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.3" />
+    <!-- WMI voor de specificatiepagina (hardware-inventaris) -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

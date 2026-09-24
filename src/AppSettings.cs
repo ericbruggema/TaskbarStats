@@ -29,6 +29,9 @@ public sealed class AppSettings
     public bool ShowDisk { get; set; } = false;   // lees/schrijfsnelheid (totaal)
     public bool ShowCpuTemp { get; set; } = false;
     public bool ShowGpuTemp { get; set; } = false;
+    public bool ShowPing { get; set; } = false;          // ping naar PingHost in het widget (en meten)
+    public string PingHost { get; set; } = "1.1.1.1";
+    public int TourSeconds { get; set; } = 10;           // fullscreen-tour: seconden per pagina
 
     // Weergavestijl per onderdeel (digitaal / meter / balk)
     public DisplayStyle CpuStyle { get; set; } = DisplayStyle.Digital;

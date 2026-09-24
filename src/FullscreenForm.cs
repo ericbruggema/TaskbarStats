@@ -51,7 +51,7 @@ public sealed class FullscreenForm : Form
         _fbig = new Font(fam, 34f, FontStyle.Bold, GraphicsUnit.Pixel);
         _fhuge = new Font(fam, 54f, FontStyle.Bold, GraphicsUnit.Pixel);
 
-        _timer.Tick += (_, _) => { SampleProcs(); Invalidate(); };
+        _timer.Tick += (_, _) => { SampleProcs(); TourTick(); Invalidate(); };
         _timer.Start();
         _openedAt = Environment.TickCount64;
         _c.Metrics.SetSensorsWanted(true);   // LibreHardwareMonitor: hoofdbord, schijven, ventilatoren, klokken, vermogen
@@ -69,6 +69,12 @@ public sealed class FullscreenForm : Form
     // ---------- Invoer ----------
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (_tour)
+        {
+            StopTour();
+            if (e.KeyCode == Keys.Escape || e.KeyCode == Keys.Space) { e.Handled = true; Invalidate(); return; }
+        }
+        else if (e.KeyCode == Keys.Space) { StartTour(); e.Handled = true; Invalidate(); return; }
         switch (Cadence.Feed((int)e.KeyCode))
         {
             case 1: _c.Nudge?.Invoke(1); break;
@@ -80,12 +86,73 @@ public sealed class FullscreenForm : Form
             case Keys.Back:
                 if (_detail is not null) _detail = null; else Close();
                 break;
+            case Keys.I: if (_detail is null) OpenSpecs(); break;
             case Keys.D1: _win = 60; break;
             case Keys.D2: _win = 300; break;
             case Keys.D3: _win = 3600; break;
             default: base.OnKeyDown(e); return;
         }
         e.Handled = true;
+        Invalidate();
+    }
+
+    private float _specScroll, _specMax;
+
+    // ---------- Automatische tour ----------
+    // 3× klikken op een lege plek (of spatie) loopt alle pagina's af: overzicht, elk detail en de specificaties.
+    private bool _tour;
+    private long _tourAt;
+    private int _tourIdx;
+    private readonly List<string?> _tourPages = new();
+    private readonly List<long> _emptyClicks = new();
+
+    private void StartTour()
+    {
+        _tourPages.Clear();
+        _tourPages.Add(null);
+        foreach (var id in Tiles.Order(Cfg.FullOrder).Where(i => Tiles.FullOn(Cfg, i)))
+        {
+            string page = id == "batt" ? "sys" : id;
+            if (!_tourPages.Contains(page)) _tourPages.Add(page);
+        }
+        _tourPages.Add("spec");
+        _tour = true;
+        _tourIdx = -1;
+        TourNext();
+    }
+
+    private void StopTour() { _tour = false; }
+
+    private void TourNext()
+    {
+        _tourIdx = (_tourIdx + 1) % _tourPages.Count;
+        _tourAt = Environment.TickCount64;
+        _detail = _tourPages[_tourIdx];
+        if (_detail == "spec") OpenSpecs();
+    }
+
+    private int TourMs => Math.Clamp(Cfg.TourSeconds, 3, 300) * 1000;
+
+    private void TourTick()
+    {
+        if (!_tour) return;
+        if (Environment.TickCount64 - _tourAt >= TourMs) TourNext();
+        else if (_detail == "spec" && _specMax > 0)   // lange lijst: rustig meescrollen zodat alles langskomt
+            _specScroll = _specMax * Math.Clamp((Environment.TickCount64 - _tourAt - 800) / Math.Max(1f, TourMs - 2000f), 0f, 1f);
+    }
+
+    private void OpenSpecs()
+    {
+        _detail = "spec";
+        _specScroll = 0;
+        HardwareInfo.Refresh(_c.Metrics);
+    }
+
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (_detail != "spec") return;
+        _specScroll = Math.Clamp(_specScroll - e.Delta * 0.9f / _s, 0, _specMax);
         Invalidate();
     }
 
@@ -111,9 +178,19 @@ public sealed class FullscreenForm : Form
     {
         base.OnMouseDown(e);
         if (e.Button == MouseButtons.Right) { _c.ShowMenu(Cursor.Position); return; }
+        if (_tour && e.Button == MouseButtons.Left) { StopTour(); Invalidate(); return; }
+        if (e.Button == MouseButtons.Left && _hover is null)
+        {
+            long now = Environment.TickCount64;
+            _emptyClicks.Add(now);
+            _emptyClicks.RemoveAll(t => now - t > 1500);
+            if (_emptyClicks.Count >= 3) { _emptyClicks.Clear(); StartTour(); Invalidate(); }
+            return;
+        }
         if (e.Button != MouseButtons.Left || _hover is null) return;
         if (_hover.StartsWith('w')) { _win = int.Parse(_hover[1..]); }
         else if (_hover == "back") _detail = null;
+        else if (_hover == "spec" && _detail is null) OpenSpecs();
         else if (_detail is null) _detail = _hover == "bat" ? "sys" : _hover;
         Invalidate();
     }
@@ -481,6 +558,12 @@ public sealed class FullscreenForm : Form
         {
             T(g, "TaskbarStats", _fh, TextCol, M + 4, 18);
             T(g, "· " + Environment.MachineName, _f, Dim, M + 138, 21);
+            var chip = new RectangleF(M + 330, 16, 210, 32);
+            _hits.Add(("spec", chip));
+            using (var path = Rounded(chip, 8))
+            using (var bg = new SolidBrush(Color.FromArgb(_hover == "spec" ? 50 : 26, 255, 255, 255)))
+                g.FillPath(bg, path);
+            TC(g, Loc.Pick("Specificaties  (I)", "Specifications  (I)"), _fb, TextCol, chip.X + chip.Width / 2, chip.Y + chip.Height / 2);
         }
         else
         {
@@ -511,9 +594,16 @@ public sealed class FullscreenForm : Form
             x -= 62;
         }
         TR(g, Loc.Pick("grafiek:", "graph:"), _fs, Dim, x - 4, 24);
-        TR(g, _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  Esc sluit", "Click a tile for details  ·  Esc closes")
-                              : Loc.Pick("Esc: terug naar het overzicht", "Esc: back to the overview"),
-           _fs, Dim, x - 110, 24);
+        string hint = _tour ? Loc.Pick($"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  klik of toets = stop", $"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  click or key = stop")
+                    : _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  spatie = tour  ·  Esc sluit", "Click a tile for details  ·  space = tour  ·  Esc closes")
+                    : Loc.Pick("Esc: terug naar het overzicht", "Esc: back to the overview");
+        TR(g, hint, _fs, _tour ? Accent : Dim, x - 110, 24);
+        if (_tour)   // voortgang van de huidige pagina
+        {
+            float f = Math.Clamp((Environment.TickCount64 - _tourAt) / (float)TourMs, 0f, 1f);
+            using var pb = new SolidBrush(Color.FromArgb(200, Accent));
+            g.FillRectangle(pb, 0, CH - 5, CW * f, 5);
+        }
     }
 
     // ---------- Overzicht ----------
@@ -778,6 +868,71 @@ public sealed class FullscreenForm : Form
             case "disk": DetailDisk(g, R); break;
             case "sys": DetailSys(g, R); break;
             case "proc": DetailProcs(g, R); break;
+            case "spec": DetailSpecs(g, R); break;
+        }
+    }
+
+    // Kop van de specificatiepagina: waarde inkorten zodat hij in de kolom past.
+    private string FitText(Graphics g, string s, Font f, float maxW)
+    {
+        if (g.MeasureString(s, f).Width <= maxW) return s;
+        int lo = 1, hi = s.Length;
+        while (lo < hi) { int mid = (lo + hi + 1) / 2; if (g.MeasureString(s[..mid] + "…", f).Width <= maxW) lo = mid; else hi = mid - 1; }
+        return s[..lo] + "…";
+    }
+
+    private void DetailSpecs(Graphics g, RectangleF R)
+    {
+        var blocks = HardwareInfo.Blocks;
+        Card(g, null, R, Loc.Pick("Specificaties", "Specifications"),
+             HardwareInfo.Loading ? Loc.Pick("bezig met laden…", "loading…") : Loc.Pick("muiswiel = scrollen", "mouse wheel = scroll"));
+        if (blocks.Count == 0)
+        {
+            T(g, HardwareInfo.Loading ? Loc.Pick("Hardware-informatie wordt verzameld…", "Collecting hardware information…")
+                                      : Loc.Pick("Geen informatie beschikbaar.", "No information available."), _f, Dim, R.X + 20, R.Y + 60);
+            return;
+        }
+        var area = new RectangleF(R.X + 12, R.Y + 48, R.Width - 24, R.Height - 58);
+        const int cols = 3; const float gap = 14, rowH = 23, head = 36, pad = 12;
+        float cw = (area.Width - gap * (cols - 1)) / cols;
+        var ys = new float[cols];
+        g.SetClip(area);
+        foreach (var b in blocks)
+        {
+            int c = 0;
+            for (int i = 1; i < cols; i++) if (ys[i] < ys[c]) c = i;
+            float x = area.X + c * (cw + gap), y = area.Y - _specScroll + ys[c];
+            float h = head + b.Rows.Count * rowH + pad;
+            var r = new RectangleF(x, y, cw, h);
+            if (r.Bottom > area.Y && r.Y < area.Bottom)
+            {
+                using (var path = Rounded(r, 10))
+                using (var bg = new SolidBrush(Color.FromArgb(14, 255, 255, 255)))
+                using (var pen = new Pen(Color.FromArgb(26, 255, 255, 255)))
+                { g.FillPath(bg, path); g.DrawPath(pen, path); }
+                T(g, b.Title, _fb, Accent, x + 14, y + 8);
+                float ry = y + head;
+                foreach (var row in b.Rows)
+                {
+                    float kw = string.IsNullOrEmpty(row.Key) ? 0 : Math.Min(g.MeasureString(row.Key, _fs).Width + 14, cw * 0.42f);
+                    if (row.Key != "") T(g, FitText(g, row.Key, _fs, cw * 0.42f), _fs, Dim, x + 14, ry);
+                    string v = row.Value();
+                    TR(g, FitText(g, v, _fs, cw - 28 - kw), _fs, TextCol, x + cw - 14, ry);
+                    ry += rowH;
+                }
+            }
+            ys[c] += h + gap;
+        }
+        g.ResetClip();
+        float total = ys.Max();
+        _specMax = Math.Max(0, total - area.Height);
+        if (_specScroll > _specMax) _specScroll = _specMax;
+        if (_specMax > 0)   // schuifbalk
+        {
+            float th = Math.Max(40, area.Height * area.Height / total);
+            float ty = area.Y + (area.Height - th) * (_specScroll / _specMax);
+            using var sb = new SolidBrush(Color.FromArgb(70, 255, 255, 255));
+            g.FillRectangle(sb, R.Right - 7, ty, 4, th);
         }
     }
 
@@ -910,6 +1065,15 @@ public sealed class FullscreenForm : Form
         float gw = 1240;
         T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
         T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fbig, Green, R.X + 330, R.Y + 44);
+        if (Cfg.ShowPing)
+        {
+            var ps = m.Ping.Stats();
+            var pc = ps.Last is null ? TextCol : ps.Last < 0 || ps.Last >= 250 ? Col(Cfg.CritColor, Color.Red) : ps.Last >= 100 ? Col(Cfg.WarnColor, Color.Orange) : TextCol;
+            T(g, $"Ping {ps.LastText}", _fbig, pc, R.X + 660, R.Y + 44);
+            var dp = ps.Details.Split("  ·  ");
+            T(g, $"{ps.Host}  ·  {dp[0]}", _fs, Dim, R.X + 900, R.Y + 46);
+            if (dp.Length > 2) T(g, $"{dp[1]}  ·  {dp[2]}", _fs, Dim, R.X + 900, R.Y + 68);
+        }
 
         var names = m.NetPerAdapter.Keys.Union(_c.Usage.KnownAdapters()).Distinct()
             .OrderByDescending(n => { m.NetPerAdapter.TryGetValue(n, out var r0); return r0.down + r0.up + _c.Usage.Month(n).Total; })

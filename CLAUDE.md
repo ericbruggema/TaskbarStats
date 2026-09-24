@@ -29,6 +29,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 | `FullscreenForm.cs` | fullscreen cockpit: vast canvas 1920×1080 dat meeschaalt; overzicht + detail per tegel; Esc = terug/sluiten |
 | `SettingsForm.cs`, `AppIcon.cs` | instellingenvenster met tabbladen (Widget incl. bronnen GPU/adapter/schijven, Kleuren, Dashboard, Fullscreen, Thema's, Algemeen); `SettingsHost` = callbacks naar het widget; `AppIcon` = ingebed `app.ico` (ook exe-icoon) voor vensters en systeemvak; elke wijziging gaat direct via `WidgetForm.ApplyAll()` naar widget/dashboard/fullscreen |
 | `Themes.cs`, `Tiles.cs` | `ThemeData` (uiterlijk + indeling als JSON, meegeleverd + `%AppData%\TaskbarStats	hemes\`); `Tiles`: ids, volgorde (`DashOrder`/`FullOrder`) en zichtbaarheid van de 8 hoofdonderdelen |
+| `HardwareInfo.cs`, `PingMonitor.cs` | specificatiepagina in het fullscreen-scherm (WMI/registry/Win32, één keer async verzameld en gecachet, 30 s) en ping-meting op eigen thread (widget-onderdeel "ping", tooltip, netwerk-details) |
 | `UsageTracker.cs` | verbruik per adapter/dag → `usage.json` (thread-veilig) |
 | `ProcessSampler.cs` | top-processen; gebruik `SampleAsync()` |
 | `AppSettings.cs` | JSON-instellingen in `%AppData%\TaskbarStats\settings.json` (`TASKBARSTATS_DATA` overschrijft de map) |
@@ -66,6 +67,8 @@ het sluiten -> "Collection was modified"); `Close()` op het widget.
 Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `HideInFullscreen`). Perf-namen zijn Engels
 (`PdhAddEnglishCounter`/`PerformanceCounter` gebruiken Engelse namen, ook op Nederlandse Windows).
 
+**Temperatuur.** LibreHardwareMonitor 0.9.3 (en 0.9.6, getest) geeft op de Ryzen AI 7 350 geen bruikbare CPU-sensor (0.9.6: alleen nullen). `Metrics.UpdateTemperatures` valt daarom terug op de ACPI-thermal zone (PDH `Thermal Zone Information\High Precision Temperature`, ~elke 2 s, hoogste zone); GPU: NVIDIA "GPU Core", anders hot spot/SoC. NVIDIA-GPU werkt gewoon. 0.9.6 vraagt System.Management >= 10, dus niet zomaar upgraden. WMI (`HardwareInfo`) nooit op de UI-thread.
+
 ## Testen zonder de gebruiker te storen
 
 - Draai tests in een **tijdelijke kopie** (bijv. `%TEMP%\tstest`): kopieer `src`, `*.csproj`, `app.manifest`; zet in de kopie
@@ -94,6 +97,7 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Ideeën / nog te doen
 
+- Fullscreen: specificatiepagina (toets I), automatische tour (3× klikken op leeg of spatie; `TourSeconds`, ook in het menu) en ping (`ShowPing`, `PingHost`) zijn gebouwd na v1.2.1 (nog niet gereleased).
 - Tegels slepen i.p.v. pijlknoppen; thema per situatie automatisch (bv. op batterij); controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
 - **v1.2.1 is gepubliceerd** (installer elevated getest: installeren, Startmenu, register, autostart-taak, icoon in de exe, niet-stille verwijdering incl. datavraag Ja/Nee). Testtip uninstall: de Inno-uninstaller draait als `_unins.tmp` (proces `unins000` sluit direct); UIA ziet Inno-knoppen als Pane, dus stuur toetsen (`j`/`n`/Enter) na `AppActivate`. Back-up `%AppData%\TaskbarStats` vóór de test, want "Ja" wist die map. **v1.2.0/1.2.1 inhoud**: keuzeknoppen i.p.v. pulldowns, meer kolommen, afhankelijke bedieningselementen uitgeschakeld (`Dep` in `SettingsForm`), indelingsvoorbeeld, themavoorbeeld; menu-volgorde. Uit 1.2.0: instellingenvenster + thema's + volgorde/aan-uit van dashboard- en fullscreen-onderdelen + zuiniger meten (zie README). Alleen na akkoord van de gebruiker publiceren; screenshots altijd meenemen en bijwerken.
 - **Release v1.1.0 is gepubliceerd.** Installer elevated getest: installeren, Startmenu, register, autostart-taak (HighestAvailable), verwijderen. Les: `[Code]`-`CurrentUninstallStepChanged` bleek bij het verwijderen niet te draaien; de taak wordt nu via `[UninstallRun]` (schtasks /Delete) weggehaald. Elevated testen kan via een script dat zichzelf met `Start-Process -Verb RunAs` start; omgevingsvariabelen gaan niet mee door RunAs, zet ze binnen het elevated script. Sensoren elevated: schijven (temp/SMART) werken; CPU-temperatuur/-vermogen en hoofdbord ontbreken op de Ryzen AI 7 350 met LibreHardwareMonitor 0.9.3 (waarschijnlijk niet ondersteund).

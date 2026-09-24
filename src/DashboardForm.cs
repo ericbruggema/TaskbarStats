@@ -268,14 +268,21 @@ public sealed class DashboardForm : Form
         bool limit = Cfg.MonthlyLimitGb > 0;
 
         var tiles = new List<Tile>();
-        if (Cfg.DashCpu) tiles.Add(new(190, DrawCpu));
-        if (Cfg.DashGpu && gpus.Count > 0) tiles.Add(new(34 + gpus.Count * 54 + 62, (g, r) => DrawGpu(g, r, gpus)));
-        if (Cfg.DashMem) tiles.Add(new(160, DrawMem));
-        if (Cfg.DashNet) tiles.Add(new(34 + 66 + 3 * 17 + (limit ? 26 : 0) + adapters.Count * 32 + 16, (g, r) => DrawNet(g, r, adapters, limit)));
-        if (Cfg.DashDisks) tiles.Add(new(34 + drives.Count * 34 + 22 + 56, (g, r) => DrawDisks(g, r, drives)));
-        if (Cfg.DashBattery && m.BatteryPresent) tiles.Add(new(112, DrawBattery));
-        if (Cfg.DashProcs) tiles.Add(new(34 + 5 * 18 + 22, DrawProcs));
-        if (Cfg.DashSystem) tiles.Add(new(104, DrawSystem));
+        foreach (var id in Tiles.Order(Cfg.DashOrder))
+        {
+            if (!Tiles.DashOn(Cfg, id)) continue;
+            switch (id)
+            {
+                case "cpu": tiles.Add(new(190, DrawCpu)); break;
+                case "gpu": if (gpus.Count > 0) tiles.Add(new(34 + gpus.Count * 54 + 62, (g, r) => DrawGpu(g, r, gpus))); break;
+                case "mem": tiles.Add(new(160, DrawMem)); break;
+                case "net": tiles.Add(new(34 + 66 + 3 * 17 + (limit ? 26 : 0) + adapters.Count * 32 + 16, (g, r) => DrawNet(g, r, adapters, limit))); break;
+                case "disk": tiles.Add(new(34 + drives.Count * 34 + 22 + 56, (g, r) => DrawDisks(g, r, drives))); break;
+                case "batt": if (m.BatteryPresent) tiles.Add(new(112, DrawBattery)); break;
+                case "proc": tiles.Add(new(34 + 5 * 18 + 22, DrawProcs)); break;
+                case "sys": tiles.Add(new(104, DrawSystem)); break;
+            }
+        }
 
         // masonry: elke tegel in de kortste kolom
         int cols = Math.Clamp(Cfg.DashColumns, 1, 4);
@@ -316,8 +323,8 @@ public sealed class DashboardForm : Form
                     g.DrawPath(edge, path);
                 }
                 if (tiles.Count == 0)
-                    DrawText(g, Loc.Pick("Geen tegels aan — zet ze aan via het menu (Bureaublad-dashboard → Tegels)",
-                                         "No tiles enabled — turn them on in the menu (Desktop dashboard → Tiles)"), _f, Dim, 16, 30);
+                    DrawText(g, Loc.Pick("Geen tegels aan — zet ze aan via Instellingen (tab Dashboard)",
+                                         "No tiles enabled — turn them on in Settings (Dashboard tab)"), _f, Dim, 16, 30);
                 foreach (var (t, r) in placed) t.Draw(g, r);
             }
             Push(bmp);

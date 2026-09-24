@@ -68,6 +68,11 @@ public sealed class AppSettings
     public bool DashProcs { get; set; } = true;
     public bool DashSystem { get; set; } = true;
 
+    // Volgorde van de hoofdonderdelen (ids uit Tiles.All); ontbrekende ids worden achteraan toegevoegd.
+    public List<string>? DashOrder { get; set; } = null;
+    public List<string>? FullOrder { get; set; } = null;
+    public List<string>? FullHidden { get; set; } = null;   // onderdelen die in het fullscreen-scherm uit staan
+
     public string? FullMonitor { get; set; } = null;   // null = automatisch (scherm waar het widget staat)
 
     public bool WelcomeShown { get; set; } = false;   // eenmalig welkomstscherm al getoond?

@@ -426,6 +426,7 @@ public sealed class WidgetForm : Form
     // ---------- Bureaublad-dashboard ----------
     private void SyncDashboard()
     {
+        _dashShown = _cfg.ShowDashboard;
         if (_cfg.ShowDashboard)
         {
             if (_dash is null || _dash.IsDisposed)
@@ -464,23 +465,9 @@ public sealed class WidgetForm : Form
 
     private ToolStripMenuItem BuildFullMenu()
     {
-        var m = new ToolStripMenuItem(Loc.Pick("Fullscreen dashboard", "Fullscreen dashboard"));
-        var open = new ToolStripMenuItem(Loc.Pick("Openen / sluiten (Ctrl+Alt+F)", "Open / close (Ctrl+Alt+F)")) { Tag = "close" };
+        var open = new ToolStripMenuItem(Loc.Pick("Fullscreen dashboard (Ctrl+Alt+F)", "Fullscreen dashboard (Ctrl+Alt+F)")) { Tag = "close" };
         open.Click += (_, _) => ToggleFullscreen();
-        m.DropDownItems.Add(open);
-        m.DropDownItems.Add(new ToolStripSeparator());
-
-        var auto = new ToolStripMenuItem(Loc.Pick("Scherm: automatisch (waar het widget staat)", "Display: automatic (where the widget is)")) { Checked = _cfg.FullMonitor is null };
-        auto.Click += (_, _) => { Keep(); MarkOnly(auto); _cfg.FullMonitor = null; Persist(); };
-        m.DropDownItems.Add(auto);
-        foreach (var sc in Screen.AllScreens)
-        {
-            string dev = sc.DeviceName;
-            var it = new ToolStripMenuItem($"{dev.TrimStart('\\', '.')}  {sc.Bounds.Width}×{sc.Bounds.Height}{(sc.Primary ? " *" : "")}") { Checked = _cfg.FullMonitor == dev };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.FullMonitor = dev; Persist(); };
-            m.DropDownItems.Add(it);
-        }
-        return m;
+        return open;
     }
 
     private void ToggleClickThrough()
@@ -530,60 +517,36 @@ public sealed class WidgetForm : Form
         var m = new ToolStripMenuItem(Loc.Pick("Bureaublad-dashboard", "Desktop dashboard"));
         AddCheck(m, Loc.Pick("Dashboard tonen", "Show dashboard"), _cfg.ShowDashboard,
                  v => { _cfg.ShowDashboard = v; SyncDashboard(); Persist(); });
-
-        var pos = new ToolStripMenuItem(Loc.Pick("Positie", "Layer"));
-        foreach (var (label, front) in new[]
-        {
-            (Loc.Pick("Op de voorgrond (altijd bovenop)", "In front (always on top)"), true),
-            (Loc.Pick("Op de achtergrond (onder alle vensters)", "In the background (below all windows)"), false),
-        })
-        {
-            var it = new ToolStripMenuItem(label) { Checked = _cfg.DashFront == front };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.DashFront = front; Persist(); };
-            pos.DropDownItems.Add(it);
-        }
-        m.DropDownItems.Add(pos);
-
         AddCheck(m, Loc.Pick("Klik-door (Ctrl+Alt+D)", "Click-through (Ctrl+Alt+D)"), _cfg.DashClickThrough,
                  v => { _cfg.DashClickThrough = v; Persist(); });
         AddCheck(m, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.DashLocked,
                  v => { _cfg.DashLocked = v; Persist(); });
-        m.DropDownItems.Add(new ToolStripSeparator());
-
-        void radios(string title, int[] values, Func<int, string> label, Func<int> get, Action<int> set)
-        {
-            var sub = new ToolStripMenuItem(title);
-            foreach (int v in values)
-            {
-                var it = new ToolStripMenuItem(label(v)) { Checked = get() == v };
-                it.Click += (_, _) => { Keep(); MarkOnly(it); set(v); Persist(); };
-                sub.DropDownItems.Add(it);
-            }
-            m.DropDownItems.Add(sub);
-        }
-        radios(Loc.Pick("Doorzichtigheid", "Opacity"), new[] { 100, 90, 80, 70, 60, 50, 40, 30, 20 },
-               v => $"{v}%", () => _cfg.DashOpacity, v => _cfg.DashOpacity = v);
-        radios(Loc.Pick("Schaal", "Scale"), new[] { 50, 75, 100, 125, 150, 200, 250, 300 },
-               v => $"{v}%", () => _cfg.DashScale, v => _cfg.DashScale = v);
-        radios(Loc.Pick("Kolommen", "Columns"), new[] { 1, 2, 3, 4 },
-               v => v.ToString(), () => _cfg.DashColumns, v => _cfg.DashColumns = v);
-
-        var tiles = new ToolStripMenuItem(Loc.Pick("Tegels", "Tiles"));
-        AddCheck(tiles, "CPU", _cfg.DashCpu, v => { _cfg.DashCpu = v; Persist(); });
-        AddCheck(tiles, "GPU", _cfg.DashGpu, v => { _cfg.DashGpu = v; Persist(); });
-        AddCheck(tiles, Loc.S("memory"), _cfg.DashMem, v => { _cfg.DashMem = v; Persist(); });
-        AddCheck(tiles, Loc.Pick("Netwerk", "Network"), _cfg.DashNet, v => { _cfg.DashNet = v; Persist(); });
-        AddCheck(tiles, Loc.S("disks"), _cfg.DashDisks, v => { _cfg.DashDisks = v; Persist(); });
-        AddCheck(tiles, Loc.Pick("Batterij", "Battery"), _cfg.DashBattery, v => { _cfg.DashBattery = v; Persist(); });
-        AddCheck(tiles, Loc.Pick("Zwaarste programma's", "Top programs"), _cfg.DashProcs, v => { _cfg.DashProcs = v; Persist(); });
-        AddCheck(tiles, Loc.Pick("Systeem", "System"), _cfg.DashSystem, v => { _cfg.DashSystem = v; Persist(); });
-        m.DropDownItems.Add(tiles);
-
-        m.DropDownItems.Add(new ToolStripSeparator());
-        var reset = new ToolStripMenuItem(Loc.Pick("Reset positie dashboard", "Reset dashboard position"));
-        reset.Click += (_, _) => { Keep(); _dash?.ResetPosition(); };
-        m.DropDownItems.Add(reset);
         return m;
+    }
+
+    // ---------- Instellingenvenster ----------
+    private SettingsForm? _settings;
+    private bool _dashShown;
+
+    private void ShowSettings()
+    {
+        if (_settings is { IsDisposed: false }) { _settings.WindowState = FormWindowState.Normal; _settings.Activate(); return; }
+        _settings = new SettingsForm(_cfg, ApplyAll, () => _dash?.ResetPosition());
+        _settings.FormClosed += (_, _) => _settings = null;
+        _settings.Show();
+    }
+
+    /// <summary>Past alle instellingen toe op widget, dashboard en fullscreen-scherm (aangeroepen door het instellingenvenster).</summary>
+    private void ApplyAll()
+    {
+        BackColor = C(_cfg.BackgroundColor, Color.Black);
+        ApplyHeight();
+        ApplyFonts();
+        _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        _timer.Interval = Math.Max(50, _cfg.RefreshMs);
+        if (_cfg.ShowDashboard != _dashShown) { _dashShown = _cfg.ShowDashboard; SyncDashboard(); }
+        Persist();
+        _full?.Invalidate();
     }
 
     private void ShowLog()
@@ -1199,71 +1162,10 @@ public sealed class WidgetForm : Form
         _live.Clear();
         RefreshDrives(true);
 
-        // Onderdelen
-        var parts = new ToolStripMenuItem(Loc.S("components"));
-        AddCheck(parts, Loc.S("cpu"), _cfg.ShowCpu, v => { _cfg.ShowCpu = v; Relayout(); });
-        AddCheck(parts, Loc.S("gpu"), _cfg.ShowGpu, v => { _cfg.ShowGpu = v; Relayout(); });
-        AddCheck(parts, Loc.S("memory"), _cfg.ShowMem, v => { _cfg.ShowMem = v; Relayout(); });
-        AddCheck(parts, Loc.S("upload"), _cfg.ShowNetUp, v => { _cfg.ShowNetUp = v; Relayout(); });
-        AddCheck(parts, Loc.S("download"), _cfg.ShowNetDown, v => { _cfg.ShowNetDown = v; Relayout(); });
-        AddCheck(parts, Loc.Pick("Batterij", "Battery"), _cfg.ShowBattery, v => { _cfg.ShowBattery = v; Relayout(); });
-        AddCheck(parts, Loc.S("diskIo"), _cfg.ShowDisk, v => { _cfg.ShowDisk = v; Relayout(); });
-        AddCheck(parts, Loc.S("cpuTemp"), _cfg.ShowCpuTemp, v => { _cfg.ShowCpuTemp = v; _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp); Relayout(); });
-        AddCheck(parts, Loc.S("gpuTemp"), _cfg.ShowGpuTemp, v => { _cfg.ShowGpuTemp = v; _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp); Relayout(); });
-        menu.Items.Add(parts);
-
-        // Weergave
-        var view = new ToolStripMenuItem(Loc.S("display"));
-        var cpu = new ToolStripMenuItem(Loc.S("cpu"));
-        AddStyle(cpu, _cfg.CpuStyle, s => { _cfg.CpuStyle = s; Relayout(); });
-        cpu.DropDownItems.Add(new ToolStripSeparator());
-        AddCheck(cpu, Loc.S("perCore"), _cfg.CpuPerCore, v => { _cfg.CpuPerCore = v; Relayout(); });
-        view.DropDownItems.Add(cpu);
-        var gpu = new ToolStripMenuItem(Loc.S("gpu")); AddStyle(gpu, _cfg.GpuStyle, s => { _cfg.GpuStyle = s; Relayout(); }); view.DropDownItems.Add(gpu);
-        var mem = new ToolStripMenuItem(Loc.S("memory")); AddStyle(mem, _cfg.MemStyle, s => { _cfg.MemStyle = s; Relayout(); }); view.DropDownItems.Add(mem);
-        var bat = new ToolStripMenuItem(Loc.Pick("Batterij: percentage", "Battery: percentage"));
-        foreach (var (label, mode) in new[]
-        {
-            (Loc.Pick("In de batterij", "Inside the battery"), BatteryPercentMode.Inside),
-            (Loc.Pick("Naast de batterij", "Next to the battery"), BatteryPercentMode.Beside),
-            (Loc.Pick("Uit", "Off"), BatteryPercentMode.Off),
-        })
-        {
-            var it = new ToolStripMenuItem(label) { Checked = _cfg.BatteryPercent == mode };
-            it.Click += (_, _) => { Keep(); MarkOnly(it); _cfg.BatteryPercent = mode; Relayout(); };
-            bat.DropDownItems.Add(it);
-        }
-        view.DropDownItems.Add(bat);
-        view.DropDownItems.Add(new ToolStripSeparator());
-        var labelsItem = new ToolStripMenuItem(Loc.Pick("Labels boven", "Labels above")) { Checked = _cfg.LabelsAbove, CheckOnClick = true };
-        labelsItem.Click += (_, _) => { Keep(); _cfg.LabelsAbove = labelsItem.Checked; Relayout(); };
-        view.DropDownItems.Add(labelsItem);
-        var compactItem = new ToolStripMenuItem(Loc.Pick("Compact (kort en klein)", "Compact (short and small)")) { Checked = _cfg.Compact, CheckOnClick = true };
-        compactItem.Click += (_, _) =>
-        {
-            Keep();
-            _cfg.Compact = compactItem.Checked;
-            if (_cfg.Compact) { _cfg.LabelsAbove = true; labelsItem.Checked = true; }
-            ApplyFonts();
-            Relayout();
-        };
-        view.DropDownItems.Add(compactItem);
-        view.DropDownItems.Add(new ToolStripSeparator());
-        view.DropDownItems.Add(BuildHeightMenu());
-        view.DropDownItems.Add(BuildFontMenu());
-        view.DropDownItems.Add(BuildFontSizeMenu());
-        menu.Items.Add(view);
-
-        // Kleuren
-        var colors = new ToolStripMenuItem(Loc.S("colors"));
-        AddColorPick(colors, Loc.S("textColor"), _cfg.TextColor, hex => { _cfg.TextColor = hex; Persist(); });
-        AddColorPick(colors, Loc.S("background"), _cfg.BackgroundColor, hex => { _cfg.BackgroundColor = hex; BackColor = C(hex, Color.Black); ApplyTransparency(); Persist(); });
-        AddColorPick(colors, Loc.S("meterColor"), _cfg.AccentColor, hex => { _cfg.AccentColor = hex; Persist(); });
-        AddColorPick(colors, Loc.S("warnColor"), _cfg.WarnColor, hex => { _cfg.WarnColor = hex; Persist(); });
-        AddColorPick(colors, Loc.S("critColor"), _cfg.CritColor, hex => { _cfg.CritColor = hex; Persist(); });
-        colors.DropDownItems.Add(BuildBorderMenu());
-        colors.DropDownItems.Add(BuildThresholdMenu());
-        menu.Items.Add(colors);
+        var settingsItem = new ToolStripMenuItem(Loc.Pick("Instellingen (uiterlijk, indeling, thema's)…", "Settings (looks, layout, themes)…")) { Tag = "close" };
+        settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold);
+        settingsItem.Click += (_, _) => ShowSettings();
+        menu.Items.Add(settingsItem);
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -1326,9 +1228,6 @@ public sealed class WidgetForm : Form
         addLang("nl", Loc.S("dutch"));
         addLang("en", Loc.S("english"));
         menu.Items.Add(lang);
-
-        AddCheck(menu, Loc.S("transparent"), _cfg.TransparentBackground,
-                 v => { _cfg.TransparentBackground = v; ApplyTransparency(); Persist(); });
 
         AddCheck(menu, Loc.S("startup"), StartupManager.IsEnabled(), v => StartupManager.Set(v));
 

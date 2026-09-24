@@ -513,17 +513,74 @@ public sealed class FullscreenForm : Form
     // ---------- Overzicht ----------
     private void DrawOverview(Graphics g)
     {
-        float top = 76, colW = (CW - 5 * M) / 4, h1 = 500, y2 = top + h1 + M, h2 = CH - M - y2;
-        RectangleF Cell(int col, int span, float y, float h) => new(M + col * (colW + M), y, span * colW + (span - 1) * M, h);
+        // Onderdelen in de gekozen volgorde; batterij en systeem delen één cel (boven elkaar) als ze allebei aan staan.
+        var ids = Tiles.Order(_c.Cfg.FullOrder).Where(id => Tiles.FullOn(_c.Cfg, id)).ToList();
+        var cells = new List<string[]>();
+        bool bsDone = false;
+        foreach (var id in ids)
+        {
+            if (id is "batt" or "sys")
+            {
+                if (bsDone) continue;
+                bsDone = true;
+                cells.Add(ids.Where(x => x is "batt" or "sys").ToArray());
+            }
+            else cells.Add(new[] { id });
+        }
+        float top = 76, avail = CH - M - top;
+        if (cells.Count == 0) { T(g, Loc.Pick("Geen onderdelen aan — zet ze aan via Instellingen (tab Fullscreen).", "No components enabled — turn them on in Settings (Fullscreen tab)."), _f, Dim, M + 8, top + 20); return; }
 
-        TileCpu(g, Cell(0, 2, top, h1));
-        TileGpu(g, Cell(2, 1, top, h1));
-        TileMem(g, Cell(3, 1, top, h1));
-        TileNet(g, Cell(0, 1, y2, h2));
-        TileDisk(g, Cell(1, 1, y2, h2));
-        TileBattery(g, Cell(2, 1, y2, 190));
-        TileSystem(g, Cell(2, 1, y2 + 190 + M, h2 - 190 - M));
-        TileProcs(g, Cell(3, 1, y2, h2));
+        // Rijen van 4 kolomeenheden vullen (CPU is 2 breed); wat niet meer past schuift een plek door.
+        int Span(string[] c) => c[0] == "cpu" ? 2 : 1;
+        var rows = new List<List<string[]>>();
+        var left = new List<string[]>(cells);
+        while (left.Count > 0)
+        {
+            var row = new List<string[]>(); int used = 0;
+            foreach (var c in left.ToList())
+                if (used + Span(c) <= 4) { row.Add(c); used += Span(c); left.Remove(c); }
+            rows.Add(row);
+        }
+        float[] heights = rows.Count == 1 ? new[] { avail }
+            : rows.Count == 2 ? new[] { 500f, avail - 500 - M }
+            : Enumerable.Repeat((avail - (rows.Count - 1) * M) / rows.Count, rows.Count).ToArray();
+
+        float y = top;
+        for (int ri = 0; ri < rows.Count; ri++)
+        {
+            var row = rows[ri];
+            int units = row.Sum(Span);
+            float unit = (CW - (row.Count + 1) * M) / units;
+            float x = M;
+            foreach (var c in row)
+            {
+                float w = Span(c) * unit;
+                DrawCell(g, c, new RectangleF(x, y, w, heights[ri]));
+                x += w + M;
+            }
+            y += heights[ri] + M;
+        }
+    }
+
+    private void DrawCell(Graphics g, string[] c, RectangleF r)
+    {
+        if (c.Length == 2)   // batterij + systeem boven elkaar
+        {
+            TileBattery(g, new RectangleF(r.X, r.Y, r.Width, 190));
+            TileSystem(g, new RectangleF(r.X, r.Y + 190 + M, r.Width, Math.Max(120, r.Height - 190 - M)));
+            return;
+        }
+        switch (c[0])
+        {
+            case "cpu": TileCpu(g, r); break;
+            case "gpu": TileGpu(g, r); break;
+            case "mem": TileMem(g, r); break;
+            case "net": TileNet(g, r); break;
+            case "disk": TileDisk(g, r); break;
+            case "batt": TileBattery(g, r); break;
+            case "sys": TileSystem(g, r); break;
+            case "proc": TileProcs(g, r); break;
+        }
     }
 
     private void TileCpu(Graphics g, RectangleF r)
@@ -554,7 +611,7 @@ public sealed class FullscreenForm : Form
                 TR(g, $"{cores[i]:0}%", _fb, TextCol, cell.Right - 8, cell.Y + 3);
             }
         }
-        Graph(g, new RectangleF(r.X + 16, r.Y + 322, r.Width - 32, 166), new[] { (_c.History.Cpu, Accent) }, 100, Pct);
+        Graph(g, new RectangleF(r.X + 16, r.Y + 322, r.Width - 32, Math.Max(60, r.Height - 322 - 12)), new[] { (_c.History.Cpu, Accent) }, 100, Pct);
     }
 
     private void TileGpu(Graphics g, RectangleF r)

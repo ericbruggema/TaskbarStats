@@ -68,6 +68,7 @@ public sealed class DashContext
     public required MetricHistory History { get; init; }
     public required Func<List<DriveSpace>> Drives { get; init; }
     public required Action<Point> ShowMenu { get; init; }
+    public Action<int>? Nudge { get; init; }
 }
 
 /// <summary>

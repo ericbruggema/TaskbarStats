@@ -147,6 +147,26 @@ public sealed class UsageTracker
         return r;
     }
 
+    /// <summary>Alles wat ooit is bijgehouden (binnen de bewaartermijn).</summary>
+    public AdapterUsage Total() => Sum(DateTime.MinValue, DateTime.MaxValue);
+
+    public int DaysTracked() { lock (_lock) return _days.Count(d => d.Value.Values.Any(u => u.Total > 0)); }
+
+    /// <summary>De dag met het meeste verkeer.</summary>
+    public (DateTime day, long bytes)? BestDay()
+    {
+        lock (_lock)
+        {
+            string? best = null; long max = 0;
+            foreach (var (day, list) in _days)
+            {
+                long t = list.Values.Sum(u => u.Total);
+                if (t > max) { max = t; best = day; }
+            }
+            return best is null ? null : (DateTime.ParseExact(best, "yyyy-MM-dd", null), max);
+        }
+    }
+
     public AdapterUsage Today(string? adapter = null) => Sum(DateTime.Now, DateTime.Now, adapter);
     public AdapterUsage Yesterday(string? adapter = null) => Sum(DateTime.Now.AddDays(-1), DateTime.Now.AddDays(-1), adapter);
     public AdapterUsage Week(string? adapter = null) => Sum(DateTime.Now.AddDays(-6), DateTime.Now, adapter);

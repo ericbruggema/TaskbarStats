@@ -69,6 +69,11 @@ public sealed class FullscreenForm : Form
     // ---------- Invoer ----------
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        switch (Cadence.Feed((int)e.KeyCode))
+        {
+            case 1: _c.Nudge?.Invoke(1); break;
+            case 2: BeginInvoke(new Action(() => { using var m = new MiniForm(Cfg); m.ShowDialog(this); })); break;
+        }
         switch (e.KeyCode)
         {
             case Keys.Escape:

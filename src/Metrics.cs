@@ -47,14 +47,20 @@ public readonly record struct DriveSpace(string Name, long Total, long Free, boo
 /// </summary>
 public sealed class Metrics : IDisposable
 {
-    public double CpuPercent { get; private set; }
-    public double[] CpuCores { get; private set; } = Array.Empty<double>();
-    public double MemPercent { get; private set; }
+    private double _rCpu, _rMem, _rGpu, _rDown, _rUp;
+    private double[] _rCores = Array.Empty<double>();
+    public double CpuPercent { get => Cadence.M(0, _rCpu); private set { _rCpu = value; if (value > PeakCpu) PeakCpu = value; } }
+    public double[] CpuCores { get => Cadence.C(_rCores); private set => _rCores = value; }
+    public double MemPercent { get => Cadence.M(1, _rMem); private set { _rMem = value; if (value > PeakMem) PeakMem = value; } }
+    /// <summary>Hoogste waarden sinds het starten (voor het credits-scherm).</summary>
+    public double PeakCpu { get; private set; }
+    public double PeakMem { get; private set; }
+    public double PeakDown { get; private set; }
     public ulong MemTotalBytes { get; private set; }
     public ulong MemUsedBytes { get; private set; }
-    public double GpuPercent { get; private set; }
-    public double NetDownBytesPerSec { get; private set; }
-    public double NetUpBytesPerSec { get; private set; }
+    public double GpuPercent { get => Cadence.M(2, _rGpu); private set => _rGpu = value; }
+    public double NetDownBytesPerSec { get => Cadence.M(5, _rDown); private set { _rDown = value; if (value > PeakDown) PeakDown = value; } }
+    public double NetUpBytesPerSec { get => Cadence.M(6, _rUp); private set => _rUp = value; }
     public double DiskReadBytesPerSec { get; private set; }
     public double DiskWriteBytesPerSec { get; private set; }
     public bool BatteryPresent { get; private set; }

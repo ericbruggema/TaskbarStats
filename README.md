@@ -110,8 +110,11 @@ De installer:
 - registreert een uninstaller (ook in Instellingen → Apps) die de taak verwijdert en vraagt of
   je instellingen en verbruikslog (`%AppData%\TaskbarStats`) ook weg mogen.
 
-De app zelf heeft ook "Leesmij en credits" in het rechtermuisknop-menu. Aanpassen van naam,
-credits of tekst: `installer\Leesmij.txt` en `#define Publisher` in het `.iss`-bestand.
+De app zelf heeft ook "Leesmij en credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje, plus een knop die het Leesmij opent.
+
+![Leesmij en credits](docs/screenshots/credits.png)
+
+Aanpassen van naam, credits of tekst: `installer\Leesmij.txt`, `CreditsForm.cs` en `#define Publisher` in het `.iss`-bestand.
 
 ## Gebruik
 

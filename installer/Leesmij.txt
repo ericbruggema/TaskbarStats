@@ -17,7 +17,8 @@ BEDIENING
                   onthouden. Zet "Positie vergrendelen" aan om het vast
                   te zetten.
 - Rechtermuisknop: opent een kort menu: Instellingen, Thema (snelkeuze),
-                  Verbruik, Dashboard, Fullscreen, Kopieer info, Over en
+                  Verbruik, Dashboard, Fullscreen, Kopieer info, Leesmij en
+                  credits (een aftiteling met wat cijfers), Over en
                   Afsluiten. Het menu blijft open als je een optie
                   aanklikt; het sluit als je ernaast klikt, Esc drukt of
                   de muis er ~1 seconde af is.

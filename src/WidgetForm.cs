@@ -171,6 +171,7 @@ public sealed class WidgetForm : Form
     }
 
     private WelcomeForm? _welcome;
+    private CreditsForm? _credits;
 
     private void ShowWelcome()
     {
@@ -366,7 +367,7 @@ public sealed class WidgetForm : Form
     // ---------- Meldingen ----------
     private void CheckAlerts()
     {
-        if (!_cfg.Notifications || _hidden) return;
+        if (!_cfg.Notifications || _hidden || Cadence.Active) return;
         long now = Environment.TickCount64;
 
         void crit(string name, double v)
@@ -493,8 +494,17 @@ public sealed class WidgetForm : Form
     private DashContext MakeContext() => new()
     {
         Metrics = _metrics, Cfg = _cfg, Usage = _usage, History = _history,
-        Drives = () => _drives, ShowMenu = p => _menu.Show(p),
+        Drives = () => _drives, ShowMenu = p => _menu.Show(p), Nudge = Nudge,
     };
+
+    private void Nudge(int code)
+    {
+        if (code != 1) return;
+        var t = Cadence.Look();
+        t.ApplyTo(_cfg);
+        try { ThemeStore.Write(ThemeStore.FileFor(_cfg, t.Name), t); } catch { }
+        ApplyAll();
+    }
 
     // ---------- Fullscreen dashboard ----------
     private FullscreenForm? _full;
@@ -718,6 +728,7 @@ public sealed class WidgetForm : Form
                 ? Color.FromArgb(1, 0, 0, 0)
                 : C(_cfg.BackgroundColor, Color.FromArgb(20, 20, 20)));
             DrawAll(g);
+            Cadence.Cap(g, Width, Height);
             if (!string.IsNullOrWhiteSpace(_cfg.BorderColor))
             {
                 using var pen = new Pen(C(_cfg.BorderColor, Color.Magenta), 1);
@@ -777,6 +788,8 @@ public sealed class WidgetForm : Form
                     break;
             }
         }
+        if (Cadence.On(2))
+            x += DrawTextCell(g, x, "", Cadence.Word, Cadence.Word, (Environment.TickCount64 / 200 % 2 == 0) ? C(_cfg.CritColor, Color.Red) : C(_cfg.WarnColor, Color.Orange)) + gap;
         return x;
     }
 
@@ -903,6 +916,7 @@ public sealed class WidgetForm : Form
     // Tekstcel: "CPU 12%" op één regel, of (labels boven) het label boven de waarde.
     private int DrawTextCell(Graphics g, int x, string label, string value, string valueTemplate, Color color)
     {
+        label = Cadence.L(label);
         if (!_cfg.LabelsAbove) return DrawDigital(g, x, $"{label} {value}", $"{label} {valueTemplate}", color);
 
         var (top, h) = Area(g);
@@ -953,6 +967,7 @@ public sealed class WidgetForm : Form
 
     private int DrawGauge(Graphics g, int x, string label, double v)
     {
+        label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
         var (top, h) = Area(g);
         int d = above ? h : Height - 10;
@@ -977,6 +992,7 @@ public sealed class WidgetForm : Form
 
     private int DrawBar(Graphics g, int x, string label, double v)
     {
+        label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
         var (top, h) = Area(g);
         int bw = (int)Math.Round(44 * UiScale), bh = Math.Min((int)Math.Round(12 * UiScale), above ? h : Height - 12);
@@ -997,6 +1013,7 @@ public sealed class WidgetForm : Form
 
     private int DrawCores(Graphics g, int x, string label, double[] cores)
     {
+        label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
         var (top, h) = Area(g);
         int barW = Math.Max(3, (int)Math.Round(4 * UiScale)), gap = 1;
@@ -1132,7 +1149,7 @@ public sealed class WidgetForm : Form
     {
         HideTip();
         if (e.Button == MouseButtons.Middle) { CopyInfo(); return; }
-        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; }
+        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 5000); }
         else if (e.Button == MouseButtons.Right) { _dragging = false; _menu.Show(this, e.Location); }
     }
     private void OnMouseUp(object? s, MouseEventArgs e)
@@ -1286,10 +1303,10 @@ public sealed class WidgetForm : Form
         var readme = new ToolStripMenuItem(Loc.Pick("Leesmij en credits", "Readme and credits")) { Tag = "close" };
         readme.Click += (_, _) =>
         {
-            string f = Path.Combine(AppContext.BaseDirectory, "Leesmij.txt");
-            if (File.Exists(f)) try { Process.Start(new ProcessStartInfo(f) { UseShellExecute = true }); } catch { }
+            if (_credits is null || _credits.IsDisposed) _credits = new CreditsForm(_cfg, _usage, _metrics);
+            _credits.Show();
+            _credits.Activate();
         };
-        readme.Enabled = File.Exists(Path.Combine(AppContext.BaseDirectory, "Leesmij.txt"));
         menu.Items.Add(readme);
 
         var about = new ToolStripMenuItem(Loc.Pick("Over TaskbarStats…", "About TaskbarStats…")) { Tag = "close" };

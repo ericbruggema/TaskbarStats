@@ -3,7 +3,8 @@ namespace TaskbarStats;
 /// <summary>Klein raster-venster met een timer (hulpvenster).</summary>
 public sealed class MiniForm : Form
 {
-    private const int N = 24, Px = 20;
+    private const int N = 24;
+    private int Px = 20, Bar = 28;   // celgrootte en hoogte van de onderbalk (pixels; passen zich aan scherm en schaling aan)
     private readonly System.Windows.Forms.Timer _t = new() { Interval = 110 };
     private readonly List<Point> _s = new();
     private readonly Random _r = new();
@@ -18,8 +19,9 @@ public sealed class MiniForm : Form
         Text = Cadence.Title;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false; MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(N * Px, N * Px + 28);
+        StartPosition = FormStartPosition.Manual;
+        AutoScaleMode = AutoScaleMode.None;   // we rekenen zelf met de schaling van het scherm
+        ClientSize = new Size(N * Px, N * Px + Bar);
         BackColor = Color.FromArgb(18, 18, 20);
         DoubleBuffered = true;
         KeyPreview = true;
@@ -27,6 +29,21 @@ public sealed class MiniForm : Form
         _t.Tick += (_, _) => Step();
         FormClosed += (_, _) => _t.Dispose();
         Reset();
+    }
+
+    // Maat en plek pas bepalen als het venster op zijn scherm staat: groot genoeg volgens de schaling, maar nooit hoger dan
+    // ~85% van het werkgebied, en gecentreerd op het scherm van de eigenaar (het fullscreen-scherm) binnen dat gebied.
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        var scr = Screen.FromControl(Owner ?? this);
+        var wa = scr.WorkingArea;
+        float k = DeviceDpi / 96f;
+        Bar = (int)(28 * k);
+        int maxPx = (int)((wa.Height * 0.85 - Bar - (Height - ClientSize.Height)) / N);
+        Px = Math.Max(10, Math.Min((int)(20 * k), maxPx));
+        ClientSize = new Size(N * Px, N * Px + Bar);
+        Location = new Point(Math.Max(wa.Left, wa.Left + (wa.Width - Width) / 2), Math.Max(wa.Top, wa.Top + (wa.Height - Height) / 2));
     }
 
     private void Reset()

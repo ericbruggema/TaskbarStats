@@ -27,7 +27,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 | `Metrics.cs` | tellers: CPU (`Processor Information\% Processor Utility`), GPU via **PDH-wildcard** (`PdhWildcard`), geheugen, netwerk, schijf, VRAM, batterij, DXGI-namen; LibreHardwareMonitor: temps (widget) en `Sensors` (alleen als het fullscreen-scherm open is, elke 2 s, op de sampler-thread) |
 | `DashboardForm.cs` | bureaublad-dashboard (tegels, masonry), plus `Ring`, `MetricHistory`, `DashContext` |
 | `FullscreenForm.cs` | fullscreen cockpit: vast canvas 1920×1080 dat meeschaalt; overzicht + detail per tegel; Esc = terug/sluiten |
-| `SettingsForm.cs` | instellingenvenster met tabbladen (Widget, Kleuren, Dashboard, Fullscreen, Thema's); elke wijziging gaat direct via `WidgetForm.ApplyAll()` naar widget/dashboard/fullscreen |
+| `SettingsForm.cs`, `AppIcon.cs` | instellingenvenster met tabbladen (Widget incl. bronnen GPU/adapter/schijven, Kleuren, Dashboard, Fullscreen, Thema's, Algemeen); `SettingsHost` = callbacks naar het widget; `AppIcon` = ingebed `app.ico` (ook exe-icoon) voor vensters en systeemvak; elke wijziging gaat direct via `WidgetForm.ApplyAll()` naar widget/dashboard/fullscreen |
 | `Themes.cs`, `Tiles.cs` | `ThemeData` (uiterlijk + indeling als JSON, meegeleverd + `%AppData%\TaskbarStats	hemes\`); `Tiles`: ids, volgorde (`DashOrder`/`FullOrder`) en zichtbaarheid van de 8 hoofdonderdelen |
 | `UsageTracker.cs` | verbruik per adapter/dag → `usage.json` (thread-veilig) |
 | `ProcessSampler.cs` | top-processen; gebruik `SampleAsync()` |
@@ -49,12 +49,14 @@ zodat het rechtermuismenu soms niet verscheen.
   aanroepen; `KeepOnTop` doet het alleen als er echt iets bovenop staat, max. elke 2 s.
 - Meetteller-kosten: gebruik **PDH-wildcardqueries** (`PdhWildcard`) voor tellers met veel instanties (GPU-engines, netwerk, CPU-cores); losse `PerformanceCounter`-objecten kostten o.a. 39 ms/s voor het netwerk. Meten met een `Stopwatch` per blok in de testkopie (zie `scratchpad/prof_patch.py`-aanpak).
 - Zuinig: sampler meet om de 5 s als niemand kijkt (`_idle` in `WidgetForm`), verbruik om de 5 s, werkset-trim elke minuut, `ConcurrentGarbageCollection=false`. Baseline in rust: ~2% van één kern, ~60 MB werkset.
+- **UAC en netwerkstations**: een als administrator draaiend proces ziet de gekoppelde netwerkstations van de gewone sessie niet in `DriveInfo`. `Metrics.GetDriveSpaces(Network)` leest daarom ook `HKCU\Network` en vraagt de ruimte via het UNC-pad (`GetDiskFreeSpaceEx`).
+- Testscripts kopieren `app.ico` mee (anders faalt de build van de testkopie). Elevated testen: env-variabelen binnen het elevated script zetten (RunAs geeft ze niet door).
 - Geen extern proces starten per menu-opening (`schtasks` wordt daarom gecachet). Netwerkschijven (`DriveInfo`) alleen async.
 - Meten in plaats van gokken: een 15 ms-timer die de UI-hapering logt + `Stopwatch` rond verdachte stukken werkte goed.
 
 **Menu (ContextMenuStrip).** Volgorde in WinForms: `ItemClicked` → `Closing` → pas daarna de `Click`-handler. "Menu blijft
 open" wordt daarom in `OnDropDownItemClicked` bepaald (standaard open; items met `Tag = "close"` sluiten). Na een
-taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu is kort gehouden: alles rond uiterlijk/indeling zit in het **instellingenvenster** (`SettingsForm`); nieuwe uiterlijk-instellingen daar toevoegen en (als ze in een thema horen) ook in `ThemeData.Capture/ApplyTo`. Het menu bouwt zich bij elke opening opnieuw op
+taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu is kort gehouden (Instellingen, Thema-snelkeuze, Verbruik, Dashboard, Fullscreen, Kopieer/Welkom/Leesmij/Over, Afsluiten): alles rond uiterlijk/indeling zit in het **instellingenvenster** (`SettingsForm`); nieuwe uiterlijk-instellingen daar toevoegen en (als ze in een thema horen) ook in `ThemeData.Capture/ApplyTo`. Het menu bouwt zich bij elke opening opnieuw op
 (`RefreshMenu`); houd dat goedkoop. `Application.Exit()` niet gebruiken bij afsluiten (vensters sluiten zichzelf tijdens
 het sluiten -> "Collection was modified"); `Close()` op het widget.
 

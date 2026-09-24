@@ -232,6 +232,63 @@ public sealed class SettingsForm : Form
         return Row(label, host);
     }
 
+    private bool WidgetItemOn(string id) => id switch
+    {
+        "net" => _c.ShowNetUp || _c.ShowNetDown,
+        "disk" => _c.ShowDisk,
+        "cpu" => _c.ShowCpu,
+        "gpu" => _c.ShowGpu,
+        "mem" => _c.ShowMem,
+        "batt" => _c.ShowBattery,
+        "space" => _c.DiskSpace != DiskSpaceMode.Off,
+        "cputemp" => _c.ShowCpuTemp,
+        "gputemp" => _c.ShowGpuTemp,
+        _ => true,
+    };
+
+    /// <summary>Volgorde van de onderdelen in het taakbalk-widget; onderdelen die uit staan krijgen "(uit)" erachter.</summary>
+    private Control WidgetOrderEditor()
+    {
+        var host = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
+        var list = new ListBox { Width = 250, Height = 192, IntegralHeight = false };
+        var order = Tiles.WidgetOrder(_c.WidgetOrder);
+        void fill()
+        {
+            int sel = list.SelectedIndex;
+            bool was = _building;
+            _building = true;
+            list.Items.Clear();
+            foreach (var id in order) list.Items.Add(Tiles.WidgetName(id) + (WidgetItemOn(id) ? "" : "   " + Loc.Pick("(uit)", "(off)")));
+            if (list.Items.Count > 0) list.SelectedIndex = Math.Clamp(sel, 0, list.Items.Count - 1);
+            _building = was;
+        }
+        fill();
+        Dep(fill);   // ververst de "(uit)"-markering als de vinkjes veranderen
+        void move(int d)
+        {
+            int i = list.SelectedIndex, j = i + d;
+            if (i < 0 || j < 0 || j >= order.Count) return;
+            (order[i], order[j]) = (order[j], order[i]);
+            _c.WidgetOrder = new List<string>(order);
+            list.SelectedIndex = j;
+            Changed();
+            list.SelectedIndex = j;
+        }
+        var left = new Button { Text = "▲", Width = 44, Height = 32, Margin = new Padding(0, 0, 0, 6) };
+        var right = new Button { Text = "▼", Width = 44, Height = 32, Margin = new Padding(0, 0, 0, 6) };
+        left.Click += (_, _) => move(-1);
+        right.Click += (_, _) => move(1);
+        var reset = Btn(Loc.Pick("Standaard", "Default"), 90);
+        reset.Click += (_, _) => { order = Tiles.WidgetOrder(null); _c.WidgetOrder = null; Changed(); };
+        var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(8, 0, 0, 0) };
+        buttons.Controls.Add(left);
+        buttons.Controls.Add(right);
+        buttons.Controls.Add(reset);
+        host.Controls.Add(list);
+        host.Controls.Add(buttons);
+        return host;
+    }
+
     // ---------- tabblad Algemeen ----------
     private TabPage GeneralTab()
     {
@@ -308,6 +365,9 @@ public sealed class SettingsForm : Form
             Check(Loc.S("diskIo"), _c.ShowDisk, v => _c.ShowDisk = v, ColW),
             Check(Loc.S("cpuTemp"), _c.ShowCpuTemp, v => _c.ShowCpuTemp = v, ColW),
             Check(Loc.S("gpuTemp"), _c.ShowGpuTemp, v => _c.ShowGpuTemp = v, ColW)));
+
+        p.Controls.Add(Head(Loc.Pick("Volgorde in het widget (van links naar rechts)", "Order in the widget (left to right)")));
+        p.Controls.Add(WidgetOrderEditor());
 
         // Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes hierboven).
         p.Controls.Add(Head(Loc.Pick("Bronnen", "Sources")));

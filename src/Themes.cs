@@ -47,6 +47,7 @@ public sealed class ThemeData
     public int DashScale { get; set; } = 100;
     public int DashColumns { get; set; } = 2;
     public bool DashFront { get; set; }
+    public List<string>? WidgetOrder { get; set; }
     public List<string>? DashOrder { get; set; }
     public List<string>? DashHidden { get; set; }
     public List<string>? FullOrder { get; set; }
@@ -66,6 +67,7 @@ public sealed class ThemeData
             TextColor = c.TextColor, BackgroundColor = c.BackgroundColor, AccentColor = c.AccentColor, WarnColor = c.WarnColor,
             CritColor = c.CritColor, BorderColor = c.BorderColor, WarnThreshold = c.WarnThreshold, CritThreshold = c.CritThreshold,
             DashOpacity = c.DashOpacity, DashScale = c.DashScale, DashColumns = c.DashColumns, DashFront = c.DashFront,
+            WidgetOrder = c.WidgetOrder is null ? null : new List<string>(c.WidgetOrder),
             DashOrder = c.DashOrder is null ? null : new List<string>(c.DashOrder),
             DashHidden = hidden.Count > 0 ? hidden : null,
             FullOrder = c.FullOrder is null ? null : new List<string>(c.FullOrder),
@@ -90,6 +92,7 @@ public sealed class ThemeData
         c.DashScale = Math.Clamp(DashScale, 30, 400);
         c.DashColumns = Math.Clamp(DashColumns, 1, 4);
         c.DashFront = DashFront;
+        c.WidgetOrder = WidgetOrder is null ? null : Tiles.WidgetOrder(WidgetOrder);
         c.DashOrder = DashOrder is null ? null : Tiles.Order(DashOrder);
         foreach (var id in Tiles.All) Tiles.SetDashOn(c, id, !(DashHidden?.Contains(id) ?? false));
         c.FullOrder = FullOrder is null ? null : Tiles.Order(FullOrder);

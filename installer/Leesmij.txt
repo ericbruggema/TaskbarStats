@@ -43,6 +43,8 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
                   eventueel per core.
 - Kleuren       : tekst, achtergrond, meter/balk, waarschuwing, kritiek,
                   rand en de drempels (bv. 85% / 95%).
+- Volgorde     : (tab Widget) de volgorde van de onderdelen in het
+                  taakbalk-widget, van links naar rechts.
 - Bronnen       : (tab Widget) welke GPU (of automatisch), welke
                   netwerkadapter (of alle), wat het widget toont van de
                   schijfruimte (uit, totaal, alle schijven of een schijf)

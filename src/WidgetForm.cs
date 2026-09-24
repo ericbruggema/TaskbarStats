@@ -736,27 +736,47 @@ public sealed class WidgetForm : Form
 
         int x = _cfg.Compact ? 4 : 6;
         int gap = Gap;
-        if (_cfg.ShowNetUp || _cfg.ShowNetDown) x += DrawNetwork(g, x) + gap;
-        if (_cfg.ShowDisk) x += DrawDisk(g, x) + gap;
-
-        if (_cfg.ShowCpu)
-        {
-            if (_cfg.CpuPerCore) x += DrawCores(g, x, "CPU", _metrics.CpuCores) + gap;
-            else x += DrawMetric(g, x, "CPU", _metrics.CpuPercent, _cfg.CpuStyle) + gap;
-        }
-        if (_cfg.ShowGpu) x += DrawMetric(g, x, "GPU", _metrics.GpuPercent, _cfg.GpuStyle) + gap;
-        if (_cfg.ShowMem) x += DrawMetric(g, x, "MEM", _metrics.MemPercent, _cfg.MemStyle) + gap;
-
-        if (_cfg.ShowBattery && _metrics.BatteryPresent) x += DrawBattery(g, x) + gap;
-
         var textCol = C(_cfg.TextColor, Color.White);
-        foreach (var (label, value, pct) in DiskSpaceCells())
-            x += DrawTextCell(g, x, label, value, "100%", ThresholdColor(pct, textCol)) + gap;
-
-        if (_cfg.ShowCpuTemp && _metrics.CpuTempC is double ct)
-            x += DrawTextCell(g, x, _cfg.LabelsAbove ? "CPU°C" : "CPU", $"{ct:0}°", "100°", ThresholdColor(ct, textCol)) + gap;
-        if (_cfg.ShowGpuTemp && _metrics.GpuTempC is double gt)
-            x += DrawTextCell(g, x, _cfg.LabelsAbove ? "GPU°C" : "GPU", $"{gt:0}°", "100°", ThresholdColor(gt, textCol)) + gap;
+        foreach (var id in Tiles.WidgetOrder(_cfg.WidgetOrder))
+        {
+            switch (id)
+            {
+                case "net":
+                    if (_cfg.ShowNetUp || _cfg.ShowNetDown) x += DrawNetwork(g, x) + gap;
+                    break;
+                case "disk":
+                    if (_cfg.ShowDisk) x += DrawDisk(g, x) + gap;
+                    break;
+                case "cpu":
+                    if (_cfg.ShowCpu)
+                    {
+                        if (_cfg.CpuPerCore) x += DrawCores(g, x, "CPU", _metrics.CpuCores) + gap;
+                        else x += DrawMetric(g, x, "CPU", _metrics.CpuPercent, _cfg.CpuStyle) + gap;
+                    }
+                    break;
+                case "gpu":
+                    if (_cfg.ShowGpu) x += DrawMetric(g, x, "GPU", _metrics.GpuPercent, _cfg.GpuStyle) + gap;
+                    break;
+                case "mem":
+                    if (_cfg.ShowMem) x += DrawMetric(g, x, "MEM", _metrics.MemPercent, _cfg.MemStyle) + gap;
+                    break;
+                case "batt":
+                    if (_cfg.ShowBattery && _metrics.BatteryPresent) x += DrawBattery(g, x) + gap;
+                    break;
+                case "space":
+                    foreach (var (label, value, pct) in DiskSpaceCells())
+                        x += DrawTextCell(g, x, label, value, "100%", ThresholdColor(pct, textCol)) + gap;
+                    break;
+                case "cputemp":
+                    if (_cfg.ShowCpuTemp && _metrics.CpuTempC is double ct)
+                        x += DrawTextCell(g, x, _cfg.LabelsAbove ? "CPU°C" : "CPU", $"{ct:0}°", "100°", ThresholdColor(ct, textCol)) + gap;
+                    break;
+                case "gputemp":
+                    if (_cfg.ShowGpuTemp && _metrics.GpuTempC is double gt)
+                        x += DrawTextCell(g, x, _cfg.LabelsAbove ? "GPU°C" : "GPU", $"{gt:0}°", "100°", ThresholdColor(gt, textCol)) + gap;
+                    break;
+            }
+        }
         return x;
     }
 

@@ -18,6 +18,31 @@ public static class Tiles
         _ => id,
     };
 
+    /// <summary>Onderdelen van het taakbalk-widget in de standaardvolgorde (net = upload/download, space = schijfruimte).</summary>
+    public static readonly string[] WidgetAll = { "net", "disk", "cpu", "gpu", "mem", "batt", "space", "cputemp", "gputemp" };
+
+    public static string WidgetName(string id) => id switch
+    {
+        "net" => Loc.Pick("Netwerk (upload/download)", "Network (upload/download)"),
+        "disk" => Loc.S("diskIo"),
+        "cpu" => "CPU",
+        "gpu" => "GPU",
+        "mem" => Loc.S("memory"),
+        "batt" => Loc.Pick("Batterij", "Battery"),
+        "space" => Loc.S("diskSpace"),
+        "cputemp" => Loc.S("cpuTemp"),
+        "gputemp" => Loc.S("gpuTemp"),
+        _ => id,
+    };
+
+    public static List<string> WidgetOrder(List<string>? saved)
+    {
+        var res = new List<string>();
+        foreach (var id in saved ?? new()) if (WidgetAll.Contains(id) && !res.Contains(id)) res.Add(id);
+        foreach (var id in WidgetAll) if (!res.Contains(id)) res.Add(id);
+        return res;
+    }
+
     /// <summary>Opgeslagen volgorde, aangevuld met ontbrekende en ontdaan van onbekende/dubbele ids.</summary>
     public static List<string> Order(List<string>? saved)
     {

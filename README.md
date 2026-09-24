@@ -127,6 +127,7 @@ bij loslaten bewaard); de instellingen (tab Algemeen) hebben "Reset positie".
   - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke
     netwerkadapter of alle, schijfruimte uit/totaal/alle apart/één schijf, netwerkschijven meenemen), weergave per onderdeel (digitaal, meter of balk;
     CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
+    De **volgorde van de onderdelen in het widget** (netwerk, schijf-I/O, CPU, GPU, geheugen, batterij, schijfruimte, temperaturen) stel je in met de pijlknoppen; uitgeschakelde onderdelen staan er met "(uit)" bij. De volgorde zit ook in thema's.
   - *Kleuren*: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand en drempels (bv. 85% / 95%).
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
   - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.

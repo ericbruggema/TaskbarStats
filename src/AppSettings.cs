@@ -68,6 +68,9 @@ public sealed class AppSettings
     public bool DashProcs { get; set; } = true;
     public bool DashSystem { get; set; } = true;
 
+    // Volgorde van de onderdelen in het taakbalk-widget (ids uit Tiles.WidgetAll)
+    public List<string>? WidgetOrder { get; set; } = null;
+
     // Volgorde van de hoofdonderdelen (ids uit Tiles.All); ontbrekende ids worden achteraan toegevoegd.
     public List<string>? DashOrder { get; set; } = null;
     public List<string>? FullOrder { get; set; } = null;

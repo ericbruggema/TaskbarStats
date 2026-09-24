@@ -78,7 +78,8 @@ public sealed class ThemeData
         c.ShowCpu = ShowCpu; c.ShowGpu = ShowGpu; c.ShowMem = ShowMem; c.ShowNetUp = ShowNetUp; c.ShowNetDown = ShowNetDown;
         c.ShowBattery = ShowBattery; c.ShowDisk = ShowDisk; c.ShowCpuTemp = ShowCpuTemp; c.ShowGpuTemp = ShowGpuTemp;
         c.CpuStyle = CpuStyle; c.GpuStyle = GpuStyle; c.MemStyle = MemStyle; c.CpuPerCore = CpuPerCore;
-        c.BatteryPercent = BatteryPercent; c.LabelsAbove = LabelsAbove; c.Compact = Compact; c.AutoHeight = AutoHeight;
+        c.BatteryPercent = BatteryPercent; c.Compact = Compact; c.LabelsAbove = LabelsAbove || Compact;   // compact hoort bij labels boven
+        c.AutoHeight = AutoHeight;
         c.WidgetHeight = Math.Clamp(WidgetHeight, 24, 96);
         c.FontFamily = string.IsNullOrWhiteSpace(FontFamily) ? "Segoe UI" : FontFamily;
         c.FontSize = Math.Clamp(FontSize, 6, 16);

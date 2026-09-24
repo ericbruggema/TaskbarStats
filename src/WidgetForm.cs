@@ -1230,10 +1230,10 @@ public sealed class WidgetForm : Form
 
         AddCheck(menu, Loc.S("startup"), StartupManager.IsEnabled(), v => StartupManager.Set(v));
 
-        AddCheck(menu, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.LockPosition,
-                 v => { _cfg.LockPosition = v; Persist(); });
         AddCheck(menu, Loc.Pick("Verbergen bij volledig scherm", "Hide in full screen"), _cfg.HideInFullscreen,
                  v => { _cfg.HideInFullscreen = v; Persist(); });
+        AddCheck(menu, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.LockPosition,
+                 v => { _cfg.LockPosition = v; Persist(); });
 
         var reset = new ToolStripMenuItem(Loc.S("resetPos"));
         reset.Click += (_, _) => { (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition(); Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value); Persist(); };

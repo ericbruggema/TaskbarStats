@@ -18,6 +18,7 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Menu](docs/screenshots/menu.png)
 ![Instellingen: widget](docs/screenshots/settings-widget.png)
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
+![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
 **Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):

@@ -52,4 +52,60 @@ public static class Tiles
         if (!on) h.Add(id);
         c.FullHidden = h.Count == 0 ? null : h;
     }
+
+    /// <summary>
+    /// Indeling van het fullscreen-overzicht: rijen van 4 kolomeenheden (CPU is 2 breed; batterij en systeem delen een cel).
+    /// Wordt gebruikt door het scherm zelf en door het voorbeeld in de instellingen.
+    /// </summary>
+    public static List<(string[] ids, RectangleF r)> FullCells(IEnumerable<string> visible, float width, float height, float top, float margin)
+    {
+        var ids = visible.ToList();
+        var cells = new List<string[]>();
+        bool bsDone = false;
+        foreach (var id in ids)
+        {
+            if (id is "batt" or "sys")
+            {
+                if (bsDone) continue;
+                bsDone = true;
+                cells.Add(ids.Where(x => x is "batt" or "sys").ToArray());
+            }
+            else cells.Add(new[] { id });
+        }
+        var result = new List<(string[], RectangleF)>();
+        if (cells.Count == 0) return result;
+
+        static int Span(string[] c) => c[0] == "cpu" ? 2 : 1;
+        var rows = new List<List<string[]>>();
+        var left = new List<string[]>(cells);
+        while (left.Count > 0)
+        {
+            var row = new List<string[]>(); int used = 0;
+            foreach (var c in left.ToList())
+                if (used + Span(c) <= 4) { row.Add(c); used += Span(c); left.Remove(c); }
+            rows.Add(row);
+        }
+        float avail = height - margin - top;
+        float firstRow = 500f * avail / (1080f - 16 - 76);
+        float[] heights = rows.Count == 1 ? new[] { avail }
+            : rows.Count == 2 ? new[] { firstRow, avail - firstRow - margin }
+            : Enumerable.Repeat((avail - (rows.Count - 1) * margin) / rows.Count, rows.Count).ToArray();
+
+        float y = top;
+        for (int ri = 0; ri < rows.Count; ri++)
+        {
+            var row = rows[ri];
+            int units = row.Sum(Span);
+            float unit = (width - (row.Count + 1) * margin) / units;
+            float x = margin;
+            foreach (var c in row)
+            {
+                float w = Span(c) * unit;
+                result.Add((c, new RectangleF(x, y, w, heights[ri])));
+                x += w + margin;
+            }
+            y += heights[ri] + margin;
+        }
+        return result;
+    }
 }

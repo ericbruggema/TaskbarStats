@@ -513,53 +513,15 @@ public sealed class FullscreenForm : Form
     // ---------- Overzicht ----------
     private void DrawOverview(Graphics g)
     {
-        // Onderdelen in de gekozen volgorde; batterij en systeem delen één cel (boven elkaar) als ze allebei aan staan.
-        var ids = Tiles.Order(_c.Cfg.FullOrder).Where(id => Tiles.FullOn(_c.Cfg, id)).ToList();
-        var cells = new List<string[]>();
-        bool bsDone = false;
-        foreach (var id in ids)
+        float top = 76;
+        var visible = Tiles.Order(_c.Cfg.FullOrder).Where(id => Tiles.FullOn(_c.Cfg, id));
+        var cells = Tiles.FullCells(visible, CW, CH, top, M);
+        if (cells.Count == 0)
         {
-            if (id is "batt" or "sys")
-            {
-                if (bsDone) continue;
-                bsDone = true;
-                cells.Add(ids.Where(x => x is "batt" or "sys").ToArray());
-            }
-            else cells.Add(new[] { id });
+            T(g, Loc.Pick("Geen onderdelen aan — zet ze aan via Instellingen (tab Fullscreen).", "No components enabled — turn them on in Settings (Fullscreen tab)."), _f, Dim, M + 8, top + 20);
+            return;
         }
-        float top = 76, avail = CH - M - top;
-        if (cells.Count == 0) { T(g, Loc.Pick("Geen onderdelen aan — zet ze aan via Instellingen (tab Fullscreen).", "No components enabled — turn them on in Settings (Fullscreen tab)."), _f, Dim, M + 8, top + 20); return; }
-
-        // Rijen van 4 kolomeenheden vullen (CPU is 2 breed); wat niet meer past schuift een plek door.
-        int Span(string[] c) => c[0] == "cpu" ? 2 : 1;
-        var rows = new List<List<string[]>>();
-        var left = new List<string[]>(cells);
-        while (left.Count > 0)
-        {
-            var row = new List<string[]>(); int used = 0;
-            foreach (var c in left.ToList())
-                if (used + Span(c) <= 4) { row.Add(c); used += Span(c); left.Remove(c); }
-            rows.Add(row);
-        }
-        float[] heights = rows.Count == 1 ? new[] { avail }
-            : rows.Count == 2 ? new[] { 500f, avail - 500 - M }
-            : Enumerable.Repeat((avail - (rows.Count - 1) * M) / rows.Count, rows.Count).ToArray();
-
-        float y = top;
-        for (int ri = 0; ri < rows.Count; ri++)
-        {
-            var row = rows[ri];
-            int units = row.Sum(Span);
-            float unit = (CW - (row.Count + 1) * M) / units;
-            float x = M;
-            foreach (var c in row)
-            {
-                float w = Span(c) * unit;
-                DrawCell(g, c, new RectangleF(x, y, w, heights[ri]));
-                x += w + M;
-            }
-            y += heights[ri] + M;
-        }
+        foreach (var (ids, r) in cells) DrawCell(g, ids, r);
     }
 
     private void DrawCell(Graphics g, string[] c, RectangleF r)

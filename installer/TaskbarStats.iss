@@ -63,6 +63,11 @@ Filename: "{app}\{#ExeName}"; Parameters: "--autostart-off"; Flags: runhidden wa
 Filename: "{app}\Leesmij.txt"; Description: "Leesmij (uitleg en credits) openen"; Flags: postinstall shellexec skipifsilent unchecked
 Filename: "{app}\{#ExeName}"; Description: "{#AppName} nu starten"; Flags: nowait postinstall skipifsilent
 
+[UninstallRun]
+; App afsluiten en de autostart-taak weghalen voordat de bestanden verdwijnen.
+Filename: "{sys}	askkill.exe"; Parameters: "/F /IM {#ExeName}"; Flags: runhidden; RunOnceId: "StopApp"
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""TaskbarStats"" /F"; Flags: runhidden; RunOnceId: "DelTask"
+
 [Code]
 procedure StopApp;
 var
@@ -86,8 +91,10 @@ begin
   if CurUninstallStep = usUninstall then
   begin
     // Autostart-taak verwijderen en de app afsluiten, vóórdat de bestanden verdwijnen.
-    Exec(ExpandConstant('{app}\{#ExeName}'), '--autostart-off', '', SW_HIDE, ewWaitUntilTerminated, rc);
     StopApp;
+    // Rechtstreeks via schtasks: betrouwbaarder dan de app zelf starten tijdens het verwijderen.
+    Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "TaskbarStats" /F', '', SW_HIDE, ewWaitUntilTerminated, rc);
+    Log('autostart-taak verwijderen, code ' + IntToStr(rc));
   end
   else if CurUninstallStep = usPostUninstall then
   begin

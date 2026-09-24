@@ -88,10 +88,6 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 ## Ideeën / nog te doen
 
 - Tegels in het dashboard slepen/herordenen; thema's; controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.
-- **Release v1.1.0 staat als concept (draft) op GitHub** met `TaskbarStats-Setup-1.1.0.exe`. Nog te doen vóór publiceren: de installer echt
-  (elevated) uitproberen — installeren in een tijdelijke map met `TASKBARSTATS_TASK=<testnaam>` zodat de echte autostart-taak ongemoeid blijft,
-  daarna verwijderen — en de sensoren elevated bekijken (CPU/hoofdbord/schijven vragen admin). Publiceren: `gh release edit v1.1.0 --draft=false`.
-  Al getest zonder admin: bestanden, Startmenu-snelkoppelingen, registervermelding, verwijderen/opruimen, en het aanmaken/verwijderen van de
-  autostart-taak (XML) met gewone rechten.
+- **Release v1.1.0 is gepubliceerd.** Installer elevated getest: installeren, Startmenu, register, autostart-taak (HighestAvailable), verwijderen. Les: `[Code]`-`CurrentUninstallStepChanged` bleek bij het verwijderen niet te draaien; de taak wordt nu via `[UninstallRun]` (schtasks /Delete) weggehaald. Elevated testen kan via een script dat zichzelf met `Start-Process -Verb RunAs` start; omgevingsvariabelen gaan niet mee door RunAs, zet ze binnen het elevated script. Sensoren elevated: schijven (temp/SMART) werken; CPU-temperatuur/-vermogen en hoofdbord ontbreken op de Ryzen AI 7 350 met LibreHardwareMonitor 0.9.3 (waarschijnlijk niet ondersteund).
 - Kleinere download: installer die .NET 8 controleert, of port naar .NET Framework 4.8 (zit in Windows).
 - Meting van de `Metrics.Update` (nu ~20 ms op de sampler-thread) verder verlagen door meer tellers te bundelen in PDH-queries.

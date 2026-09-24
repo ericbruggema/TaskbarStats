@@ -29,6 +29,9 @@ public sealed class AppSettings
     public bool ShowDisk { get; set; } = false;   // lees/schrijfsnelheid (totaal)
     public bool ShowCpuTemp { get; set; } = false;
     public bool ShowGpuTemp { get; set; } = false;
+    public DisplayStyle CpuTempStyle { get; set; } = DisplayStyle.Digital;   // temperatuur als cijfer, meter of balk
+    public DisplayStyle GpuTempStyle { get; set; } = DisplayStyle.Digital;
+    public bool TempMerge { get; set; } = false;         // temperatuur klein achter de CPU-/GPU-cel i.p.v. een eigen cel (smaller)
     public bool ShowPing { get; set; } = false;          // ping naar PingHost in het widget (en meten)
     public string PingHost { get; set; } = "1.1.1.1";
     public int TourSeconds { get; set; } = 10;           // fullscreen-tour: seconden per pagina

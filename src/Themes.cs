@@ -22,6 +22,9 @@ public sealed class ThemeData
     public DisplayStyle CpuStyle { get; set; }
     public DisplayStyle GpuStyle { get; set; }
     public DisplayStyle MemStyle { get; set; }
+    public DisplayStyle CpuTempStyle { get; set; }
+    public DisplayStyle GpuTempStyle { get; set; }
+    public bool TempMerge { get; set; }
     public bool CpuPerCore { get; set; }
     public BatteryPercentMode BatteryPercent { get; set; } = BatteryPercentMode.Inside;
     public bool LabelsAbove { get; set; }
@@ -62,6 +65,7 @@ public sealed class ThemeData
             ShowCpu = c.ShowCpu, ShowGpu = c.ShowGpu, ShowMem = c.ShowMem, ShowNetUp = c.ShowNetUp, ShowNetDown = c.ShowNetDown,
             ShowBattery = c.ShowBattery, ShowDisk = c.ShowDisk, ShowCpuTemp = c.ShowCpuTemp, ShowGpuTemp = c.ShowGpuTemp,
             CpuStyle = c.CpuStyle, GpuStyle = c.GpuStyle, MemStyle = c.MemStyle, CpuPerCore = c.CpuPerCore,
+            CpuTempStyle = c.CpuTempStyle, GpuTempStyle = c.GpuTempStyle, TempMerge = c.TempMerge,
             BatteryPercent = c.BatteryPercent, LabelsAbove = c.LabelsAbove, Compact = c.Compact, AutoHeight = c.AutoHeight,
             WidgetHeight = c.WidgetHeight, FontFamily = c.FontFamily, FontSize = c.FontSize, TransparentBackground = c.TransparentBackground,
             TextColor = c.TextColor, BackgroundColor = c.BackgroundColor, AccentColor = c.AccentColor, WarnColor = c.WarnColor,
@@ -80,6 +84,7 @@ public sealed class ThemeData
         c.ShowCpu = ShowCpu; c.ShowGpu = ShowGpu; c.ShowMem = ShowMem; c.ShowNetUp = ShowNetUp; c.ShowNetDown = ShowNetDown;
         c.ShowBattery = ShowBattery; c.ShowDisk = ShowDisk; c.ShowCpuTemp = ShowCpuTemp; c.ShowGpuTemp = ShowGpuTemp;
         c.CpuStyle = CpuStyle; c.GpuStyle = GpuStyle; c.MemStyle = MemStyle; c.CpuPerCore = CpuPerCore;
+        c.CpuTempStyle = CpuTempStyle; c.GpuTempStyle = GpuTempStyle; c.TempMerge = TempMerge;
         c.BatteryPercent = BatteryPercent; c.Compact = Compact; c.LabelsAbove = LabelsAbove || Compact;   // compact hoort bij labels boven
         c.AutoHeight = AutoHeight;
         c.WidgetHeight = Math.Clamp(WidgetHeight, 24, 96);

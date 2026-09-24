@@ -795,12 +795,18 @@ public sealed class WidgetForm : Form
                 case "cpu":
                     if (_cfg.ShowCpu)
                     {
-                        if (_cfg.CpuPerCore) x += DrawCores(g, x, "CPU", _metrics.CpuCores) + gap;
-                        else x += DrawMetric(g, x, "CPU", _metrics.CpuPercent, _cfg.CpuStyle) + gap;
+                        x += _cfg.CpuPerCore ? DrawCores(g, x, "CPU", _metrics.CpuCores) : DrawMetric(g, x, "CPU", _metrics.CpuPercent, _cfg.CpuStyle);
+                        if (_cfg.TempMerge && _cfg.ShowCpuTemp && _metrics.CpuTempC is double mct) x += DrawTempTag(g, x, mct, textCol);
+                        x += gap;
                     }
                     break;
                 case "gpu":
-                    if (_cfg.ShowGpu) x += DrawMetric(g, x, "GPU", _metrics.GpuPercent, _cfg.GpuStyle) + gap;
+                    if (_cfg.ShowGpu)
+                    {
+                        x += DrawMetric(g, x, "GPU", _metrics.GpuPercent, _cfg.GpuStyle);
+                        if (_cfg.TempMerge && _cfg.ShowGpuTemp && _metrics.GpuTempC is double mgt) x += DrawTempTag(g, x, mgt, textCol);
+                        x += gap;
+                    }
                     break;
                 case "mem":
                     if (_cfg.ShowMem) x += DrawMetric(g, x, "MEM", _metrics.MemPercent, _cfg.MemStyle) + gap;
@@ -813,12 +819,12 @@ public sealed class WidgetForm : Form
                         x += DrawTextCell(g, x, label, value, "100%", ThresholdColor(pct, textCol)) + gap;
                     break;
                 case "cputemp":
-                    if (_cfg.ShowCpuTemp && _metrics.CpuTempC is double ct)
-                        x += DrawTextCell(g, x, _cfg.LabelsAbove ? "CPU°C" : "CPU", $"{ct:0}°", "100°", ThresholdColor(ct, textCol)) + gap;
+                    if (_cfg.ShowCpuTemp && !(_cfg.TempMerge && _cfg.ShowCpu) && _metrics.CpuTempC is double ct)
+                        x += DrawTemp(g, x, "CPU", ct, _cfg.CpuTempStyle, textCol) + gap;
                     break;
                 case "gputemp":
-                    if (_cfg.ShowGpuTemp && _metrics.GpuTempC is double gt)
-                        x += DrawTextCell(g, x, _cfg.LabelsAbove ? "GPU°C" : "GPU", $"{gt:0}°", "100°", ThresholdColor(gt, textCol)) + gap;
+                    if (_cfg.ShowGpuTemp && !(_cfg.TempMerge && _cfg.ShowGpu) && _metrics.GpuTempC is double gt)
+                        x += DrawTemp(g, x, "GPU", gt, _cfg.GpuTempStyle, textCol) + gap;
                     break;
             }
         }
@@ -1009,6 +1015,18 @@ public sealed class WidgetForm : Form
         DisplayStyle.Bar   => DrawBar(g, x, label, v),
         _                  => DrawTextCell(g, x, label, $"{v:0}%", "100%", ThresholdColor(v, C(_cfg.TextColor, Color.White))),
     };
+
+    // Temperatuur als eigen cel: cijfer ("CPU 51°"), meter of balk (0-100 °C); als meter/balk met "CPU°" om het van het percentage te onderscheiden.
+    private int DrawTemp(Graphics g, int x, string what, double t, DisplayStyle style, Color textCol) => style switch
+    {
+        DisplayStyle.Gauge => DrawGauge(g, x, _cfg.LabelsAbove ? what + "°C" : what + "°", t),
+        DisplayStyle.Bar => DrawBar(g, x, _cfg.LabelsAbove ? what + "°C" : what + "°", t),
+        _ => DrawTextCell(g, x, _cfg.LabelsAbove ? what + "°C" : what, $"{t:0}°", "100°", ThresholdColor(t, textCol)),
+    };
+
+    // Temperatuur klein achter de CPU-/GPU-cel ("CPU 16%  51°"): smaller dan een eigen cel.
+    private int DrawTempTag(Graphics g, int x, double t, Color textCol)
+        => 4 + DrawDigital(g, x + 4, $"{t:0}°", "100°", ThresholdColor(t, textCol));
 
     private int DrawGauge(Graphics g, int x, string label, double v)
     {

@@ -439,6 +439,18 @@ public sealed class SettingsForm : Form
         p.Controls.Add(cpuNote);
         p.Controls.Add(Row(Loc.S("gpu"), gpuStyle));
         p.Controls.Add(Row(Loc.S("memory"), memStyle));
+        var cpuTempStyle = Seg(styles, () => _c.CpuTempStyle, v => _c.CpuTempStyle = v);
+        var gpuTempStyle = Seg(styles, () => _c.GpuTempStyle, v => _c.GpuTempStyle = v);
+        p.Controls.Add(Row(Loc.S("cpuTemp"), cpuTempStyle));
+        p.Controls.Add(Row(Loc.S("gpuTemp"), gpuTempStyle));
+        var tempMerge = Check(Loc.Pick("Temperatuur klein achter de CPU-/GPU-cel (smaller)", "Temperature small after the CPU/GPU cell (narrower)"), _c.TempMerge, v => _c.TempMerge = v);
+        p.Controls.Add(tempMerge);
+        Dep(() =>
+        {
+            cpuTempStyle.Enabled = _c.ShowCpuTemp && !(_c.TempMerge && _c.ShowCpu);
+            gpuTempStyle.Enabled = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu);
+            tempMerge.Enabled = _c.ShowCpuTemp || _c.ShowGpuTemp;
+        });
         var batt = Seg(new (string, BatteryPercentMode)[]
         {
             (Loc.Pick("In de batterij", "Inside"), BatteryPercentMode.Inside),

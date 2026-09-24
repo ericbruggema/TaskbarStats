@@ -183,6 +183,10 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 
 ![Widget met ping en temperaturen](docs/screenshots/widget-ping.png)
 
+**Temperatuur-weergave**: CPU- en GPU-temperatuur kun je (Instellingen → *Widget* → *Weergave*) als cijfer, meter of balk tonen, of — smaller — klein achter de CPU-/GPU-cel zetten (*Temperatuur klein achter de CPU-/GPU-cel*), bijvoorbeeld `CPU 33%  55°`. Ook dit zit in thema's.
+
+![Temperatuur als cijfer, meter, balk of samengevoegd](docs/screenshots/widget-temperatuur.png)
+
 **Sensoren** (LibreHardwareMonitor, alleen actief zolang het fullscreen-scherm open is): CPU-vermogen, -temperaturen en -klokken,
 GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
 geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder

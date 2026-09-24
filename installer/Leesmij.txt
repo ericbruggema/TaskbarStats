@@ -74,6 +74,8 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Tour          : 3x klikken op een lege plek in het fullscreen-scherm (of
                   spatie) loopt alle pagina's af; de tijd per pagina (standaard
                   10 s) stel je in via het menu of Instellingen > Fullscreen.
+- Temperatuur   : Instellingen > Widget > Weergave: CPU- en GPU-temperatuur als
+                  cijfer, meter of balk, of smal klein achter de CPU-/GPU-cel.
 - Ping          : Instellingen > Widget > "Ping (latency)": het widget toont de
                   ping naar een instelbaar doel; de tooltip en de fullscreen
                   netwerk-details tonen min/gem/max, jitter en pakketverlies.

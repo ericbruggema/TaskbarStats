@@ -25,6 +25,8 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Fullscreen overzicht](docs/screenshots/fullscreen-overview.png)
 ![Fullscreen CPU-details](docs/screenshots/fullscreen-cpu.png)
 ![Fullscreen netwerk-details](docs/screenshots/fullscreen-net.png)
+![Fullscreen GPU-details met sensoren](docs/screenshots/fullscreen-gpu.png)
+![Fullscreen schijf-details met temperatuur en gezondheid](docs/screenshots/fullscreen-disk.png)
 
 *(Computernaam en programmanamen in de screenshots zijn geanonimiseerd.)*
 

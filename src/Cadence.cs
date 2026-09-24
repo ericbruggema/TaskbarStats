@@ -27,7 +27,7 @@ public static class Cadence
         double t = now / 1000.0;
         if (m == 1)
         {
-            if (kind == 0) return 9001;
+            if (kind == 0) return Ring.Length * 900 + 1;
             if (kind >= 5) return (0.5 + 0.5 * Math.Sin(t * 5 + kind)) * 1.2e9;
             return 50 + 50 * Math.Sin(t * 6 + kind * 1.3);
         }

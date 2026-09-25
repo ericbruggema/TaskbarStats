@@ -84,7 +84,7 @@ public sealed partial class DashboardForm : Form
     private readonly DashContext _c;
     private AppSettings Cfg => _c.Cfg;
     private readonly ProcessSampler _procs = new() { TopCount = 5 };
-    private readonly System.Windows.Forms.Timer _zTimer = new() { Interval = 2000 };
+    private readonly System.Windows.Forms.Timer _zTimer = new() { Interval = 400 };   // goedkope controle; herstelt de positie snel na "Bureaublad weergeven"
     private long _lastRender, _lastProc;
     private bool _suppressed, _dragging, _closing, _wantHidden;
     private Point _dragStart;
@@ -115,7 +115,7 @@ public sealed partial class DashboardForm : Form
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
 
         // Op de voorgrond hoeft niets steeds opnieuw naar boven (topmost blijft topmost); alleen de achtergrond-stand herhalen.
-        _zTimer.Tick += (_, _) => { EnsureVisible(); if (!Cfg.DashFront) ApplyZ(); };
+        _zTimer.Tick += (_, _) => { EnsureVisible(); if (!Cfg.DashFront) ApplyZ(true); };
         _zTimer.Start();
         MouseDown += (_, e) =>
         {
@@ -219,16 +219,60 @@ public sealed partial class DashboardForm : Form
         if (!suppressed) { ApplyZ(); Render(); }
     }
 
-    private void ApplyZ()
+    private void ApplyZ(bool periodic = false)
     {
         if (!IsHandleCreated || _suppressed) return;
         const uint flags = 0x0001 | 0x0002 | 0x0010;   // NOSIZE | NOMOVE | NOACTIVATE
         if (Cfg.DashFront) SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, flags);            // TOPMOST
-        else
-        {
+        else PlaceAboveDesktop(flags, periodic);
+    }
+
+    private bool _raised;    // staat tijdelijk bovenaan omdat de shell het bureaublad boven alle vensters haalde
+    private int _zTick;
+
+    /// <summary>
+    /// Achtergrondstand: onderaan de gewone vensters, maar boven het bureaublad. Bij "Bureaublad weergeven" haalt de shell het
+    /// bureaubladvenster (Progman) tijdelijk boven alle gewone vensters; het dashboard verdween dan erachter. Staat het bureaublad
+    /// boven ons, dan gaan we er tijdelijk bovenop; is het weer naar beneden, dan zakken we mee.
+    /// </summary>
+    private void PlaceAboveDesktop(uint flags, bool periodic)
+    {
+        if ((GetWindowLong(Handle, -20) & 0x8) != 0)                                           // nog TOPMOST (na wisselen van voor- naar achtergrond)
             SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, flags);                           // NOTOPMOST
-            SetWindowPos(Handle, new IntPtr(1), 0, 0, 0, 0, flags);                            // BOTTOM
+        var host = DesktopHost();
+        int zh = host == IntPtr.Zero ? int.MaxValue : ZIndex(host), zs = ZIndex(Handle);
+        if (zh < zs)
+        {
+            // HWND_TOP alleen haalt het bureaublad niet in; via topmost en weer gewoon komen we bovenaan de gewone vensters.
+            SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, flags);                           // TOPMOST
+            SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, flags);                           // NOTOPMOST
+            _raised = true;
+            return;
         }
+        if (_raised && zh - zs <= 3) return;                                                   // bureaublad nog "weergegeven": erbovenop blijven
+        if (_raised || !periodic || ++_zTick % 5 == 0)                                                      // anders af en toe (2 s) onderaan zetten
+        {
+            SetWindowPos(Handle, new IntPtr(1), 0, 0, 0, 0, flags);                            // BOTTOM
+            _raised = false;
+        }
+    }
+
+    /// <summary>Aantal vensters boven dit venster in de z-volgorde (0 = bovenaan).</summary>
+    private static int ZIndex(IntPtr h)
+    {
+        int n = 0;
+        for (var w = GetWindow(h, 3 /* GW_HWNDPREV */); w != IntPtr.Zero && n < 5000; w = GetWindow(w, 3)) n++;
+        return n;
+    }
+
+    /// <summary>Het venster dat de bureaubladpictogrammen bevat (Progman, of een WorkerW).</summary>
+    private static IntPtr DesktopHost()
+    {
+        var prog = FindWindow("Progman", null);
+        if (prog != IntPtr.Zero && FindWindowEx(prog, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero) return prog;
+        for (var w = FindWindowEx(IntPtr.Zero, IntPtr.Zero, "WorkerW", null); w != IntPtr.Zero; w = FindWindowEx(IntPtr.Zero, w, "WorkerW", null))
+            if (FindWindowEx(w, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero) return w;
+        return prog;
     }
 
     /// <summary>Aan te roepen bij elke tik van het widget; tekent maximaal 1x per seconde.</summary>
@@ -647,6 +691,9 @@ public sealed partial class DashboardForm : Form
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr hWnd, int index, int value);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int cmd);
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint cmd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindow(string? cls, string? name);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? name);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr hdc);

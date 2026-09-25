@@ -119,6 +119,7 @@ public sealed partial class WidgetForm : Form
         _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        ApplyExtraWanted();
         _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
         _metrics.SetCpuMode(_cfg.CpuUtility);
         StartSampler();
@@ -333,6 +334,7 @@ public sealed partial class WidgetForm : Form
         }
         if (m.CpuTempC is double ct) sb.AppendLine($"CPU  {ct:0}°C");
         if (m.GpuTempC is double gt) sb.AppendLine($"GPU  {gt:0}°C");
+        AppendExtraTooltip(sb);
         if (_cfg.ShowPing)
         {
             var ps = m.Ping.Stats();
@@ -671,6 +673,7 @@ public sealed partial class WidgetForm : Form
         ApplyHeight();
         ApplyFonts();
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
+        ApplyExtraWanted();
         _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
         _metrics.SetCpuMode(_cfg.CpuUtility);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
@@ -839,14 +842,14 @@ public sealed partial class WidgetForm : Form
                     }
                     break;
                 case "mem":
-                    if (_cfg.ShowMem) x += DrawMetric(g, x, "MEM", _metrics.MemPercent, _cfg.MemStyle) + gap;
+                    if (_cfg.ShowMem) x += DrawMem(g, x) + gap;
                     break;
                 case "batt":
                     if (_cfg.ShowBattery && _metrics.BatteryPresent) x += DrawBattery(g, x) + gap;
                     break;
                 case "space":
                     foreach (var (label, value, pct) in DiskSpaceCells())
-                        x += DrawTextCell(g, x, label, value, "100%", ThresholdColor(pct, textCol)) + gap;
+                        x += DrawTextCell(g, x, label, value, PctTemplate, ThresholdColor(pct, textCol)) + gap;
                     break;
                 case "cputemp":
                     if (_cfg.ShowCpuTemp && !(_cfg.TempMerge && _cfg.ShowCpu) && _metrics.CpuTempC is double ct)
@@ -855,6 +858,9 @@ public sealed partial class WidgetForm : Form
                 case "gputemp":
                     if (_cfg.ShowGpuTemp && !(_cfg.TempMerge && _cfg.ShowGpu) && _metrics.GpuTempC is double gt)
                         x += DrawTemp(g, x, "GPU", gt, _cfg.GpuTempStyle, textCol) + gap;
+                    break;
+                case "cpufreq": case "diskbusy": case "disktemp": case "mobotemp":
+                    { int ew = DrawExtraItem(g, x, id); if (ew > 0) x += ew + gap; }
                     break;
             }
         }
@@ -950,15 +956,15 @@ public sealed partial class WidgetForm : Form
             case DiskSpaceMode.Total when _drives.Count > 0:
                 long t = _drives.Sum(d => d.Total), u = _drives.Sum(d => d.Used);
                 double p = t <= 0 ? 0 : 100.0 * u / t;
-                yield return ("DSK", $"{p:0}%", p);
+                yield return ("DSK", Pct(p), p);
                 break;
             case DiskSpaceMode.Each:
                 foreach (var d in _drives)
-                    yield return (d.Name, $"{d.UsedPercent:0}%", d.UsedPercent);
+                    yield return (d.Name, Pct(d.UsedPercent), d.UsedPercent);
                 break;
             case DiskSpaceMode.Single:
                 foreach (var d in _drives.Where(d => string.Equals(d.Name, _cfg.DiskSpaceDrive, StringComparison.OrdinalIgnoreCase)))
-                    yield return (d.Name, $"{d.UsedPercent:0}%", d.UsedPercent);
+                    yield return (d.Name, Pct(d.UsedPercent), d.UsedPercent);
                 break;
         }
     }
@@ -1010,40 +1016,11 @@ public sealed partial class WidgetForm : Form
         return DrawTextCell(g, x, "PING", txt, "999 ms", col);
     }
 
-    private int DrawDisk(Graphics g, int x)
-    {
-        bool c = _cfg.Compact;
-        using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
-        string rd = $"R {Metrics.FormatRate(_metrics.DiskReadBytesPerSec, c)}";
-        string wr = $"W {Metrics.FormatRate(_metrics.DiskWriteBytesPerSec, c)}";
-        float w = g.MeasureString(c ? "R 000.0 MB" : "R 000.0 MB/s", _fontSmall).Width;   // vaste reservering
-        float lh = _fontSmall.GetHeight(g);
-        float y = (Height - lh * 2) / 2;
-        g.DrawString(rd, _fontSmall, b, x, y);
-        g.DrawString(wr, _fontSmall, b, x, y + lh);
-        return (int)Math.Ceiling(w);
-    }
-
-    private int DrawNetwork(Graphics g, int x)
-    {
-        bool c = _cfg.Compact;
-        var col = C(_cfg.TextColor, Color.White);
-        using var b = new SolidBrush(col);
-        string up = _cfg.ShowNetUp ? $"↑ {Metrics.FormatRate(_metrics.NetUpBytesPerSec, c)}" : "";
-        string dn = _cfg.ShowNetDown ? $"↓ {Metrics.FormatRate(_metrics.NetDownBytesPerSec, c)}" : "";
-        float w = g.MeasureString(c ? "↑ 000.0 MB" : "↑ 000.0 MB/s", _fontSmall).Width;   // vaste reservering
-        float lh = _fontSmall.GetHeight(g);
-        float y = (Height - lh * 2) / 2;
-        if (up != "") g.DrawString(up, _fontSmall, b, x, y);
-        if (dn != "") g.DrawString(dn, _fontSmall, b, x, y + lh);
-        return (int)Math.Ceiling(w);
-    }
-
     private int DrawMetric(Graphics g, int x, string label, double v, DisplayStyle style) => style switch
     {
         DisplayStyle.Gauge => DrawGauge(g, x, label, v),
         DisplayStyle.Bar   => DrawBar(g, x, label, v),
-        _                  => DrawTextCell(g, x, label, $"{v:0}%", "100%", ThresholdColor(v, C(_cfg.TextColor, Color.White))),
+        _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, C(_cfg.TextColor, Color.White))),
     };
 
     // Temperatuur als eigen cel: cijfer ("CPU 51°"), meter of balk (0-100 °C); als meter/balk met "CPU°" om het van het percentage te onderscheiden.

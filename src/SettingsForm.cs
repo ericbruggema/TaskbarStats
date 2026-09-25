@@ -244,6 +244,7 @@ public sealed partial class SettingsForm : Form
         "cputemp" => _c.ShowCpuTemp,
         "gputemp" => _c.ShowGpuTemp,
         "ping" => _c.ShowPing,
+        "cpufreq" or "diskbusy" or "disktemp" or "mobotemp" => FmtItemOn(id),
         _ => true,
     };
 
@@ -251,7 +252,7 @@ public sealed partial class SettingsForm : Form
     private Control WidgetOrderEditor()
     {
         var host = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
-        var list = new ListBox { Width = 250, Height = 214, IntegralHeight = false };
+        var list = new ListBox { Width = 250, Height = 290, IntegralHeight = false };
         var order = Tiles.WidgetOrder(_c.WidgetOrder);
         void fill()
         {
@@ -367,6 +368,7 @@ public sealed partial class SettingsForm : Form
             Check(Loc.S("cpuTemp"), _c.ShowCpuTemp, v => _c.ShowCpuTemp = v, ColW),
             Check(Loc.S("gpuTemp"), _c.ShowGpuTemp, v => _c.ShowGpuTemp = v, ColW),
             Check(Loc.Pick("Ping (latency)", "Ping (latency)"), _c.ShowPing, v => _c.ShowPing = v, ColW)));
+        p.Controls.Add(FmtItemGrid());
 
         p.Controls.Add(Head(Loc.Pick("Volgorde in het widget (van links naar rechts)", "Order in the widget (left to right)")));
         p.Controls.Add(WidgetOrderEditor());
@@ -473,6 +475,8 @@ public sealed partial class SettingsForm : Form
             if (v) { _c.LabelsAbove = true; _building = true; labels.Checked = true; _building = false; }
         }, ColW);
         p.Controls.Add(Grid(labels, compact, Check(Loc.S("transparent"), _c.TransparentBackground, v => _c.TransparentBackground = v, ColW)));
+
+        AddValueSettings(p);
 
         p.Controls.Add(Head(Loc.Pick("Afmetingen en lettertype", "Size and font")));
         var heights = new List<(string, int)> { (Loc.Pick("Auto", "Auto"), 0) };

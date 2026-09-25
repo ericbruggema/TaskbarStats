@@ -219,17 +219,18 @@ public sealed partial class Metrics : IDisposable
             _lhmDirty = false;
             try
             {
-                if (!(_wantTemps || _wantSensors)) { CloseLhm(); return; }
-                if (_lhm is not null && _lhmExtended == _wantSensors) return;
+                if (!(_wantTemps || _wantSensors || _wantDiskTemp || _wantMoboTemp)) { CloseLhm(); return; }
+                bool st = _wantSensors || _wantDiskTemp, mb = _wantSensors || _wantMoboTemp, cg = _wantTemps || _wantSensors;   // schijven/hoofdbord alleen openen als een item ze nodig heeft
+                if (_lhm is not null && _lhmExtended == _wantSensors && _lhmStorage == st && _lhmMobo == mb && _lhmCpuGpu == cg) return;
                 CloseLhm();
                 _lhm = new Computer
                 {
-                    IsCpuEnabled = true, IsGpuEnabled = true,
-                    IsMemoryEnabled = _wantSensors, IsMotherboardEnabled = _wantSensors, IsStorageEnabled = _wantSensors,
+                    IsCpuEnabled = cg, IsGpuEnabled = cg,
+                    IsMemoryEnabled = _wantSensors, IsMotherboardEnabled = mb, IsStorageEnabled = st,
                     IsBatteryEnabled = _wantSensors, IsControllerEnabled = _wantSensors,
                 };
                 _lhm.Open();
-                _lhmExtended = _wantSensors;
+                _lhmExtended = _wantSensors; _lhmStorage = st; _lhmMobo = mb; _lhmCpuGpu = cg;
             }
             catch { _lhm = null; }
         }
@@ -241,6 +242,7 @@ public sealed partial class Metrics : IDisposable
         _lhm = null;
         CpuTempC = null;
         GpuTempC = null;
+        DiskTempC = null; MoboTempC = null; _lhmStorage = _lhmMobo = _lhmCpuGpu = false;
         _sensors = Array.Empty<SensorInfo>();
     }
 
@@ -621,6 +623,7 @@ public sealed partial class Metrics : IDisposable
 
         SyncLhm();
         UpdateTemperatures();
+        UpdateExtras();
         SnapshotSensors();
 
         // Instances (adapters, schijven, VRAM) komen en gaan; af en toe opnieuw opbouwen.
@@ -669,7 +672,7 @@ public sealed partial class Metrics : IDisposable
         foreach (var c in _vram) c.Dispose();
         foreach (var c in _cpuCores) c.Dispose();
         _gpuQuery?.Dispose();
-        _coreQuery?.Dispose(); _netRecvQuery?.Dispose(); _netSentQuery?.Dispose();
+        _coreQuery?.Dispose(); _netRecvQuery?.Dispose(); _netSentQuery?.Dispose(); _busyQuery?.Dispose();
         foreach (var (r, s) in _net.Values) { r.Dispose(); s.Dispose(); }
         foreach (var (r, w) in _disks.Values) { r.Dispose(); w.Dispose(); }
         lock (_lhmLock) CloseLhm();

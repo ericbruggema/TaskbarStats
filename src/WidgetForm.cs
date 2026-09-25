@@ -146,7 +146,7 @@ public sealed partial class WidgetForm : Form
         MouseDoubleClick += (_, e) =>
         {
             if (e.Button != MouseButtons.Left) return;
-            try { Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true }); } catch { }
+            RunMouseAction(_cfg.DoubleClickAction);
         };
         MouseDown += OnMouseDown;
         _fx.Tick += (_, _) => FxTick();
@@ -172,6 +172,7 @@ public sealed partial class WidgetForm : Form
         Tick();
         if (!_cfg.WelcomeShown) BeginInvoke(new Action(ShowWelcome));
         SyncDashboard();
+        ActionsOnShown();
     }
 
     private WelcomeForm? _welcome;
@@ -183,7 +184,8 @@ public sealed partial class WidgetForm : Form
     private void ShowWelcome()
     {
         if (_welcome is { IsDisposed: false }) { _welcome.Activate(); return; }
-        _welcome = new WelcomeForm(code => { _cfg.Language = code; Loc.Lang = code; Persist(); });
+        _welcome = new WelcomeForm(code => { _cfg.Language = code; Loc.Lang = code; Persist(); },
+            _cfg.CheckUpdates, v => { _cfg.CheckUpdates = v; Persist(); ApplyExtras(); });
         _welcome.Show();
         if (!_cfg.WelcomeShown) { _cfg.WelcomeShown = true; _cfg.Save(); }   // eenmalig
     }
@@ -427,6 +429,8 @@ public sealed partial class WidgetForm : Form
                 Alert("limit80:" + month, 40L * 86_400_000, title,
                       Loc.Pick($"{pct:0}% van de maandlimiet ({_cfg.MonthlyLimitGb} GB) gebruikt", $"{pct:0}% of the monthly limit ({_cfg.MonthlyLimitGb} GB) used"));
         }
+
+        CheckExtraAlerts();
     }
 
     private void Alert(string key, long cooldownMs, string title, string text)
@@ -501,7 +505,7 @@ public sealed partial class WidgetForm : Form
         else
         {
             _dash?.HideByUser();
-            _tray.Visible = false;
+            _tray.Visible = _cfg.WidgetClickThrough;
         }
     }
 
@@ -606,12 +610,14 @@ public sealed partial class WidgetForm : Form
         base.OnHandleCreated(e);
         RegisterHotKey(Handle, HotkeyId, 0x0001 | 0x0002 /* ALT | CTRL */, 0x44 /* D */);
         RegisterHotKey(Handle, HotkeyFullId, 0x0001 | 0x0002, 0x46 /* F */);
+        RegisterClickHotkey();
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
     {
         UnregisterHotKey(Handle, HotkeyId);
         UnregisterHotKey(Handle, HotkeyFullId);
+        UnregisterClickHotkey();
         base.OnHandleDestroyed(e);
     }
 
@@ -622,6 +628,7 @@ public sealed partial class WidgetForm : Form
             int id = m.WParam.ToInt32();
             if (id == HotkeyId) { ToggleClickThrough(); return; }
             if (id == HotkeyFullId) { ToggleFullscreen(); return; }
+            if (id == HotkeyClickId) { ToggleWidgetClickThrough(); return; }
         }
         base.WndProc(ref m);
     }
@@ -678,6 +685,7 @@ public sealed partial class WidgetForm : Form
         if (_cfg.IncludeNetworkDrives != _lastNetDrives) { _lastNetDrives = _cfg.IncludeNetworkDrives; RefreshDrives(true); }
         _timer.Interval = Math.Max(50, _cfg.RefreshMs);
         if (_cfg.ShowDashboard != _dashShown) { _dashShown = _cfg.ShowDashboard; SyncDashboard(); }
+        ApplyExtras();
         Persist();
         _full?.Invalidate();
     }
@@ -1241,7 +1249,7 @@ public sealed partial class WidgetForm : Form
     private void OnMouseDown(object? s, MouseEventArgs e)
     {
         HideTip();
-        if (e.Button == MouseButtons.Middle) { CopyInfo(); return; }
+        if (e.Button == MouseButtons.Middle) { RunMouseAction(_cfg.MiddleClickAction); return; }
         if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 11500); }
         else if (e.Button == MouseButtons.Right) { _dragging = false; _menu.Show(this, e.Location); }
     }
@@ -1355,6 +1363,7 @@ public sealed partial class WidgetForm : Form
         _menuFonts.Clear();
         _live.Clear();
         RefreshDrives(true);
+        AddUpdateMenuItem(menu);
 
         var settingsItem = new ToolStripMenuItem(Loc.Pick("Instellingen (uiterlijk, indeling, thema's)…", "Settings (looks, layout, themes)…")) { Tag = "close" };
         settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold);
@@ -1384,6 +1393,7 @@ public sealed partial class WidgetForm : Form
         var resetItem = new ToolStripMenuItem(Loc.S("resetPos")) { Tag = "close" };
         resetItem.Click += (_, _) => ResetWidgetPosition();
         menu.Items.Add(resetItem);
+        AddClickThroughMenuItem(menu);
 
         menu.Items.Add(new ToolStripSeparator());
         var copy = new ToolStripMenuItem(Loc.Pick("Kopieer info naar klembord", "Copy info to clipboard")) { Tag = "close" };

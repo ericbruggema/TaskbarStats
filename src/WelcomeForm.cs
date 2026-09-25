@@ -4,6 +4,7 @@ namespace TaskbarStats;
 public sealed class WelcomeForm : Form
 {
     private readonly Action<string> _setLanguage;
+    private readonly CheckBox _upd = new() { AutoSize = true, Location = new Point(22, 558) };
     private readonly Label _title = new();
     private readonly RichTextBox _body = new();
     private readonly Button _close = new();
@@ -12,7 +13,7 @@ public sealed class WelcomeForm : Form
     private readonly Font _regular = new("Segoe UI", 10f);
     private readonly Font _bold = new("Segoe UI", 10.5f, FontStyle.Bold);
 
-    public WelcomeForm(Action<string> setLanguage)
+    public WelcomeForm(Action<string> setLanguage, bool checkUpdates = false, Action<bool>? setCheckUpdates = null)
     {
         AppIcon.Apply(this);
         _setLanguage = setLanguage;
@@ -36,7 +37,7 @@ public sealed class WelcomeForm : Form
         _body.TabStop = false;
         _body.BulletIndent = 16;
         _body.Location = new Point(22, 64);
-        _body.Size = new Size(616, 508);
+        _body.Size = new Size(616, 486);
 
         _nl.Location = new Point(20, 594);
         _en.Location = new Point(_nl.Right + 8, 594);
@@ -49,7 +50,9 @@ public sealed class WelcomeForm : Form
         AcceptButton = _close;
         CancelButton = _close;
 
-        Controls.AddRange(new Control[] { _title, _body, _nl, _en, _close });
+        _upd.Checked = checkUpdates;
+        _upd.CheckedChanged += (_, _) => setCheckUpdates?.Invoke(_upd.Checked);   // standaard uit: alleen met toestemming
+        Controls.AddRange(new Control[] { _title, _body, _upd, _nl, _en, _close });
         Fill();
         Shown += (_, _) => _close.Focus();
     }
@@ -80,6 +83,7 @@ public sealed class WelcomeForm : Form
         Text = Loc.Pick("Welkom bij TaskbarStats", "Welcome to TaskbarStats");
         _title.Text = Text;
         _close.Text = Loc.Pick("Sluiten", "Close");
+        _upd.Text = Loc.Pick("Controleer op nieuwe versies (maakt verbinding met github.com)", "Check for new versions (connects to github.com)");
         _nl.Enabled = Loc.Lang == "en";
         _en.Enabled = Loc.Lang != "en";
 

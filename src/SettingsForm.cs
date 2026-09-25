@@ -335,6 +335,7 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Row(Loc.Pick("Hoge belasting melden na", "Notify on high load after"), critSecs, 230));
         p.Controls.Add(Note(Loc.Pick("Hoge belasting geldt voor CPU, GPU en geheugen.", "High load applies to CPU, GPU and memory.")));
         Dep(() => { diskFull.Enabled = critSecs.Enabled = _c.Notifications; });
+        ExtraAlertsSection(p);
 
         p.Controls.Add(Head(Loc.Pick("Netwerkverbruik", "Network usage")));
         var limits = new List<(string, int)> { (Loc.S("off"), 0) };
@@ -344,6 +345,8 @@ public sealed partial class SettingsForm : Form
         log.Margin = new Padding(3, 6, 3, 3);
         log.Click += (_, _) => _h.ShowLog();
         p.Controls.Add(log);
+        MouseSection(p);
+        UpdateSection(p);
         return tab;
     }
 

@@ -38,7 +38,7 @@ public readonly record struct DriveSpace(string Name, long Total, long Free, boo
 /// <summary>
 /// Leest CPU-, geheugen-, GPU-, netwerk-, schijf- en temperatuurwaarden uit met dezelfde
 /// bronnen die Windows Task Manager gebruikt.
-///  - CPU  : "Processor Information\% Processor Utility" (totaal en per core, zoals Task Manager).
+///  - CPU  : "Processor Information\% Processor Time" (totaal en per core; dat is wat Taakbeheer toont), of optioneel "% Processor Utility" (telt turbo mee).
 ///  - MEM  : GlobalMemoryStatusEx.dwMemoryLoad.
 ///  - GPU  : som van alle "GPU Engine\Utilization Percentage" per fysieke GPU (LUID).
 ///  - NET  : "Network Interface\Bytes Received/Sent per sec" (per adapter, plus totaal).
@@ -109,10 +109,7 @@ public sealed class Metrics : IDisposable
 
     public Metrics()
     {
-        // "% Processor Utility" is de meting van Task Manager (houdt rekening met turbo).
-        // Op systemen waar die ontbreekt vallen we terug op "% Processor Time".
-        InitCpu("Processor Information", "% Processor Utility");
-        if (_cpu is null) InitCpu("Processor", "% Processor Time");
+        SetCpuMode(false);
 
         try
         {
@@ -137,6 +134,27 @@ public sealed class Metrics : IDisposable
     {
         var p = n.Split(',');
         return p.Length == 2 ? (int.Parse(p[0]), int.Parse(p[1])) : (0, int.Parse(n));
+    }
+
+    // Standaard "% Processor Time" (wat Taakbeheer op recente Windows-versies toont). "% Processor Utility" schaalt met de klok en
+    // is op een boostende CPU bijna 2x zo hoog (bv. 190% van de basisklok); die kun je apart kiezen.
+    private readonly object _cpuLock = new();
+    private bool? _cpuUtilityMode;
+
+    public void SetCpuMode(bool utility)
+    {
+        lock (_cpuLock)
+        {
+            if (_cpuUtilityMode == utility) return;
+            _cpuUtilityMode = utility;
+            _cpu?.Dispose(); _cpu = null;
+            _coreQuery?.Dispose(); _coreQuery = null;
+            foreach (var c in _cpuCores) c.Dispose();
+            _cpuCores.Clear();
+            if (utility) InitCpu("Processor Information", "% Processor Utility");
+            if (_cpu is null) InitCpu("Processor Information", "% Processor Time");
+            if (_cpu is null) InitCpu("Processor", "% Processor Time");
+        }
     }
 
     private double[] ReadCores()
@@ -493,10 +511,13 @@ public sealed class Metrics : IDisposable
 
     public void Update()
     {
-        try { CpuPercent = _cpu is null ? 0 : Math.Min(100, _cpu.NextValue()); } catch { CpuPercent = 0; }
+        lock (_cpuLock)
+        {
+            try { CpuPercent = _cpu is null ? 0 : Math.Min(100, _cpu.NextValue()); } catch { CpuPercent = 0; }
 
-        try { CpuCores = ReadCores(); }
-        catch { }
+            try { CpuCores = ReadCores(); }
+            catch { }
+        }
 
         try
         {

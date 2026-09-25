@@ -120,6 +120,7 @@ public sealed class WidgetForm : Form
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
         _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
+        _metrics.SetCpuMode(_cfg.CpuUtility);
         StartSampler();
 
         BuildContextMenu();
@@ -671,6 +672,7 @@ public sealed class WidgetForm : Form
         ApplyFonts();
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
         _metrics.Ping.Configure(_cfg.ShowPing, _cfg.PingHost);
+        _metrics.SetCpuMode(_cfg.CpuUtility);
         _metrics.SetGpuLuid(_cfg.GpuLuid);
         _metrics.SetNetworkAdapter(_cfg.NetworkAdapter);
         if (_cfg.IncludeNetworkDrives != _lastNetDrives) { _lastNetDrives = _cfg.IncludeNetworkDrives; RefreshDrives(true); }

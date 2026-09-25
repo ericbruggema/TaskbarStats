@@ -378,6 +378,13 @@ public sealed class SettingsForm : Form
         var gpuSrc = Seg(gpuItems, () => _c.GpuLuid ?? "", v => _c.GpuLuid = v == "" ? null : v, 60);
         p.Controls.Add(Row(Loc.S("gpu"), gpuSrc));
 
+        var cpuMode = Seg(new (string, bool)[]
+        {
+            (Loc.Pick("Zoals Taakbeheer", "Like Task Manager"), false),
+            (Loc.Pick("Incl. turbo (hoger)", "Incl. turbo (higher)"), true),
+        }, () => _c.CpuUtility, v => _c.CpuUtility = v, 120);
+        p.Controls.Add(Row(Loc.Pick("CPU-meting", "CPU measure"), cpuMode));
+
         var adapters = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 380 };
         adapters.Items.Add(Loc.S("allAdapters"));
         var adapterNames = Metrics.GetNetworkAdapters();

@@ -45,7 +45,7 @@ De meegeleverde thema's, hier op het bureaublad-dashboard:
 
 | Onderdeel | Bron | Waarom correct |
 |-----------|------|----------------|
-| CPU | `Processor Information\% Processor Utility` (totaal en per core) | Zelfde meting als Task Manager (incl. turbo). Valt terug op `Processor\% Processor Time` als die teller ontbreekt. |
+| CPU | `Processor Information\% Processor Time` (totaal en per core) | Zelfde waarde als Taakbeheer. Optioneel (Instellingen → Widget → *CPU-meting*) `% Processor Utility`, dat de boostklok meeschaalt en op een boostende CPU bijna 2× zo hoog is. |
 | Geheugen | `GlobalMemoryStatusEx.dwMemoryLoad` | Exact het percentage dat Task Manager toont. |
 | GPU | Som van alle `GPU Engine\Utilization Percentage` per GPU (LUID) | Telt 3D + copy + video-engines samen, precies zoals Task Manager. De tellers worden elke 5 s opnieuw opgebouwd omdat engine-instances met processen komen en gaan. |
 | Netwerk | `Network Interface\Bytes Received/Sent per sec` | Per adapter of alle adapters samen. |

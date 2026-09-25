@@ -82,7 +82,7 @@ public sealed class AboutForm : Form
 
         WAT IS ER GEBRUIKT
         • Windows Performance Counters (System.Diagnostics.PerformanceCounter):
-          – CPU: Processor Information\% Processor Utility (totaal en per core, zoals Taakbeheer); klokfrequentie = Processor Frequency × % Processor Performance.
+          – CPU: Processor Information\% Processor Time (totaal en per core, zoals Taakbeheer; optioneel % Processor Utility, incl. turbo); klokfrequentie = Processor Frequency × % Processor Performance.
           – GPU: GPU Engine\Utilization Percentage per GPU (LUID) en GPU Adapter Memory voor videogeheugen.
           – Netwerk: Network Interface (per adapter). Schijven: PhysicalDisk (lezen/schrijven).
         • GlobalMemoryStatusEx voor het geheugengebruik.
@@ -115,7 +115,7 @@ public sealed class AboutForm : Form
 
         WHAT IS USED
         • Windows Performance Counters (System.Diagnostics.PerformanceCounter):
-          – CPU: Processor Information\% Processor Utility (total and per core, like Task Manager); clock speed = Processor Frequency × % Processor Performance.
+          – CPU: Processor Information\% Processor Time (total and per core, like Task Manager; optionally % Processor Utility, incl. turbo); clock speed = Processor Frequency × % Processor Performance.
           – GPU: GPU Engine\Utilization Percentage per GPU (LUID) and GPU Adapter Memory for VRAM.
           – Network: Network Interface (per adapter). Disks: PhysicalDisk (read/write).
         • GlobalMemoryStatusEx for memory usage.

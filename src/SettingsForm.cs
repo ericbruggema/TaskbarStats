@@ -435,7 +435,7 @@ public sealed partial class SettingsForm : Form
         });
 
         p.Controls.Add(Head(Loc.S("display")));
-        var styles = new (string, DisplayStyle)[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar) };
+        var styles = new (string, DisplayStyle)[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar), (Loc.Pick("Grafiek", "Graph"), DisplayStyle.Graph) };
         var cpuStyle = Seg(styles, () => _c.CpuStyle, v => _c.CpuStyle = v);
         var gpuStyle = Seg(styles, () => _c.GpuStyle, v => _c.GpuStyle = v);
         var memStyle = Seg(styles, () => _c.MemStyle, v => _c.MemStyle = v);
@@ -458,6 +458,7 @@ public sealed partial class SettingsForm : Form
             gpuTempStyle.Enabled = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu);
             tempMerge.Enabled = _c.ShowCpuTemp || _c.ShowGpuTemp;
         });
+        GraphSettings(p);
         var batt = Seg(new (string, BatteryPercentMode)[]
         {
             (Loc.Pick("In de batterij", "Inside"), BatteryPercentMode.Inside),
@@ -738,7 +739,7 @@ public sealed partial class SettingsForm : Form
                 new ToolTip().SetToolTip(sw, name + " " + hex);
                 swatches.Controls.Add(sw);
             }
-            string st(DisplayStyle d) => d switch { DisplayStyle.Gauge => Loc.S("gauge"), DisplayStyle.Bar => Loc.S("bar"), _ => Loc.S("digital") };
+            string st(DisplayStyle d) => d switch { DisplayStyle.Gauge => Loc.S("gauge"), DisplayStyle.Bar => Loc.S("bar"), DisplayStyle.Graph => Loc.Pick("Grafiek", "Graph"), _ => Loc.S("digital") };
             var hidden = t.DashHidden is { Count: > 0 } h ? string.Join(", ", h.Select(Tiles.Name)) : Loc.Pick("geen", "none");
             previewText.Text = $"{t.FontFamily} {t.FontSize} pt · CPU {st(t.CpuStyle)} · {(t.Compact ? Loc.Pick("compact", "compact") : Loc.Pick("normaal", "normal"))}\r\n"
                              + Loc.Pick("Dashboard: ", "Dashboard: ") + t.DashColumns + Loc.Pick(" kolommen, uit: ", " columns, off: ") + hidden;

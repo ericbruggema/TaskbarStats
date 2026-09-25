@@ -210,6 +210,7 @@ public sealed partial class WidgetForm : Form
         _metrics.Ping.Idle = _idle;
         if (_idle) { CheckAlerts(); return; }
         _history.Sample(_metrics);
+        SampleGraph();
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
         RefreshDrives(false);
         CheckAlerts();
@@ -1000,6 +1001,7 @@ public sealed partial class WidgetForm : Form
     // Ping: "PING 12 ms", oranje vanaf 100 ms, rood vanaf 250 ms of als er geen antwoord komt.
     private int DrawPing(Graphics g, int x)
     {
+        if (_cfg.PingStyle == TextGraphStyle.Graph) return DrawPingGraph(g, x);
         var st = _metrics.Ping.Stats();
         var textCol = C(_cfg.TextColor, Color.White);
         double? last = st.Last is double l && l >= 0 ? Cadence.M(7, l) : st.Last;
@@ -1026,6 +1028,7 @@ public sealed partial class WidgetForm : Form
 
     private int DrawNetwork(Graphics g, int x)
     {
+        if (_cfg.NetStyle == TextGraphStyle.Graph) return DrawNetGraph(g, x);
         bool c = _cfg.Compact;
         var col = C(_cfg.TextColor, Color.White);
         using var b = new SolidBrush(col);
@@ -1043,6 +1046,7 @@ public sealed partial class WidgetForm : Form
     {
         DisplayStyle.Gauge => DrawGauge(g, x, label, v),
         DisplayStyle.Bar   => DrawBar(g, x, label, v),
+        DisplayStyle.Graph => DrawGraph(g, x, label, v),
         _                  => DrawTextCell(g, x, label, $"{v:0}%", "100%", ThresholdColor(v, C(_cfg.TextColor, Color.White))),
     };
 
@@ -1051,6 +1055,7 @@ public sealed partial class WidgetForm : Form
     {
         DisplayStyle.Gauge => DrawGauge(g, x, _cfg.LabelsAbove ? what + "°C" : what + "°", t),
         DisplayStyle.Bar => DrawBar(g, x, _cfg.LabelsAbove ? what + "°C" : what + "°", t),
+        DisplayStyle.Graph => DrawTempGraph(g, x, what, t),
         _ => DrawTextCell(g, x, _cfg.LabelsAbove ? what + "°C" : what, $"{t:0}°", "100°", ThresholdColor(t, textCol)),
     };
 

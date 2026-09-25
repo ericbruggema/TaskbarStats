@@ -80,6 +80,9 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Extra vinkjes : CPU-klokfrequentie, Schijf actief, Schijftemperatuur en
                   Hoofdbordtemperatuur (de laatste twee alleen als administrator
                   en als de computer de sensor aanbiedt).
+- Subtabs      : tabblad Widget heeft subtabs: Onderdelen, Bronnen, Weergave,
+                  Waarden, Uiterlijk en Geavanceerd (grafieklengte/-periode,
+                  CPU-meting, verversnelheid).
 - Grafiek       : weergavestijl Grafiek (lengte kort/middel/lang, periode 30/60/
                   120 s) voor CPU, GPU,
                   geheugen, temperaturen, netwerk en ping.

@@ -18,6 +18,7 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 ![Menu](docs/screenshots/menu.png)
 ![Instellingen: widget](docs/screenshots/settings-widget.png)
 ![Instellingen: widget, subtabblad Weergave](docs/screenshots/settings-widget-weergave.png)
+![Instellingen: widget, subtabblad Geavanceerd](docs/screenshots/settings-widget-geavanceerd.png)
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
 ![Instellingen: algemeen](docs/screenshots/settings-general.png)
@@ -130,7 +131,7 @@ bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "V
 
 - **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard;
   bedieningselementen die door een andere keuze geen effect hebben, worden uitgeschakeld:
-  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke
+  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke Het tabblad is verdeeld in subtabs: *Onderdelen*, *Bronnen*, *Weergave*, *Waarden*, *Uiterlijk* en *Geavanceerd* (lengte en periode van de grafiek, netwerkgrafiek-schaal, CPU-meting en verversnelheid).
     netwerkadapter of alle, schijfruimte uit/totaal/alle apart/één schijf, netwerkschijven meenemen), weergave per onderdeel (digitaal, meter of balk;
     CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
     De **volgorde van de onderdelen in het widget** (netwerk, schijf-I/O, CPU, GPU, geheugen, batterij, schijfruimte, temperaturen) stel je in met de pijlknoppen; uitgeschakelde onderdelen staan er met "(uit)" bij. De volgorde zit ook in thema's.

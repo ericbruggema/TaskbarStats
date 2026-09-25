@@ -360,6 +360,8 @@ public sealed partial class SettingsForm : Form
         tab.Controls.Clear();
         tab.Controls.Add(sub);
         p = SubPage(sub, Loc.Pick("Onderdelen", "Components"));
+        var advMeasure = new List<Control>();   // rijen voor het subtabblad Geavanceerd
+        var advGraph = new List<Control>();
 
         p.Controls.Add(Head(Loc.S("components")));
         p.Controls.Add(Grid(
@@ -391,7 +393,7 @@ public sealed partial class SettingsForm : Form
             (Loc.Pick("Zoals Taakbeheer", "Like Task Manager"), false),
             (Loc.Pick("Incl. turbo (hoger)", "Incl. turbo (higher)"), true),
         }, () => _c.CpuUtility, v => _c.CpuUtility = v, 120);
-        p.Controls.Add(Row(Loc.Pick("CPU-meting", "CPU measure"), cpuMode));
+        advMeasure.Add(Row(Loc.Pick("CPU-meting", "CPU measure"), cpuMode));
 
         var adapters = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 380 };
         adapters.Items.Add(Loc.S("allAdapters"));
@@ -467,7 +469,7 @@ public sealed partial class SettingsForm : Form
             gpuTempStyle.Enabled = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu);
             tempMerge.Enabled = _c.ShowCpuTemp || _c.ShowGpuTemp;
         });
-        GraphSettings(p);
+        advGraph.AddRange(GraphSettings(p));
         var batt = Seg(new (string, BatteryPercentMode)[]
         {
             (Loc.Pick("In de batterij", "Inside"), BatteryPercentMode.Inside),
@@ -511,7 +513,7 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Row(Loc.Pick("Lettertype", "Font"), fontRow));
 
         var intervals = new (string, int)[] { ("0,1 s", 100), ("0,2 s", 200), ("0,25 s", 250), ("0,5 s", 500), ("1 s", 1000), ("2 s", 2000) };
-        p.Controls.Add(Row(Loc.S("interval"), Seg(intervals, () => _c.RefreshMs, v => _c.RefreshMs = v, 56)));
+        advMeasure.Add(Row(Loc.S("interval"), Seg(intervals, () => _c.RefreshMs, v => _c.RefreshMs = v, 56)));
         BgSection(p, () => _c.WidgetBgImage, v => _c.WidgetBgImage = v, () => _c.WidgetBgMode, v => _c.WidgetBgMode = v, () => _c.WidgetBgOpacity, v => _c.WidgetBgOpacity = v);
 
         // Wat geen effect heeft, uitschakelen.
@@ -525,6 +527,13 @@ public sealed partial class SettingsForm : Form
             batt.Enabled = _c.ShowBattery;
             labels.Enabled = !_c.Compact;
         });
+        // Geavanceerd: opties voor wie het precies wil instellen; de standaardwaarden zijn meestal goed.
+        var adv = SubPage(sub, Loc.Pick("Geavanceerd", "Advanced"));
+        adv.Controls.Add(Note(Loc.Pick("Opties voor wie het precies wil instellen. De standaardwaarden zijn meestal goed.", "Options for fine-tuning. The defaults are usually fine.")));
+        adv.Controls.Add(Head(Loc.Pick("Grafiek", "Graph")));
+        foreach (var c in advGraph) adv.Controls.Add(c);
+        adv.Controls.Add(Head(Loc.Pick("Meting", "Measuring")));
+        foreach (var c in advMeasure) adv.Controls.Add(c);
         sub.SelectedIndex = Math.Clamp(_widgetSub, 0, sub.TabPages.Count - 1);
         sub.SelectedIndexChanged += (_, _) => { if (!_building) _widgetSub = sub.SelectedIndex; };
         return tab;

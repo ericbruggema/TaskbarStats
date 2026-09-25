@@ -14,3 +14,4 @@ installer/Output/
 *.bak-*
 
 docs/tour/*.mp4
+docs/tour/**/*.mp4

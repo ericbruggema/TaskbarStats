@@ -14,7 +14,7 @@ public sealed class AboutForm : Form
         }
     }
 
-    public AboutForm()
+    public AboutForm(Action? showWelcome = null)
     {
         AppIcon.Apply(this);
         Text = Loc.Pick("Over TaskbarStats", "About TaskbarStats");
@@ -64,10 +64,18 @@ public sealed class AboutForm : Form
             Location = new Point(464, 458),
             Size = new Size(80, 28),
         };
+        var welcome = new Button
+        {
+            Text = Loc.Pick("Welkomstscherm…", "Welcome screen…"),
+            Location = new Point(16, 458),
+            Size = new Size(150, 28),
+            Visible = showWelcome is not null,
+        };
+        welcome.Click += (_, _) => { DialogResult = DialogResult.OK; Close(); showWelcome?.Invoke(); };
         AcceptButton = ok;
         CancelButton = ok;
 
-        Controls.AddRange(new Control[] { title, version, box, ok });
+        Controls.AddRange(new Control[] { title, version, box, welcome, ok });
     }
 
     private static string Body() => Loc.Lang == "en" ? BodyEn : BodyNl;

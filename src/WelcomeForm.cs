@@ -105,33 +105,18 @@ public sealed class WelcomeForm : Form
              "en een losse), dan volgt het widget automatisch de kaart die het drukst is.", bullet: true);
         Para("Geheugen (RAM): hoeveel procent er in gebruik is en hoeveel GB.", bullet: true);
         Para("Netwerk: de snelheid van upload en download, per netwerkadapter of van alle adapters samen.", bullet: true);
-        Para("Schijven: de lees- en schrijfsnelheid en hoeveel ruimte er nog vrij is.", bullet: true);
-        Para("Batterij (op een laptop): het niveau, en of de accu laadt of de lader is aangesloten.", bullet: true);
-        Para("Temperatuur van de processor en videokaart (optioneel).", bullet: true);
 
-        Heading("Kloppen de cijfers wel?");
-        Para("Ja. De waarden komen uit dezelfde bronnen als Taakbeheer van Windows. Wat je hier ziet, komt dus overeen met wat " +
-             "Windows zelf laat zien.");
-
-        Heading("Meer dan alleen kijken");
-        Para("Verbruik: het programma houdt per dag en per netwerkadapter bij hoeveel je hebt ontvangen en verzonden. Je kunt het " +
-             "log bekijken, exporteren en een maandlimiet voor je data instellen.", bullet: true);
-        Para("Meldingen: je krijgt een seintje als een schijf bijna vol is, de processor of videokaart langere tijd op maximaal " +
-             "draait, de batterij bijna leeg is of je maandlimiet in zicht komt.", bullet: true);
-        Para("Aanpasbaar: kies zelf de onderdelen, de weergave (cijfers, meter of balk), kleuren, lettertype, grootte en een " +
-             "transparante achtergrond. Het menu is in het Nederlands of Engels.", bullet: true);
+        Para("De waarden komen uit dezelfde bronnen als Taakbeheer van Windows. Ook: verbruik per dag, meldingen en veel aanpasbaar (onderdelen, cijfers, meter, balk of grafiek, kleuren, thema's).");
 
         Heading("Zo gebruik je het");
         Para("Verplaatsen: houd de linkermuisknop ingedrukt en sleep het widget. Je kunt het overal neerzetten; met " +
              "\"Positie vergrendelen\" zet je het vast.", bullet: true);
         Para("Instellingen: klik met de rechtermuisknop op het widget en kies \"Instellingen…\": uiterlijk, kleuren, indeling en thema's, allemaal met direct effect. Het menu zelf blijft open terwijl je meerdere dingen kiest.", bullet: true);
-        Para("Details: houd de muis erboven voor een tooltip met alle informatie. De middelste muisknop kopieert die naar het klembord.", bullet: true);
-        Para("Dubbelklik: opent Taakbeheer.", bullet: true);
         Para("Dashboard: zet via het menu (Bureaublad-dashboard) een groot dashboard op je bureaublad, en druk op Ctrl+Alt+F voor een " +
              "fullscreen overzicht met alle details. Klik daarin op een tegel voor meer, druk op I voor alle specificaties van je pc, of klik 3× op een lege plek (of druk op spatie) voor een automatische tour; Esc gaat terug.", bullet: true);
 
         Para("");
-        Para("Deze uitleg vind je later terug via het menu: \"Welkomstscherm\", \"Leesmij en credits\" en \"Over TaskbarStats\".");
+        Para("Deze uitleg vind je later terug via \"Over TaskbarStats\" in het menu (knop Welkomstscherm).");
     }
 
     private void FillEn()
@@ -147,31 +132,16 @@ public sealed class WelcomeForm : Form
              "and a dedicated one), the widget automatically follows the busiest card.", bullet: true);
         Para("Memory (RAM): the percentage in use and the amount in GB.", bullet: true);
         Para("Network: upload and download speed, per network adapter or all adapters combined.", bullet: true);
-        Para("Disks: read and write speed and how much space is left.", bullet: true);
-        Para("Battery (on a laptop): the level, and whether it is charging or plugged in.", bullet: true);
-        Para("Temperature of the processor and graphics card (optional).", bullet: true);
 
-        Heading("Are the numbers accurate?");
-        Para("Yes. The values come from the same sources as Windows Task Manager, so what you see here matches what Windows " +
-             "itself shows.");
-
-        Heading("More than just looking");
-        Para("Usage: the program keeps track, per day and per network adapter, of how much you received and sent. You can view " +
-             "and export the log and set a monthly data limit.", bullet: true);
-        Para("Notifications: you get an alert when a disk is almost full, the processor or graphics card runs at maximum for a " +
-             "while, the battery is low or your monthly limit is getting close.", bullet: true);
-        Para("Customisable: choose the components, the display (numbers, gauge or bar), colours, font, size and a transparent " +
-             "background. The menu is available in Dutch or English.", bullet: true);
+        Para("The values come from the same sources as Windows Task Manager. Also: usage per day, notifications and lots of options (components, numbers, gauge, bar or graph, colours, themes).");
 
         Heading("How to use it");
         Para("Move it: hold the left mouse button and drag the widget. Place it anywhere; use \"Lock position\" to fix it.", bullet: true);
         Para("Settings: right-click the widget and choose \"Settings…\": looks, colors, layout and themes, all with immediate effect. The menu itself stays open while you pick several options.", bullet: true);
-        Para("Details: hover for a tooltip with all information. Middle-click copies it to the clipboard.", bullet: true);
-        Para("Double-click: opens Task Manager.", bullet: true);
         Para("Dashboard: use the menu (Desktop dashboard) to put a large dashboard on your desktop, and press Ctrl+Alt+F for a " +
              "fullscreen overview with all the details. Click a tile inside for more, press I for all your PC specifications, or click 3 times on an empty spot (or press space) for an automatic tour; Esc goes back.", bullet: true);
 
         Para("");
-        Para("You can find this explanation again in the menu: \"Welcome screen\", \"Readme and credits\" and \"About TaskbarStats\".");
+        Para("You can find this explanation again via \"About TaskbarStats\" in the menu (Welcome screen button).");
     }
 }

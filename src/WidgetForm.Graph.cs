@@ -39,7 +39,7 @@ public sealed partial class WidgetForm
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
         var (top, h) = Area(g);
-        int gw = (int)Math.Round(60 * UiScale), gh = above ? h : Height - 10;
+        int gw = (int)Math.Round((_cfg.GraphLength == GraphLen.Short ? 36 : _cfg.GraphLength == GraphLen.Long ? 96 : 60) * UiScale), gh = above ? h : Height - 10;
         int lw = above ? LabelWidth(g, label) : DrawLabel(g, x, label);
         int cellW = above ? Math.Max(gw, lw) : lw + 3 + gw;
         if (above) DrawTopLabel(g, x, cellW, label);

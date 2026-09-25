@@ -161,7 +161,10 @@ public sealed partial class WidgetForm : Form
         base.OnShown(e);
         Height = TargetHeight();
         if (_cfg.FloatX is null || _cfg.FloatY is null)
+        {
             (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition();
+            _cfg.StickToTray = true;   // nieuwe installatie: tegen het systeemvak blijven staan
+        }
         Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value);
         // Stond het widget op een scherm dat er niet meer is? Dan terug naar de standaardpositie.
         if (!Screen.AllScreens.Any(sc => sc.Bounds.IntersectsWith(Bounds)))
@@ -212,6 +215,7 @@ public sealed partial class WidgetForm : Form
         _idle = !Visible && _dash is not { Visible: true } && _full is null;
         _metrics.Ping.Idle = _idle;
         if (_idle) { CheckAlerts(); return; }
+        FollowTray();
         _history.Sample(_metrics);
         SampleGraph();
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
@@ -678,6 +682,7 @@ public sealed partial class WidgetForm : Form
     /// <summary>Past alle instellingen toe op widget, dashboard en fullscreen-scherm (aangeroepen door het instellingenvenster).</summary>
     private void ApplyAll()
     {
+        if (_cfg.StickToTray) FollowTray(true);
         BackColor = EffectiveBackground();
         WinThemeRefresh();
         ApplyHeight();
@@ -1248,6 +1253,7 @@ public sealed partial class WidgetForm : Form
     {
         if (_dragging)
         {
+            if (_cfg.StickToTray) _cfg.StickToTray = false;   // zelf verplaatst: niet meer vastplakken
             Location = new Point(Location.X + e.X - _dragStart.X, Location.Y + e.Y - _dragStart.Y);
             _cfg.FloatX = Location.X; _cfg.FloatY = Location.Y;
         }
@@ -1377,19 +1383,15 @@ public sealed partial class WidgetForm : Form
         menu.Items.Add(BuildFullMenu());
         menu.Items.Add(BuildTourMenu());
 
-        var resetItem = new ToolStripMenuItem(Loc.S("resetPos")) { Tag = "close" };
-        resetItem.Click += (_, _) => ResetWidgetPosition();
-        menu.Items.Add(resetItem);
+        var stickItem = new ToolStripMenuItem(Loc.Pick("Vastplakken aan systeemvak", "Stick to notification area")) { Tag = "close", Checked = _cfg.StickToTray };
+        stickItem.Click += (_, _) => SetStickToTray(!_cfg.StickToTray);
+        menu.Items.Add(stickItem);
         AddClickThroughMenuItem(menu);
 
         menu.Items.Add(new ToolStripSeparator());
         var copy = new ToolStripMenuItem(Loc.Pick("Kopieer info naar klembord", "Copy info to clipboard")) { Tag = "close" };
         copy.Click += (_, _) => CopyInfo();
         menu.Items.Add(copy);
-
-        var welcome = new ToolStripMenuItem(Loc.Pick("Welkomstscherm", "Welcome screen")) { Tag = "close" };
-        welcome.Click += (_, _) => ShowWelcome();
-        menu.Items.Add(welcome);
 
         var readme = new ToolStripMenuItem(Loc.Pick("Leesmij en credits", "Readme and credits")) { Tag = "close" };
         readme.Click += (_, _) =>
@@ -1401,7 +1403,7 @@ public sealed partial class WidgetForm : Form
         menu.Items.Add(readme);
 
         var about = new ToolStripMenuItem(Loc.Pick("Over TaskbarStats…", "About TaskbarStats…")) { Tag = "close" };
-        about.Click += (_, _) => { using var f = new AboutForm(); f.ShowDialog(this); };
+        about.Click += (_, _) => { using var f = new AboutForm(() => BeginInvoke(new Action(ShowWelcome))); f.ShowDialog(this); };
         menu.Items.Add(about);
 
         menu.Items.Add(new ToolStripSeparator());

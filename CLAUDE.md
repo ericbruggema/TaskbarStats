@@ -59,7 +59,7 @@ zodat het rechtermuismenu soms niet verscheen.
 
 **Menu (ContextMenuStrip).** Volgorde in WinForms: `ItemClicked` → `Closing` → pas daarna de `Click`-handler. "Menu blijft
 open" wordt daarom in `OnDropDownItemClicked` bepaald (standaard open; items met `Tag = "close"` sluiten). Na een
-taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu is kort gehouden (Instellingen, Thema-snelkeuze, Verbruik, Dashboard, Fullscreen, Kopieer/Welkom/Leesmij/Over, Afsluiten): alles rond uiterlijk/indeling zit in het **instellingenvenster** (`SettingsForm`); nieuwe uiterlijk-instellingen daar toevoegen en (als ze in een thema horen) ook in `ThemeData.Capture/ApplyTo`. Het menu bouwt zich bij elke opening opnieuw op
+taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu is kort gehouden (Instellingen, Thema-snelkeuze, Verbruik, Dashboard, Fullscreen, Kopieer/Leesmij en credits/Over (met knop Welkomstscherm), Vastplakken aan systeemvak, Afsluiten): alles rond uiterlijk/indeling zit in het **instellingenvenster** (`SettingsForm`); nieuwe uiterlijk-instellingen daar toevoegen en (als ze in een thema horen) ook in `ThemeData.Capture/ApplyTo`. Het menu bouwt zich bij elke opening opnieuw op
 (`RefreshMenu`); houd dat goedkoop. `Application.Exit()` niet gebruiken bij afsluiten (vensters sluiten zichzelf tijdens
 het sluiten -> "Collection was modified"); `Close()` op het widget.
 
@@ -98,6 +98,7 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Ideeën / nog te doen
 
+- Na 1.4.0: instellingen Widget hebben subtabs (`SettingsForm.Sub.cs`: Onderdelen/Bronnen/Weergave/Waarden/Uiterlijk), grafieklengte (`GraphLength`), welkomstscherm uit het menu (knop in Over), en `StickToTray` (vervangt "Reset positie"; `WidgetForm.Stick.cs`, `FollowTray` in `Tick`, verslepen zet het uit, nieuwe installaties starten vastgeplakt). Testharnas: een timer die met `Application.DoEvents()` in een stap zit kan zichzelf re-entrant starten (stappen lopen dan door elkaar).
 - **v1.4.0** (gebouwd door vijf parallelle agents in worktrees, daarna gemerged): waardeopmaak, extra items, grafiekstijl, achtergrondafbeelding, Windows-thema volgen, muisacties/klik-door, extra meldingen (incl. schijftemperatuur), updatecontrole. Testharnas-ankers: `ActionsOnShown();` (was `SyncDashboard();`) in de OnShown-hook van de patchscripts. Niet gebouwd (bewust): per-item kleur/label, tray-waarden, taakbalk-embedden, plugins, Lite/portable, kleinere installer.
 - **v1.3.0 is gepubliceerd**: specificatiepagina (toets I), fullscreen-tour (3× klikken op leeg of spatie; `TourSeconds`, ook in het menu), ping (`ShowPing`, `PingHost`), CPU-temperatuur via ACPI-terugval, temperatuurstijl/-samenvoegen (`CpuTempStyle`, `GpuTempStyle`, `TempMerge`), aftiteling bij Leesmij en credits.
 - Tegels slepen i.p.v. pijlknoppen; thema per situatie automatisch (bv. op batterij); controle op nieuwe versie via GitHub-releases; ping-/uptime-tegel.

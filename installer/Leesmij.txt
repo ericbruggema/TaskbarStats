@@ -51,7 +51,7 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
                   schijfruimte (uit, totaal, alle schijven of een schijf)
                   en of netwerkschijven meedoen (ook in het dashboard).
 - Algemeen      : (tab Algemeen) taal, met Windows meestarten, positie
-                  vergrendelen/resetten, verbergen bij volledig scherm,
+                  vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm,
                   meldingen en de maandlimiet (data).
 - Verbruik      : (menu) hoeveel je hebt ontvangen/verzonden per adapter:
                   sessie, vandaag, gisteren, 7 dagen, deze maand.
@@ -80,7 +80,8 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Extra vinkjes : CPU-klokfrequentie, Schijf actief, Schijftemperatuur en
                   Hoofdbordtemperatuur (de laatste twee alleen als administrator
                   en als de computer de sensor aanbiedt).
-- Grafiek       : weergavestijl Grafiek (laatste 30/60/120 s) voor CPU, GPU,
+- Grafiek       : weergavestijl Grafiek (lengte kort/middel/lang, periode 30/60/
+                  120 s) voor CPU, GPU,
                   geheugen, temperaturen, netwerk en ping.
 - Achtergrond   : per venster (widget, dashboard, fullscreen) een afbeelding met
                   modus en dekking: Instellingen > tabblad Widget/Dashboard/
@@ -107,7 +108,7 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
                   van je maandlimiet bereikt.
 - Overig        : ververssnelheid, taal (NL/EN), transparante achtergrond,
                   met Windows meestarten, verbergen bij volledig scherm
-                  (games/video), positie vergrendelen/resetten.
+                  (games/video), positie vergrendelen en vastplakken aan het systeemvak.
 
 WAAROM ADMINISTRATOR?
 De app vraagt administrator-rechten. Die zijn nodig om de temperatuur-
@@ -126,7 +127,7 @@ wilt verwijderen.
 
 PROBLEEMOPLOSSING
 - Menu of tooltip verschijnt niet: klik eerst op het widget en probeer
-  opnieuw. Weg? Start menu > TaskbarStats, of "Reset positie" in het
+  opnieuw. Weg? Start menu > TaskbarStats, of "Vastplakken aan systeemvak" in het
   menu als het buiten beeld staat.
 - Geen temperatuur: start de app als administrator (standaard). Ontbreekt de CPU-sensor bij jouw processor, dan gebruikt de app de thermal zone van Windows.
 - GPU-waarde lijkt niet te kloppen: kies onder "GPU-bron" een vaste GPU.

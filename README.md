@@ -17,6 +17,7 @@ overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een f
 
 ![Menu](docs/screenshots/menu.png)
 ![Instellingen: widget](docs/screenshots/settings-widget.png)
+![Instellingen: widget, subtabblad Weergave](docs/screenshots/settings-widget-weergave.png)
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
 ![Instellingen: algemeen](docs/screenshots/settings-general.png)
@@ -123,7 +124,7 @@ Aanpassen van naam, credits of tekst: `installer\Leesmij.txt`, `CreditsForm.cs` 
 Start `TaskbarStats.exe`. Het widget verschijnt als zwevend, altijd-bovenliggend venster
 direct links van het systeemvak. Het is eigenaar-venster van de taakbalk, dus het blijft
 erboven staan. Sleep met de **linkermuisknop** om het te verplaatsen (de positie wordt
-bij loslaten bewaard); de instellingen (tab Algemeen) hebben "Reset positie".
+bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "Vastplakken aan systeemvak": dan blijft het widget tegen het systeemvak staan en volgt het als dat verschuift (verslepen zet dit weer uit).
 
 **Rechtermuisknop** op het widget opent een kort menu:
 
@@ -137,11 +138,11 @@ bij loslaten bewaard); de instellingen (tab Algemeen) hebben "Reset positie".
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
   - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.
   - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
-  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen/resetten, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
+  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
 - **Thema**: snelkeuze om met één klik een thema toe te passen.
 - **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
-- **Reset positie** (zet het widget terug naast het systeemvak).
-- **Bureaublad-dashboard** (tonen, klik-door, vergrendelen) en **Fullscreen dashboard**, plus *Kopieer info*, *Welkomstscherm*, *Leesmij en credits*, *Over* en **Afsluiten**.
+- **Vastplakken aan systeemvak** (het widget blijft tegen het systeemvak staan en volgt het).
+- **Bureaublad-dashboard** (tonen, klik-door, vergrendelen) en **Fullscreen dashboard**, plus *Kopieer info*, *Leesmij en credits*, *Over* (met een knop voor het welkomstscherm) en **Afsluiten**.
 - **Tooltip**: houd de muis minstens 2 s (instelbaar) boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
 - **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
 
@@ -191,9 +192,11 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 
 **Extra onderdelen** voor het widget: CPU-klokfrequentie, schijf actief (%), schijftemperatuur en hoofdbordtemperatuur. De laatste twee lezen sensoren via LibreHardwareMonitor (administrator nodig) en verdwijnen vanzelf als er geen waarde is.
 
-**Grafiek als weergavestijl**: CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
+**Grafiek als weergavestijl** (lengte kort, middel of lang; periode 30/60/120 s): CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
 
 ![Widget met de nieuwe onderdelen, grafieken en opmaak](docs/screenshots/widget-nieuw.png)
+
+![Grafiek in drie lengtes: kort, middel, lang](docs/screenshots/widget-grafieklengte.png)
 
 **Achtergrondafbeelding**: kies per venster (widget, dashboard en fullscreen; Instellingen, tabbladen *Widget*, *Dashboard* en *Fullscreen*) een png/jpg/bmp met modus *Vullen*, *Uitgerekt*, *Passen*, *Tegelen* of *Gecentreerd* en een dekking van 0–100%. De afbeelding komt onder de tekst en tegels; ontbreekt het bestand, dan geldt de gewone achtergrond. Paden horen niet bij thema's.
 

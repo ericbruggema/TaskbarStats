@@ -313,10 +313,8 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Check(Loc.S("startup"), StartupManager.IsEnabled(), v => StartupManager.Set(v)));
         p.Controls.Add(Check(Loc.Pick("Positie vergrendelen", "Lock position"), _c.LockPosition, v => _c.LockPosition = v));
         p.Controls.Add(Check(Loc.Pick("Verbergen bij volledig scherm", "Hide in full screen"), _c.HideInFullscreen, v => _c.HideInFullscreen = v));
-        var reset = Btn(Loc.S("resetPos"), 170);
-        reset.Margin = new Padding(3, 6, 3, 3);
-        reset.Click += (_, _) => _h.ResetWidget();
-        p.Controls.Add(reset);
+        p.Controls.Add(Check(Loc.Pick("Vastplakken aan het systeemvak (volgt het systeemvak)", "Stick to the notification area (follows it)"), _c.StickToTray, v => _c.StickToTray = v));
+        p.Controls.Add(Note(Loc.Pick("Het widget blijft tegen het systeemvak staan, ook als dat verschuift. Verslepen zet dit weer uit.", "The widget stays next to the notification area, even when it moves. Dragging turns this off.")));
 
         p.Controls.Add(Head(Loc.Pick("Tooltip boven het widget", "Tooltip over the widget")));
         var delays = new (string, int)[]
@@ -358,6 +356,10 @@ public sealed partial class SettingsForm : Form
     private TabPage WidgetTab()
     {
         var p = Page(Loc.Pick("Widget", "Widget"), out var tab);
+        var sub = new TabControl { Dock = DockStyle.Fill };
+        tab.Controls.Clear();
+        tab.Controls.Add(sub);
+        p = SubPage(sub, Loc.Pick("Onderdelen", "Components"));
 
         p.Controls.Add(Head(Loc.S("components")));
         p.Controls.Add(Grid(
@@ -376,6 +378,7 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Head(Loc.Pick("Volgorde in het widget (van links naar rechts)", "Order in the widget (left to right)")));
         p.Controls.Add(WidgetOrderEditor());
 
+        p = SubPage(sub, Loc.Pick("Bronnen", "Sources"));
         // Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes hierboven).
         p.Controls.Add(Head(Loc.Pick("Bronnen", "Sources")));
         var gpuItems = new List<(string, string)> { (Loc.Pick("Automatisch (drukste)", "Automatic (busiest)"), "") };
@@ -439,6 +442,7 @@ public sealed partial class SettingsForm : Form
             driveBox.Enabled = _c.DiskSpace == DiskSpaceMode.Single;
         });
 
+        p = SubPage(sub, Loc.Pick("Weergave", "Display"));
         p.Controls.Add(Head(Loc.S("display")));
         var styles = new (string, DisplayStyle)[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar), (Loc.Pick("Grafiek", "Graph"), DisplayStyle.Graph) };
         var cpuStyle = Seg(styles, () => _c.CpuStyle, v => _c.CpuStyle = v);
@@ -480,8 +484,10 @@ public sealed partial class SettingsForm : Form
         }, ColW);
         p.Controls.Add(Grid(labels, compact, Check(Loc.S("transparent"), _c.TransparentBackground, v => _c.TransparentBackground = v, ColW)));
 
+        p = SubPage(sub, Loc.Pick("Waarden", "Values"));
         AddValueSettings(p);
 
+        p = SubPage(sub, Loc.Pick("Uiterlijk", "Appearance"));
         p.Controls.Add(Head(Loc.Pick("Afmetingen en lettertype", "Size and font")));
         var heights = new List<(string, int)> { (Loc.Pick("Auto", "Auto"), 0) };
         foreach (int h in new[] { 32, 36, 40, 44, 48, 56, 64 }) heights.Add(($"{h}", h));
@@ -519,6 +525,8 @@ public sealed partial class SettingsForm : Form
             batt.Enabled = _c.ShowBattery;
             labels.Enabled = !_c.Compact;
         });
+        sub.SelectedIndex = Math.Clamp(_widgetSub, 0, sub.TabPages.Count - 1);
+        sub.SelectedIndexChanged += (_, _) => { if (!_building) _widgetSub = sub.SelectedIndex; };
         return tab;
     }
 

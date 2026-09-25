@@ -16,7 +16,12 @@ public sealed partial class SettingsForm
         p.Controls.Add(Row(Loc.Pick("Netwerk", "Network"), netStyle));
         p.Controls.Add(Row(Loc.Pick("Netwerkgrafiek: schaal", "Network graph: scale"), netMax));
         p.Controls.Add(Row("Ping", pingStyle));
-        p.Controls.Add(Row(Loc.Pick("Grafiek toont de laatste", "Graph shows the last"), secs));
+        var len = Seg(new (string, GraphLen)[]
+        {
+            (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium), (Loc.Pick("Lang", "Long"), GraphLen.Long),
+        }, () => _c.GraphLength, v => _c.GraphLength = v, 76);
+        p.Controls.Add(Row(Loc.Pick("Lengte van de grafiek", "Graph length"), len));
+        p.Controls.Add(Row(Loc.Pick("Periode: de laatste", "Period: the last"), secs));
         Dep(() =>
         {
             netStyle.Enabled = _c.ShowNetUp || _c.ShowNetDown;
@@ -29,7 +34,7 @@ public sealed partial class SettingsForm
             bool gt = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu) && _c.GpuTempStyle == DisplayStyle.Graph;
             bool net = netStyle.Enabled && _c.NetStyle == TextGraphStyle.Graph;
             bool ping = _c.ShowPing && _c.PingStyle == TextGraphStyle.Graph;
-            secs.Enabled = cpu || gpu || mem || ct || gt || net || ping;
+            secs.Enabled = len.Enabled = cpu || gpu || mem || ct || gt || net || ping;
         });
     }
 }

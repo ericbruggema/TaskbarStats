@@ -139,7 +139,7 @@ bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "V
   - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
   - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.
   - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
-  - *Algemeen*: taal (NL/EN), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
+  - *Algemeen*: taal (Nederlands, English of een eigen taalbestand), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
 - **Thema**: snelkeuze om met één klik een thema toe te passen.
 - **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
 - **Vastplakken aan systeemvak** (het widget blijft tegen het systeemvak staan en volgt het).
@@ -218,6 +218,13 @@ die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen
 
 **Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
 
+**Talen**: de app is beschikbaar in het Nederlands en Engels; bij een eerste start volgt hij de taal van Windows als die beschikbaar is. Teksten staan niet meer in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een taal toevoegen (bijvoorbeeld Duits):
+
+1. Kopieer `lang/nl.json` naar `lang/de.json`, zet `"_name": "Deutsch"` en vertaal de waarden rechts. De sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
+2. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
+3. Een ontbrekende tekst valt terug op Engels. `powershell -File tools\check-lang.ps1` toont wat er nog ontbreekt of niet meer gebruikt wordt.
+4. Deel je vertaling via een pull request (`lang/de.json`).
+
 **Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het.
 
 **Netwerkschijven** (gekoppelde stations) neem je mee via instellingen → *Widget* → *Bronnen* → *Netwerkschijven meenemen* (ook in dashboard en fullscreen); ze worden op de
@@ -267,7 +274,7 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Instellingenvenster met tabbladen (live toegepast), thema's (meegeleverd + eigen JSON-bestanden), onderdelen-ids/volgorde. |
 | `src/LogForm.cs` | Venster met het verbruikslog. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
-| `src/Loc.cs` | Nederlandse/Engelse teksten (`Loc.Pick`). |
+| `src/Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text")` met per taal een JSON-bestand (zie *Talen*). |
 
 ## Prestaties en threads
 

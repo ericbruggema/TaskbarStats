@@ -127,28 +127,37 @@ public static class ThemeStore
 
     public static string Dir(AppSettings c) => Path.Combine(Path.GetDirectoryName(c.FilePath) ?? ".", "themes");
 
+    /// <summary>Weergavenaam van een meegeleverd thema (de naam zelf blijft Engels en dient als sleutel); eigen thema's blijven zoals ze heten.</summary>
+    public static string Label(string name) => name switch
+    {
+        "Default" => Loc.T("Default@@theme"), "Dark" => Loc.T("Dark@@theme"), "Light" => Loc.T("Light@@theme"),
+        "Black and white" => Loc.T("Black and white"), "Love" => Loc.T("Love"), "Ocean" => Loc.T("Ocean"),
+        "Sunset" => Loc.T("Sunset"), "Forest" => Loc.T("Forest"), "Minimal" => Loc.T("Minimal"),
+        _ => name,
+    };
+
     public static List<ThemeData> BuiltIn() => new()
     {
-        new ThemeData { Name = "Standaard" },
+        new ThemeData { Name = "Default" },
         new ThemeData
         {
-            Name = "Donker", TextColor = "#E0E0E0", BackgroundColor = "#000000", AccentColor = "#0A84FF", WarnColor = "#FF9F0A",
+            Name = "Dark", TextColor = "#E0E0E0", BackgroundColor = "#000000", AccentColor = "#0A84FF", WarnColor = "#FF9F0A",
             CritColor = "#FF453A", BorderColor = "", DashOpacity = 100,
         },
         new ThemeData
         {
-            Name = "Licht", TextColor = "#1C1C1E", BackgroundColor = "#F2F2F7", AccentColor = "#0A64D6",
+            Name = "Light", TextColor = "#1C1C1E", BackgroundColor = "#F2F2F7", AccentColor = "#0A64D6",
             WarnColor = "#E07B00", CritColor = "#D70015", BorderColor = "#C7C7CC",
         },
         new ThemeData
         {
             // Hoe helderder, hoe drukker: grijs -> lichtgrijs -> wit
-            Name = "Zwart-wit", TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#7A7A7A", WarnColor = "#C8C8C8",
+            Name = "Black and white", TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#7A7A7A", WarnColor = "#C8C8C8",
             CritColor = "#FFFFFF", BorderColor = "#FFFFFF", DashOpacity = 100,
         },
         new ThemeData
         {
-            Name = "Liefde", TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
+            Name = "Love", TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
             CritColor = "#FF1744", BorderColor = "#FF69B4", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
             FontFamily = "Segoe UI Semibold",
         },
@@ -185,22 +194,22 @@ public static class ThemeStore
         },
         new ThemeData
         {
-            Name = "Oceaan", TextColor = "#E6F7FF", BackgroundColor = "#06202B", AccentColor = "#00B4D8", WarnColor = "#FFD166",
+            Name = "Ocean", TextColor = "#E6F7FF", BackgroundColor = "#06202B", AccentColor = "#00B4D8", WarnColor = "#FFD166",
             CritColor = "#EF476F", BorderColor = "#0077B6", FontFamily = "Segoe UI Semibold",
         },
         new ThemeData
         {
-            Name = "Zonsondergang", TextColor = "#FFF1E0", BackgroundColor = "#1A0B2E", AccentColor = "#FF7E5F", WarnColor = "#FEB47B",
+            Name = "Sunset", TextColor = "#FFF1E0", BackgroundColor = "#1A0B2E", AccentColor = "#FF7E5F", WarnColor = "#FEB47B",
             CritColor = "#FF3CAC", BorderColor = "#FEB47B", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
         },
         new ThemeData
         {
-            Name = "Bos", TextColor = "#E8F5E9", BackgroundColor = "#10201A", AccentColor = "#66BB6A", WarnColor = "#FFCA28",
+            Name = "Forest", TextColor = "#E8F5E9", BackgroundColor = "#10201A", AccentColor = "#66BB6A", WarnColor = "#FFCA28",
             CritColor = "#EF5350", BorderColor = "#2E7D32", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
         },
         new ThemeData
         {
-            Name = "Minimaal", ShowGpu = false, ShowNetUp = false, ShowBattery = false, Compact = true, LabelsAbove = true,
+            Name = "Minimal", ShowGpu = false, ShowNetUp = false, ShowBattery = false, Compact = true, LabelsAbove = true,
             BackgroundColor = "#101010", BorderColor = "", DashColumns = 1, DashOpacity = 80,
             DashHidden = new List<string> { "disk", "batt", "proc", "sys" }, FullHidden = new List<string> { "batt", "sys" },
         },
@@ -249,6 +258,6 @@ public static class ThemeStore
     {
         var invalid = Path.GetInvalidFileNameChars();
         var safe = string.Concat(name.Select(ch => invalid.Contains(ch) ? '_' : ch)).Trim();
-        return Path.Combine(Dir(c), (safe.Length == 0 ? "thema" : safe) + ".json");
+        return Path.Combine(Dir(c), (safe.Length == 0 ? "theme" : safe) + ".json");
     }
 }

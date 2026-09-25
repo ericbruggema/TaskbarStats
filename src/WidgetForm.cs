@@ -99,7 +99,7 @@ public sealed partial class WidgetForm : Form
     {
         _cfg = cfg;
         _usage = new UsageTracker(Path.GetDirectoryName(_cfg.FilePath)!);
-        Loc.Lang = _cfg.Language;
+        Loc.Lang = string.IsNullOrEmpty(_cfg.Language) ? Loc.Detect() : _cfg.Language;
         ApplyFonts();
 
         FormBorderStyle = FormBorderStyle.None;
@@ -329,15 +329,15 @@ public sealed partial class WidgetForm : Form
                 vram = $"  VRAM {Metrics.FormatSize(used)} / {Metrics.FormatSize(ded)}";
             sb.AppendLine($"GPU  {Metrics.GpuName(luid)}  {v:0}%{vram}");
         }
-        sb.AppendLine($"{Loc.S("memory")}  {Metrics.FormatSize(m.MemUsedBytes)} / {Metrics.FormatSize(m.MemTotalBytes)} ({m.MemPercent:0}%)");
+        sb.AppendLine($"{Loc.T("Memory")}  {Metrics.FormatSize(m.MemUsedBytes)} / {Metrics.FormatSize(m.MemTotalBytes)} ({m.MemPercent:0}%)");
         if (m.BatteryPresent)
         {
-            string state = m.BatteryCharging ? Loc.Pick("laden", "charging")
-                         : m.BatteryOnAc ? Loc.Pick("op netstroom", "plugged in")
-                         : Loc.Pick("ontladen", "on battery");
+            string state = m.BatteryCharging ? Loc.T("charging")
+                         : m.BatteryOnAc ? Loc.T("plugged in")
+                         : Loc.T("on battery");
             string left = !m.BatteryOnAc && m.BatteryRemainingSec > 0
-                ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.Pick("u", "h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.Pick("resterend", "left")}" : "";
-            sb.AppendLine($"{Loc.Pick("Batterij", "Battery")}  {m.BatteryPercent:0}%  {state}{left}");
+                ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.T("h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.T("left")}" : "";
+            sb.AppendLine($"{Loc.T("Battery")}  {m.BatteryPercent:0}%  {state}{left}");
         }
         if (m.CpuTempC is double ct) sb.AppendLine($"CPU  {ct:0}°C");
         if (m.GpuTempC is double gt) sb.AppendLine($"GPU  {gt:0}°C");
@@ -358,28 +358,28 @@ public sealed partial class WidgetForm : Form
         }
 
         sb.AppendLine();
-        sb.AppendLine($"{Loc.S("upload")}/{Loc.S("download")}  ↑ {Metrics.FormatRate(m.NetUpBytesPerSec)}  ↓ {Metrics.FormatRate(m.NetDownBytesPerSec)}");
+        sb.AppendLine($"{Loc.T("Upload")}/{Loc.T("Download")}  ↑ {Metrics.FormatRate(m.NetUpBytesPerSec)}  ↓ {Metrics.FormatRate(m.NetDownBytesPerSec)}");
         foreach (var (label, u) in new[]
         {
-            (Loc.Pick("Sessie", "Session"), _usage.Session()),
-            (Loc.Pick("Vandaag", "Today"), _usage.Today()),
-            (Loc.Pick("Deze maand", "This month"), _usage.Month()),
+            (Loc.T("Session"), _usage.Session()),
+            (Loc.T("Today"), _usage.Today()),
+            (Loc.T("This month"), _usage.Month()),
         })
             sb.AppendLine($"   {label}  ↓ {Metrics.FormatBytes(u.Down)}  ↑ {Metrics.FormatBytes(u.Up)}");
         if (_cfg.MonthlyLimitGb > 0)
         {
             var mu = _usage.Month(_cfg.NetworkAdapter);
-            sb.AppendLine($"   {Loc.Pick("Maandlimiet", "Monthly limit")}  {Metrics.FormatBytes(mu.Total)} / {_cfg.MonthlyLimitGb} GB ({100.0 * mu.Total / (_cfg.MonthlyLimitGb * 1073741824.0):0}%)");
+            sb.AppendLine($"   {Loc.T("Monthly limit")}  {Metrics.FormatBytes(mu.Total)} / {_cfg.MonthlyLimitGb} GB ({100.0 * mu.Total / (_cfg.MonthlyLimitGb * 1073741824.0):0}%)");
         }
         sb.AppendLine();
         foreach (var (name, r) in m.NetPerAdapter.OrderBy(k => k.Key))
         {
             var td = _usage.Today(name);
-            sb.AppendLine($"   {name}  ↓ {Metrics.FormatRate(r.down)}  ↑ {Metrics.FormatRate(r.up)}   |   {Loc.Pick("vandaag", "today")} ↓ {Metrics.FormatBytes(td.Down)}  ↑ {Metrics.FormatBytes(td.Up)}");
+            sb.AppendLine($"   {name}  ↓ {Metrics.FormatRate(r.down)}  ↑ {Metrics.FormatRate(r.up)}   |   {Loc.T("today")} ↓ {Metrics.FormatBytes(td.Down)}  ↑ {Metrics.FormatBytes(td.Up)}");
         }
 
         sb.AppendLine();
-        sb.AppendLine($"{Loc.S("diskIo")}  R {Metrics.FormatRate(m.DiskReadBytesPerSec)}  W {Metrics.FormatRate(m.DiskWriteBytesPerSec)}");
+        sb.AppendLine($"{Loc.T("Disk read/write")}  R {Metrics.FormatRate(m.DiskReadBytesPerSec)}  W {Metrics.FormatRate(m.DiskWriteBytesPerSec)}");
         foreach (var (name, r) in m.DiskPerDisk.OrderBy(k => k.Key))
             sb.AppendLine($"   {name}  R {Metrics.FormatRate(r.read)}  W {Metrics.FormatRate(r.write)}");
         foreach (var d in _drives)
@@ -399,42 +399,41 @@ public sealed partial class WidgetForm : Form
             {
                 if (!_critSince.TryGetValue(name, out long since)) _critSince[name] = now;
                 else if (now - since >= _cfg.CritSeconds * 1000L)
-                    Alert("crit:" + name, 15 * 60_000, Loc.Pick("Hoge belasting", "High load"),
-                          Loc.Pick($"{name} staat al {_cfg.CritSeconds} s op {v:0}%", $"{name} has been at {v:0}% for {_cfg.CritSeconds} s"));
+                    Alert("crit:" + name, 15 * 60_000, Loc.T("High load"),
+                          Loc.T("{0} has been at {1:0}% for {2} s", name, v, _cfg.CritSeconds));
             }
             else _critSince.Remove(name);
         }
         if (_cfg.ShowCpu) crit("CPU", _metrics.CpuPercent);
         if (_cfg.ShowGpu) crit("GPU", _metrics.GpuPercent);
-        if (_cfg.ShowMem) crit(Loc.S("memory"), _metrics.MemPercent);
+        if (_cfg.ShowMem) crit(Loc.T("Memory"), _metrics.MemPercent);
 
         if (_metrics.BatteryPresent && !_metrics.BatteryOnAc)
         {
             double bp = _metrics.BatteryPercent;
-            string bt = Loc.Pick("Batterij bijna leeg", "Battery low");
+            string bt = Loc.T("Battery low");
             if (bp <= 10)
-                Alert("bat10", 20 * 60_000L, bt, Loc.Pick($"Nog {bp:0}% — sluit de lader aan", $"{bp:0}% left — plug in the charger"));
+                Alert("bat10", 20 * 60_000L, bt, Loc.T("{0:0}% left — plug in the charger", bp));
             else if (bp <= 20)
-                Alert("bat20", 30 * 60_000L, bt, Loc.Pick($"Nog {bp:0}% over", $"{bp:0}% remaining"));
+                Alert("bat20", 30 * 60_000L, bt, Loc.T("{0:0}% remaining", bp));
         }
 
         foreach (var d in _drives)
             if (d.UsedPercent >= _cfg.DiskFullPercent)
-                Alert("disk:" + d.Name, 6 * 3_600_000L, Loc.Pick("Schijf bijna vol", "Disk almost full"),
-                      Loc.Pick($"{d.Name} is {d.UsedPercent:0}% vol, nog {Metrics.FormatSize(d.Free)} vrij",
-                               $"{d.Name} is {d.UsedPercent:0}% full, {Metrics.FormatSize(d.Free)} free"));
+                Alert("disk:" + d.Name, 6 * 3_600_000L, Loc.T("Disk almost full"),
+                      Loc.T("{0} is {1:0}% full, {2} free", d.Name, d.UsedPercent, Metrics.FormatSize(d.Free)));
 
         if (_cfg.MonthlyLimitGb > 0)
         {
             double pct = 100.0 * _usage.Month(_cfg.NetworkAdapter).Total / (_cfg.MonthlyLimitGb * 1073741824.0);
             string month = DateTime.Now.ToString("yyyyMM");
-            string title = Loc.Pick("Datalimiet", "Data limit");
+            string title = Loc.T("Data limit");
             if (pct >= 100)
                 Alert("limit100:" + month, 40L * 86_400_000, title,
-                      Loc.Pick($"Maandlimiet van {_cfg.MonthlyLimitGb} GB is bereikt", $"Monthly limit of {_cfg.MonthlyLimitGb} GB reached"));
+                      Loc.T("Monthly limit of {0} GB reached", _cfg.MonthlyLimitGb));
             else if (pct >= 80)
                 Alert("limit80:" + month, 40L * 86_400_000, title,
-                      Loc.Pick($"{pct:0}% van de maandlimiet ({_cfg.MonthlyLimitGb} GB) gebruikt", $"{pct:0}% of the monthly limit ({_cfg.MonthlyLimitGb} GB) used"));
+                      Loc.T("{0:0}% of the monthly limit ({1} GB) used", pct, _cfg.MonthlyLimitGb));
         }
 
         CheckExtraAlerts();
@@ -490,7 +489,7 @@ public sealed partial class WidgetForm : Form
             string text = $"TaskbarStats {AboutForm.Version} - {DateTime.Now:yyyy-MM-dd HH:mm:ss}\r\n\r\n" +
                           BuildTooltip(true).Replace("\r\n", "\n").Replace("\n", "\r\n");
             Clipboard.SetText(text);
-            _tip.Show(Loc.Pick("✔ Gekopieerd naar klembord", "✔ Copied to clipboard"), this, 0, -Height, 1500);
+            _tip.Show(Loc.T("✔ Copied to clipboard"), this, 0, -Height, 1500);
         }
         catch { /* klembord kan tijdelijk bezet zijn */ }
     }
@@ -568,7 +567,7 @@ public sealed partial class WidgetForm : Form
 
     private ToolStripMenuItem BuildFullMenu()
     {
-        var open = new ToolStripMenuItem(Loc.Pick("Fullscreen dashboard (Ctrl+Alt+F)", "Fullscreen dashboard (Ctrl+Alt+F)")) { Tag = "close" };
+        var open = new ToolStripMenuItem(Loc.T("Fullscreen dashboard (Ctrl+Alt+F)")) { Tag = "close" };
         open.Click += (_, _) => ToggleFullscreen();
         return open;
     }
@@ -576,7 +575,7 @@ public sealed partial class WidgetForm : Form
     // Fullscreen-tour: hoe lang elke pagina blijft staan (start in het fullscreen-scherm zelf).
     private ToolStripMenuItem BuildTourMenu()
     {
-        var m = new ToolStripMenuItem(Loc.Pick("Fullscreen-tour: tijd per pagina", "Fullscreen tour: time per page"));
+        var m = new ToolStripMenuItem(Loc.T("Fullscreen tour: time per page"));
         var items = new List<(ToolStripMenuItem mi, int s)>();
         foreach (int secs in new[] { 5, 10, 15, 20, 30, 60 })
         {
@@ -591,7 +590,7 @@ public sealed partial class WidgetForm : Form
             m.DropDownItems.Add(mi);
         }
         m.DropDownItems.Add(new ToolStripSeparator());
-        m.DropDownItems.Add(new ToolStripMenuItem(Loc.Pick("Starten: 3× klikken op een lege plek (of spatie)", "Start: click 3× on an empty spot (or space)")) { Enabled = false });
+        m.DropDownItems.Add(new ToolStripMenuItem(Loc.T("Start: click 3× on an empty spot (or space)")) { Enabled = false });
         return m;
     }
 
@@ -602,9 +601,8 @@ public sealed partial class WidgetForm : Form
         _dash?.ApplySettings();
         Alert("clickthrough" + Environment.TickCount64, 0, "TaskbarStats",
               _cfg.DashClickThrough
-                  ? Loc.Pick("Dashboard: klik-door aan (Ctrl+Alt+D of dubbelklik op het pictogram om uit te zetten)",
-                             "Dashboard: click-through on (Ctrl+Alt+D or double-click the tray icon to turn off)")
-                  : Loc.Pick("Dashboard: klik-door uit", "Dashboard: click-through off"));
+                  ? Loc.T("Dashboard: click-through on (Ctrl+Alt+D or double-click the tray icon to turn off)")
+                  : Loc.T("Dashboard: click-through off"));
     }
 
     // Sneltoets Ctrl+Alt+D: klik-door van het dashboard aan/uit
@@ -643,12 +641,12 @@ public sealed partial class WidgetForm : Form
 
     private ToolStripMenuItem BuildDashMenu()
     {
-        var m = new ToolStripMenuItem(Loc.Pick("Bureaublad-dashboard", "Desktop dashboard"));
-        AddCheck(m, Loc.Pick("Dashboard tonen", "Show dashboard"), _cfg.ShowDashboard,
+        var m = new ToolStripMenuItem(Loc.T("Desktop dashboard"));
+        AddCheck(m, Loc.T("Show dashboard"), _cfg.ShowDashboard,
                  v => { _cfg.ShowDashboard = v; SyncDashboard(); Persist(); });
-        AddCheck(m, Loc.Pick("Klik-door (Ctrl+Alt+D)", "Click-through (Ctrl+Alt+D)"), _cfg.DashClickThrough,
+        AddCheck(m, Loc.T("Click-through (Ctrl+Alt+D)"), _cfg.DashClickThrough,
                  v => { _cfg.DashClickThrough = v; Persist(); });
-        AddCheck(m, Loc.Pick("Positie vergrendelen", "Lock position"), _cfg.DashLocked,
+        AddCheck(m, Loc.T("Lock position"), _cfg.DashLocked,
                  v => { _cfg.DashLocked = v; Persist(); });
         return m;
     }
@@ -710,7 +708,7 @@ public sealed partial class WidgetForm : Form
     }
 
     private static string DriveLine(DriveSpace d)
-        => $"{d.Display}  {Metrics.FormatSize(d.Free)} {Loc.S("freeOf")} {Metrics.FormatSize(d.Total)} ({d.UsedPercent:0}% {Loc.S("usedWord")})";
+        => $"{d.Display}  {Metrics.FormatSize(d.Free)} {Loc.T("free of")} {Metrics.FormatSize(d.Total)} ({d.UsedPercent:0}% {Loc.T("used")})";
 
 
     private long _lastRaise;
@@ -1358,16 +1356,16 @@ public sealed partial class WidgetForm : Form
         RefreshDrives(true);
         AddUpdateMenuItem(menu);
 
-        var settingsItem = new ToolStripMenuItem(Loc.Pick("Instellingen…", "Settings…")) { Tag = "close" };
+        var settingsItem = new ToolStripMenuItem(Loc.T("Settings…")) { Tag = "close" };
         settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold);
         settingsItem.Click += (_, _) => ShowSettings();
         menu.Items.Add(settingsItem);
 
         // Thema-snelkeuze: één klik past een thema toe (beheren doe je in Instellingen → Thema's).
-        var themes = new ToolStripMenuItem(Loc.Pick("Thema", "Theme"));
+        var themes = new ToolStripMenuItem(Loc.T("Theme"));
         void addTheme(ThemeData t, bool builtIn)
         {
-            var it = new ToolStripMenuItem(t.Name) { Tag = "close" };
+            var it = new ToolStripMenuItem(builtIn ? ThemeStore.Label(t.Name) : t.Name) { Tag = "close" };
             it.Click += (_, _) => { t.ApplyTo(_cfg); ApplyAll(); };
             themes.DropDownItems.Add(it);
         }
@@ -1383,17 +1381,17 @@ public sealed partial class WidgetForm : Form
         menu.Items.Add(BuildFullMenu());
         menu.Items.Add(BuildTourMenu());
 
-        var stickItem = new ToolStripMenuItem(Loc.Pick("Vastplakken aan systeemvak", "Stick to notification area")) { Tag = "close", Checked = _cfg.StickToTray };
+        var stickItem = new ToolStripMenuItem(Loc.T("Stick to notification area")) { Tag = "close", Checked = _cfg.StickToTray };
         stickItem.Click += (_, _) => SetStickToTray(!_cfg.StickToTray);
         menu.Items.Add(stickItem);
         AddClickThroughMenuItem(menu);
 
         menu.Items.Add(new ToolStripSeparator());
-        var copy = new ToolStripMenuItem(Loc.Pick("Kopieer info naar klembord", "Copy info to clipboard")) { Tag = "close" };
+        var copy = new ToolStripMenuItem(Loc.T("Copy info to clipboard")) { Tag = "close" };
         copy.Click += (_, _) => CopyInfo();
         menu.Items.Add(copy);
 
-        var readme = new ToolStripMenuItem(Loc.Pick("Leesmij en credits", "Readme and credits")) { Tag = "close" };
+        var readme = new ToolStripMenuItem(Loc.T("Readme and credits")) { Tag = "close" };
         readme.Click += (_, _) =>
         {
             if (_credits is null || _credits.IsDisposed) _credits = new CreditsForm(_cfg, _usage, _metrics);
@@ -1402,12 +1400,12 @@ public sealed partial class WidgetForm : Form
         };
         menu.Items.Add(readme);
 
-        var about = new ToolStripMenuItem(Loc.Pick("Over TaskbarStats…", "About TaskbarStats…")) { Tag = "close" };
+        var about = new ToolStripMenuItem(Loc.T("About TaskbarStats…")) { Tag = "close" };
         about.Click += (_, _) => { using var f = new AboutForm(() => BeginInvoke(new Action(ShowWelcome))); f.ShowDialog(this); };
         menu.Items.Add(about);
 
         menu.Items.Add(new ToolStripSeparator());
-        var exit = new ToolStripMenuItem(Loc.S("exit")) { Tag = "close" };
+        var exit = new ToolStripMenuItem(Loc.T("Exit")) { Tag = "close" };
         // Het widget zelf sluiten (niet Application.Exit): dat loopt door alle open vensters terwijl wij tijdens het sluiten
         // het dashboard en het fullscreen-venster sluiten, wat "Collection was modified" gaf.
         exit.Click += (_, _) => Close();
@@ -1427,14 +1425,14 @@ public sealed partial class WidgetForm : Form
 
     private ToolStripMenuItem BuildUsageMenu()
     {
-        var m = new ToolStripMenuItem(Loc.Pick("Verbruik", "Usage"));
+        var m = new ToolStripMenuItem(Loc.T("Usage"));
         var periods = new (string label, Func<string?, AdapterUsage> get)[]
         {
-            (Loc.Pick("Sessie", "Session"),          a => _usage.Session(a)),
-            (Loc.Pick("Vandaag", "Today"),           a => _usage.Today(a)),
-            (Loc.Pick("Gisteren", "Yesterday"),      a => _usage.Yesterday(a)),
-            (Loc.Pick("Laatste 7 dagen", "Last 7 days"), a => _usage.Week(a)),
-            (Loc.Pick("Deze maand", "This month"),   a => _usage.Month(a)),
+            (Loc.T("Session"),          a => _usage.Session(a)),
+            (Loc.T("Today"),           a => _usage.Today(a)),
+            (Loc.T("Yesterday"),      a => _usage.Yesterday(a)),
+            (Loc.T("Last 7 days"), a => _usage.Week(a)),
+            (Loc.T("This month"),   a => _usage.Month(a)),
         };
         void fill(ToolStripMenuItem parent, string? adapter)
         {
@@ -1447,7 +1445,7 @@ public sealed partial class WidgetForm : Form
             }
         }
 
-        m.DropDownItems.Add(new ToolStripMenuItem(Loc.S("allAdapters")) { Enabled = false });
+        m.DropDownItems.Add(new ToolStripMenuItem(Loc.T("All adapters")) { Enabled = false });
         fill(m, null);
         var adapters = _usage.KnownAdapters();
         if (adapters.Count > 0) m.DropDownItems.Add(new ToolStripSeparator());
@@ -1459,28 +1457,10 @@ public sealed partial class WidgetForm : Form
         }
         m.DropDownItems.Add(new ToolStripSeparator());
 
-        var log = new ToolStripMenuItem(Loc.Pick("Log bekijken…", "View log…")) { Tag = "close" };
+        var log = new ToolStripMenuItem(Loc.T("View log…")) { Tag = "close" };
         log.Click += (_, _) => ShowLog();
         m.DropDownItems.Add(log);
         return m;
-    }
-
-    private static readonly (string name, string hex)[] BorderPalette =
-    {
-        ("Magenta", "#FF00FF"), ("Rood", "#FF3B30"), ("Oranje", "#FF9500"),
-        ("Geel", "#FFCC00"), ("Limoen", "#AEEA00"), ("Groen", "#34C759"),
-        ("Cyaan", "#00E5FF"), ("Blauw", "#0A84FF"), ("Paars", "#AF52DE"),
-        ("Roze", "#FF2D95"), ("Wit", "#FFFFFF"), ("Grijs", "#8E8E93"),
-        ("Teal", "#00BFA5"), ("Goud", "#D4AF37"), ("Zwart", "#000000"),
-    };
-
-    private static Bitmap SwatchImage(string hex)
-    {
-        var bmp = new Bitmap(16, 16);
-        using var g = Graphics.FromImage(bmp);
-        try { g.Clear(ColorTranslator.FromHtml(hex)); } catch { g.Clear(Color.Gray); }
-        g.DrawRectangle(Pens.DimGray, 0, 0, 15, 15);
-        return bmp;
     }
 
     private void AddCheck(ToolStripDropDownItem parent, string text, bool val, Action<bool> onToggle)

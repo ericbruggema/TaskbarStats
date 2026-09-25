@@ -78,7 +78,6 @@ public static class HardwareInfo
     }
 
     private static SpecRow R(string k, string v) => new(k, () => v);
-    private static string Nl(string nl, string en) => Loc.Pick(nl, en);
     private static string Size(double bytes) => Metrics.FormatSize(bytes);
 
     private static void Add(List<SpecRow> rows, string k, string? v)
@@ -120,44 +119,44 @@ public static class HardwareInfo
             if (r.Count > 0) { res.AddRange(r); Show(); }
         }
 
-        Put(Nl("Computer", "Computer"), "computer", Computer);
-        Put(Nl("Besturingssysteem", "Operating system"), "os", Os);
-        Put(Nl("Processor", "Processor"), "cpu", () => Cpu(m));
-        Put(Nl("Processor — instructiesets", "Processor — instruction sets"), "features", Features);
+        Put(Loc.T("Computer"), "computer", Computer);
+        Put(Loc.T("Operating system"), "os", Os);
+        Put(Loc.T("Processor"), "cpu", () => Cpu(m));
+        Put(Loc.T("Processor — instruction sets"), "features", Features);
         Many("gpu", Gpus);
-        Put(Nl("Werkgeheugen", "Memory"), "memory", () => Memory(m));
+        Put(Loc.T("Memory@@ram"), "memory", () => Memory(m));
         Many("dimms", Dimms);
         Many("storage", Storage);
-        Put(Nl("Volumes", "Volumes"), "volumes", Volumes);
+        Put(Loc.T("Volumes"), "volumes", Volumes);
         Many("displays", Displays);
         Many("network", Network);
-        Put(Nl("Batterij", "Battery"), "battery", Battery);
-        Put(Nl("Beveiliging", "Security"), "security", Security);
-        Put(Nl("Geluid", "Audio"), "audio", Audio);
-        Put(Nl("Invoerapparaten", "Input devices"), "input", Input);
+        Put(Loc.T("Battery"), "battery", Battery);
+        Put(Loc.T("Security"), "security", Security);
+        Put(Loc.T("Audio"), "audio", Audio);
+        Put(Loc.T("Input devices"), "input", Input);
         Put("Bluetooth", "bluetooth", Bluetooth);
-        Put(Nl("USB-apparaten", "USB devices"), "usb", Usb);
+        Put(Loc.T("USB devices"), "usb", Usb);
         return res;
     }
 
     private static List<SpecRow> Computer()
     {
         var rows = new List<SpecRow>();
-        Add(rows, Nl("Naam", "Name"), Environment.MachineName);
+        Add(rows, Loc.T("Name"), Environment.MachineName);
         var cs = Q(Cim, "SELECT Manufacturer, Model, SystemType, Domain, PartOfDomain FROM Win32_ComputerSystem").FirstOrDefault();
         if (cs is not null)
         {
-            Add(rows, Nl("Fabrikant", "Manufacturer"), S(cs, "Manufacturer"));
+            Add(rows, Loc.T("Manufacturer"), S(cs, "Manufacturer"));
             Add(rows, "Model", S(cs, "Model"));
-            Add(rows, Nl("Systeemtype", "System type"), S(cs, "SystemType"));
+            Add(rows, Loc.T("System type"), S(cs, "SystemType"));
         }
         var bb = Q(Cim, "SELECT Manufacturer, Product, Version FROM Win32_BaseBoard").FirstOrDefault();
-        if (bb is not null) Add(rows, Nl("Hoofdbord", "Motherboard"), $"{S(bb, "Manufacturer")} {S(bb, "Product")}".Trim());
+        if (bb is not null) Add(rows, Loc.T("Motherboard"), $"{S(bb, "Manufacturer")} {S(bb, "Product")}".Trim());
         var bios = Q(Cim, "SELECT Manufacturer, SMBIOSBIOSVersion, ReleaseDate FROM Win32_BIOS").FirstOrDefault();
         if (bios is not null)
         {
             Add(rows, "BIOS", $"{S(bios, "Manufacturer")} {S(bios, "SMBIOSBIOSVersion")}".Trim());
-            Add(rows, Nl("BIOS-datum", "BIOS date"), Date(S(bios, "ReleaseDate")));
+            Add(rows, Loc.T("BIOS date"), Date(S(bios, "ReleaseDate")));
         }
         return rows;
     }
@@ -171,20 +170,20 @@ public static class HardwareInfo
             Add(rows, "Windows", S(os, "Caption").Replace("Microsoft ", ""));
             string ubr = "";
             try { using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"); ubr = k?.GetValue("UBR")?.ToString() ?? ""; } catch { }
-            Add(rows, Nl("Versie", "Version"), $"{S(os, "Version")}{(ubr != "" ? "." + ubr : "")} (build {S(os, "BuildNumber")})");
+            Add(rows, Loc.T("Version"), $"{S(os, "Version")}{(ubr != "" ? "." + ubr : "")} (build {S(os, "BuildNumber")})");
             try
             {
                 using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
-                Add(rows, Nl("Release", "Release"), k?.GetValue("DisplayVersion")?.ToString());
+                Add(rows, Loc.T("Release"), k?.GetValue("DisplayVersion")?.ToString());
             }
             catch { }
-            Add(rows, Nl("Architectuur", "Architecture"), S(os, "OSArchitecture"));
-            Add(rows, Nl("Geïnstalleerd", "Installed"), Date(S(os, "InstallDate")));
-            Add(rows, Nl("Laatst opgestart", "Last boot"), Date(S(os, "LastBootUpTime")));
+            Add(rows, Loc.T("Architecture"), S(os, "OSArchitecture"));
+            Add(rows, Loc.T("Installed"), Date(S(os, "InstallDate")));
+            Add(rows, Loc.T("Last boot"), Date(S(os, "LastBootUpTime")));
         }
         Add(rows, ".NET", RuntimeInformation.FrameworkDescription);
-        Add(rows, Nl("Taal / regio", "Language / region"), $"{CultureInfo.CurrentUICulture.DisplayName} / {CultureInfo.CurrentCulture.Name}");
-        Add(rows, Nl("Tijdzone", "Time zone"), TimeZoneInfo.Local.DisplayName);
+        Add(rows, Loc.T("Language / region"), $"{CultureInfo.CurrentUICulture.DisplayName} / {CultureInfo.CurrentCulture.Name}");
+        Add(rows, Loc.T("Time zone"), TimeZoneInfo.Local.DisplayName);
         return rows;
     }
 
@@ -194,29 +193,29 @@ public static class HardwareInfo
         var p = Q(Cim, "SELECT Name, Manufacturer, Description, Architecture, SocketDesignation, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed, ExtClock, L2CacheSize, L3CacheSize, VirtualizationFirmwareEnabled, SecondLevelAddressTranslationExtensions, AddressWidth FROM Win32_Processor").ToList();
         if (p.Count == 0) return rows;
         var c = p[0];
-        Add(rows, Nl("Model", "Model"), S(c, "Name"));
-        Add(rows, Nl("Fabrikant", "Manufacturer"), S(c, "Manufacturer"));
-        Add(rows, Nl("Familie", "Family"), S(c, "Description"));
-        Add(rows, Nl("Architectuur", "Architecture"), D(c, "Architecture") switch { 0 => "x86", 5 => "ARM", 9 => "x64", 12 => "ARM64", _ => S(c, "Architecture") });
+        Add(rows, Loc.T("Model"), S(c, "Name"));
+        Add(rows, Loc.T("Manufacturer"), S(c, "Manufacturer"));
+        Add(rows, Loc.T("Family"), S(c, "Description"));
+        Add(rows, Loc.T("Architecture"), D(c, "Architecture") switch { 0 => "x86", 5 => "ARM", 9 => "x64", 12 => "ARM64", _ => S(c, "Architecture") });
         Add(rows, "Socket", S(c, "SocketDesignation"));
-        if (p.Count > 1) Add(rows, Nl("Aantal processors", "Processors"), p.Count.ToString());
+        if (p.Count > 1) Add(rows, Loc.T("Processors"), p.Count.ToString());
         int cores = (int)p.Sum(x => D(x, "NumberOfCores")), threads = (int)p.Sum(x => D(x, "NumberOfLogicalProcessors"));
-        Add(rows, Nl("Kernen / threads", "Cores / threads"), $"{cores} / {threads}");
+        Add(rows, Loc.T("Cores / threads"), $"{cores} / {threads}");
         double mhz = D(c, "MaxClockSpeed");
-        if (mhz > 0) Add(rows, Nl("Basisklok", "Base clock"), $"{mhz / 1000:0.00} GHz");
-        rows.Add(new SpecRow(Nl("Huidige klok", "Current clock"), () => m.CpuMHz is double f ? $"{f / 1000:0.00} GHz" : "—"));
-        rows.Add(new SpecRow(Nl("Belasting", "Load"), () => $"{m.CpuPercent:0}%"));
+        if (mhz > 0) Add(rows, Loc.T("Base clock"), $"{mhz / 1000:0.00} GHz");
+        rows.Add(new SpecRow(Loc.T("Current clock"), () => m.CpuMHz is double f ? $"{f / 1000:0.00} GHz" : "—"));
+        rows.Add(new SpecRow(Loc.T("Load"), () => $"{m.CpuPercent:0}%"));
         double l2 = D(c, "L2CacheSize"), l3 = D(c, "L3CacheSize");
         if (l2 > 0) Add(rows, "L2-cache", l2 >= 1024 ? $"{l2 / 1024:0.#} MB" : $"{l2:0} KB");
         if (l3 > 0) Add(rows, "L3-cache", l3 >= 1024 ? $"{l3 / 1024:0.#} MB" : $"{l3:0} KB");
-        Add(rows, Nl("Virtualisatie", "Virtualization"), YesNo(c, "VirtualizationFirmwareEnabled"));
-        Add(rows, Nl("Adresbreedte", "Address width"), D(c, "AddressWidth") > 0 ? $"{D(c, "AddressWidth"):0}-bit" : "");
+        Add(rows, Loc.T("Virtualization"), YesNo(c, "VirtualizationFirmwareEnabled"));
+        Add(rows, Loc.T("Address width"), D(c, "AddressWidth") > 0 ? $"{D(c, "AddressWidth"):0}-bit" : "");
         return rows;
     }
 
     private static string YesNo(ManagementBaseObject o, string prop)
     {
-        try { return o[prop] is bool b ? (b ? Nl("aan", "on") : Nl("uit", "off")) : ""; } catch { return ""; }
+        try { return o[prop] is bool b ? (b ? Loc.T("on") : Loc.T("off")) : ""; } catch { return ""; }
     }
 
     [DllImport("kernel32.dll")] private static extern bool IsProcessorFeaturePresent(int feature);
@@ -237,8 +236,8 @@ public static class HardwareInfo
             (has ? on : off).Add(name);
         }
         for (int i = 0; i < on.Count; i += 8)
-            rows.Add(R(i == 0 ? Nl("Ondersteund", "Supported") : "", string.Join("  ", on.Skip(i).Take(8))));
-        if (off.Count > 0) rows.Add(R(Nl("Niet aanwezig", "Not present"), string.Join("  ", off)));
+            rows.Add(R(i == 0 ? Loc.T("Supported") : "", string.Join("  ", on.Skip(i).Take(8))));
+        if (off.Count > 0) rows.Add(R(Loc.T("Not present"), string.Join("  ", off)));
         return rows;
     }
 
@@ -250,19 +249,19 @@ public static class HardwareInfo
         {
             var rows = new List<SpecRow>();
             string name = S(v, "Name");
-            Add(rows, Nl("Model", "Model"), name);
-            Add(rows, Nl("Fabrikant", "Manufacturer"), S(v, "AdapterCompatibility"));
+            Add(rows, Loc.T("Model"), name);
+            Add(rows, Loc.T("Manufacturer"), S(v, "AdapterCompatibility"));
             Add(rows, "GPU", S(v, "VideoProcessor"));
             long ded = 0;
             try { foreach (var luid in Metrics.GetGpuLuids()) if (Metrics.GpuName(luid).Equals(name, StringComparison.OrdinalIgnoreCase)) ded = Metrics.GpuDedicatedBytes(luid); } catch { }
             if (ded <= 0) ded = (long)D(v, "AdapterRAM");
-            if (ded > 0) Add(rows, Nl("Videogeheugen", "Video memory"), Size(ded));
-            Add(rows, Nl("Driver", "Driver"), S(v, "DriverVersion"));
-            Add(rows, Nl("Driverdatum", "Driver date"), Date(S(v, "DriverDate")));
+            if (ded > 0) Add(rows, Loc.T("Video memory"), Size(ded));
+            Add(rows, Loc.T("Driver"), S(v, "DriverVersion"));
+            Add(rows, Loc.T("Driver date"), Date(S(v, "DriverDate")));
             double w = D(v, "CurrentHorizontalResolution"), h = D(v, "CurrentVerticalResolution");
-            if (w > 0) Add(rows, Nl("Uitvoer", "Output"), $"{w:0} × {h:0} @ {D(v, "CurrentRefreshRate"):0} Hz");
+            if (w > 0) Add(rows, Loc.T("Output"), $"{w:0} × {h:0} @ {D(v, "CurrentRefreshRate"):0} Hz");
             Add(rows, "Status", S(v, "Status"));
-            if (rows.Count > 0) res.Add(new SpecBlock(n++ == 0 ? Nl("Videokaart", "Graphics") : Nl("Videokaart", "Graphics") + " " + (n), rows));
+            if (rows.Count > 0) res.Add(new SpecBlock(n++ == 0 ? Loc.T("Graphics") : Loc.T("Graphics") + " " + (n), rows));
         }
         return res;
     }
@@ -270,15 +269,15 @@ public static class HardwareInfo
     private static List<SpecRow> Memory(Metrics m)
     {
         var rows = new List<SpecRow>();
-        rows.Add(new SpecRow(Nl("Totaal", "Total"), () => Size(m.MemTotalBytes)));
-        rows.Add(new SpecRow(Nl("In gebruik", "In use"), () => $"{Size(m.MemUsedBytes)} ({m.MemPercent:0}%)"));
+        rows.Add(new SpecRow(Loc.T("Total"), () => Size(m.MemTotalBytes)));
+        rows.Add(new SpecRow(Loc.T("In use"), () => $"{Size(m.MemUsedBytes)} ({m.MemPercent:0}%)"));
         var arr = Q(Cim, "SELECT MemoryDevices, MaxCapacity, MaxCapacityEx FROM Win32_PhysicalMemoryArray").FirstOrDefault();
         var dimms = Q(Cim, "SELECT Capacity FROM Win32_PhysicalMemory").Count;
         if (arr is not null)
         {
-            Add(rows, Nl("Slots", "Slots"), $"{dimms} {Nl("bezet van", "used of")} {D(arr, "MemoryDevices"):0}");
+            Add(rows, Loc.T("Slots"), $"{dimms} {Loc.T("used of")} {D(arr, "MemoryDevices"):0}");
             double max = D(arr, "MaxCapacityEx") > 0 ? D(arr, "MaxCapacityEx") * 1024 : D(arr, "MaxCapacity") * 1024;
-            if (max > 0) Add(rows, Nl("Maximaal", "Maximum"), Size(max));
+            if (max > 0) Add(rows, Loc.T("Maximum"), Size(max));
         }
         return rows;
     }
@@ -305,7 +304,7 @@ public static class HardwareInfo
             string slot = S(d, "DeviceLocator");
             rows.Add(R(slot == "" ? S(d, "BankLabel") : slot, string.Join(" · ", parts)));
         }
-        return rows.Count == 0 ? new() : new() { new SpecBlock(Nl("Geheugenmodules", "Memory modules"), rows) };
+        return rows.Count == 0 ? new() : new() { new SpecBlock(Loc.T("Memory modules"), rows) };
     }
 
     private static string Bus(double code) => code switch
@@ -328,12 +327,12 @@ public static class HardwareInfo
                 Add(rows, "Model", S(d, "FriendlyName"));
                 string media = D(d, "MediaType") switch { 3 => "HDD", 4 => "SSD", 5 => "SCM", _ => "" };
                 string bus = Bus(D(d, "BusType"));
-                Add(rows, Nl("Type", "Type"), $"{media} {bus}".Trim());
-                Add(rows, Nl("Grootte", "Size"), Size(D(d, "Size")));
-                Add(rows, Nl("Gezondheid", "Health"), D(d, "HealthStatus") switch { 0 => Nl("gezond", "healthy"), 1 => Nl("waarschuwing", "warning"), 2 => Nl("ongezond", "unhealthy"), _ => "" });
+                Add(rows, Loc.T("Type"), $"{media} {bus}".Trim());
+                Add(rows, Loc.T("Size"), Size(D(d, "Size")));
+                Add(rows, Loc.T("Health"), D(d, "HealthStatus") switch { 0 => Loc.T("healthy"), 1 => Loc.T("warning"), 2 => Loc.T("unhealthy"), _ => "" });
                 Add(rows, "Firmware", S(d, "FirmwareVersion"));
-                if (D(d, "SpindleSpeed") is > 0 and < 100000) Add(rows, Nl("Toerental", "Spindle speed"), $"{D(d, "SpindleSpeed"):0} rpm");
-                res.Add(new SpecBlock(Nl("Schijf", "Drive") + $" {i - 1}", rows));
+                if (D(d, "SpindleSpeed") is > 0 and < 100000) Add(rows, Loc.T("Spindle speed"), $"{D(d, "SpindleSpeed"):0} rpm");
+                res.Add(new SpecBlock(Loc.T("Drive") + $" {i - 1}", rows));
             }
             return res;
         }
@@ -342,11 +341,11 @@ public static class HardwareInfo
         {
             var rows = new List<SpecRow>();
             Add(rows, "Model", S(d, "Model"));
-            Add(rows, Nl("Interface", "Interface"), S(d, "InterfaceType"));
-            Add(rows, Nl("Grootte", "Size"), Size(D(d, "Size")));
+            Add(rows, Loc.T("Interface"), S(d, "InterfaceType"));
+            Add(rows, Loc.T("Size"), Size(D(d, "Size")));
             Add(rows, "Status", S(d, "Status"));
             Add(rows, "Firmware", S(d, "FirmwareRevision"));
-            res.Add(new SpecBlock(Nl("Schijf", "Drive") + $" {n++}", rows));
+            res.Add(new SpecBlock(Loc.T("Drive") + $" {n++}", rows));
         }
         return res;
     }
@@ -362,9 +361,9 @@ public static class HardwareInfo
                 {
                     if (!d.IsReady) continue;
                     string label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "" : d.VolumeLabel + " · ";
-                    string kind = d.DriveType switch { DriveType.Fixed => "", DriveType.Removable => Nl("verwisselbaar", "removable") + " · ", DriveType.Network => Nl("netwerk", "network") + " · ", DriveType.CDRom => "cd/dvd · ", _ => "" };
+                    string kind = d.DriveType switch { DriveType.Fixed => "", DriveType.Removable => Loc.T("removable") + " · ", DriveType.Network => Loc.T("network") + " · ", DriveType.CDRom => "cd/dvd · ", _ => "" };
                     string name = d.Name.TrimEnd('\\');
-                    rows.Add(R(name, $"{kind}{label}{d.DriveFormat} · {Size(d.TotalFreeSpace)} {Nl("vrij van", "free of")} {Size(d.TotalSize)}"));
+                    rows.Add(R(name, $"{kind}{label}{d.DriveFormat} · {Size(d.TotalFreeSpace)} {Loc.T("free of")} {Size(d.TotalSize)}"));
                 }
                 catch { }
             }
@@ -405,22 +404,22 @@ public static class HardwareInfo
                 string man = Decode(ids[i]["ManufacturerName"]), model = Decode(ids[i]["UserFriendlyName"]);
                 Add(rows, "Monitor", $"{man} {model}".Trim());
                 double year = D(ids[i], "YearOfManufacture");
-                if (year > 1990) Add(rows, Nl("Gemaakt", "Made"), $"{year:0}");
+                if (year > 1990) Add(rows, Loc.T("Made"), $"{year:0}");
             }
             if (i < sizes.Count)
             {
                 double w = D(sizes[i], "MaxHorizontalImageSize"), h = D(sizes[i], "MaxVerticalImageSize");
-                if (w > 0 && h > 0) Add(rows, Nl("Diagonaal", "Diagonal"), $"{Math.Sqrt(w * w + h * h) / 2.54:0.0}\" ({w:0} × {h:0} cm)");
+                if (w > 0 && h > 0) Add(rows, Loc.T("Diagonal"), $"{Math.Sqrt(w * w + h * h) / 2.54:0.0}\" ({w:0} × {h:0} cm)");
             }
-            Add(rows, Nl("Resolutie", "Resolution"), $"{sc.Bounds.Width} × {sc.Bounds.Height}");
+            Add(rows, Loc.T("Resolution"), $"{sc.Bounds.Width} × {sc.Bounds.Height}");
             var dm = new DEVMODE { dmSize = (ushort)Marshal.SizeOf<DEVMODE>() };
-            try { if (EnumDisplaySettings(sc.DeviceName, -1, ref dm)) Add(rows, Nl("Verversing", "Refresh rate"), $"{dm.dmDisplayFrequency} Hz"); } catch { }
-            Add(rows, Nl("Kleurdiepte", "Colour depth"), $"{sc.BitsPerPixel}-bit");
-            Add(rows, Nl("Positie", "Position"), $"{sc.Bounds.X}, {sc.Bounds.Y}");
-            Add(rows, Nl("Werkgebied", "Work area"), $"{sc.WorkingArea.Width} × {sc.WorkingArea.Height}");
-            Add(rows, Nl("Hoofdscherm", "Primary"), sc.Primary ? Nl("ja", "yes") : Nl("nee", "no"));
+            try { if (EnumDisplaySettings(sc.DeviceName, -1, ref dm)) Add(rows, Loc.T("Refresh rate"), $"{dm.dmDisplayFrequency} Hz"); } catch { }
+            Add(rows, Loc.T("Colour depth"), $"{sc.BitsPerPixel}-bit");
+            Add(rows, Loc.T("Position"), $"{sc.Bounds.X}, {sc.Bounds.Y}");
+            Add(rows, Loc.T("Work area"), $"{sc.WorkingArea.Width} × {sc.WorkingArea.Height}");
+            Add(rows, Loc.T("Primary"), sc.Primary ? Loc.T("yes") : Loc.T("no"));
             i++;
-            res.Add(new SpecBlock(Nl("Beeldscherm", "Display") + $" {i}", rows));
+            res.Add(new SpecBlock(Loc.T("Display") + $" {i}", rows));
         }
         return res;
     }
@@ -436,14 +435,14 @@ public static class HardwareInfo
                 if (ni.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) continue;
                 if (ni.OperationalStatus != OperationalStatus.Up) continue;
                 var rows = new List<SpecRow>();
-                Add(rows, Nl("Adapter", "Adapter"), ni.Description);
-                Add(rows, Nl("Type", "Type"), ni.NetworkInterfaceType switch
+                Add(rows, Loc.T("Adapter"), ni.Description);
+                Add(rows, Loc.T("Type"), ni.NetworkInterfaceType switch
                 {
                     NetworkInterfaceType.Wireless80211 => "Wi-Fi",
                     NetworkInterfaceType.Ethernet or NetworkInterfaceType.GigabitEthernet => "Ethernet",
                     var t => t.ToString(),
                 });
-                if (ni.Speed > 0) Add(rows, Nl("Snelheid", "Link speed"), ni.Speed >= 1_000_000_000 ? $"{ni.Speed / 1e9:0.#} Gbps" : $"{ni.Speed / 1e6:0} Mbps");
+                if (ni.Speed > 0) Add(rows, Loc.T("Link speed"), ni.Speed >= 1_000_000_000 ? $"{ni.Speed / 1e9:0.#} Gbps" : $"{ni.Speed / 1e6:0} Mbps");
                 var mac = ni.GetPhysicalAddress().ToString();
                 if (mac.Length == 12) Add(rows, "MAC", string.Join(":", Enumerable.Range(0, 6).Select(i => mac.Substring(i * 2, 2))));
                 var ip = ni.GetIPProperties();
@@ -453,7 +452,7 @@ public static class HardwareInfo
                 Add(rows, "Gateway", gw?.Address.ToString());
                 var dns = ip.DnsAddresses.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Take(2).Select(a => a.ToString());
                 Add(rows, "DNS", string.Join(", ", dns));
-                res.Add(new SpecBlock(Nl("Netwerk", "Network") + " — " + ni.Name, rows));
+                res.Add(new SpecBlock(Loc.T("Network") + " — " + ni.Name, rows));
                 if (res.Count >= 4) break;
             }
         }
@@ -467,17 +466,17 @@ public static class HardwareInfo
         var rows = new List<SpecRow>();
         var b = Q(Cim, "SELECT Name, Chemistry, DesignVoltage, EstimatedChargeRemaining, BatteryStatus FROM Win32_Battery").FirstOrDefault();
         if (b is null) return rows;
-        Add(rows, Nl("Naam", "Name"), S(b, "Name"));
-        Add(rows, Nl("Chemie", "Chemistry"), D(b, "Chemistry") switch { 3 => "Lead acid", 4 => "NiCd", 5 => "NiMH", 6 => "Li-ion", 7 => "Zinc air", 8 => "Li-polymer", _ => "" });
-        if (D(b, "DesignVoltage") > 0) Add(rows, Nl("Ontwerpspanning", "Design voltage"), $"{D(b, "DesignVoltage") / 1000:0.0} V");
+        Add(rows, Loc.T("Name"), S(b, "Name"));
+        Add(rows, Loc.T("Chemistry"), D(b, "Chemistry") switch { 3 => "Lead acid", 4 => "NiCd", 5 => "NiMH", 6 => "Li-ion", 7 => "Zinc air", 8 => "Li-polymer", _ => "" });
+        if (D(b, "DesignVoltage") > 0) Add(rows, Loc.T("Design voltage"), $"{D(b, "DesignVoltage") / 1000:0.0} V");
         var st = Q(@"root\wmi", "SELECT DesignedCapacity FROM BatteryStaticData").FirstOrDefault();
         var full = Q(@"root\wmi", "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity").FirstOrDefault();
         var cyc = Q(@"root\wmi", "SELECT CycleCount FROM BatteryCycleCount").FirstOrDefault();
         double design = st is null ? 0 : D(st, "DesignedCapacity"), fc = full is null ? 0 : D(full, "FullChargedCapacity");
-        if (design > 0) Add(rows, Nl("Ontwerpcapaciteit", "Design capacity"), $"{design / 1000:0.0} Wh");
-        if (fc > 0) Add(rows, Nl("Volle lading nu", "Full charge now"), $"{fc / 1000:0.0} Wh");
-        if (design > 0 && fc > 0) Add(rows, Nl("Slijtage", "Wear"), $"{Math.Max(0, 100 - 100 * fc / design):0}%  ({100 * fc / design:0}% {Nl("gezond", "health")})");
-        if (cyc is not null && D(cyc, "CycleCount") > 0) Add(rows, Nl("Laadcycli", "Charge cycles"), $"{D(cyc, "CycleCount"):0}");
+        if (design > 0) Add(rows, Loc.T("Design capacity"), $"{design / 1000:0.0} Wh");
+        if (fc > 0) Add(rows, Loc.T("Full charge now"), $"{fc / 1000:0.0} Wh");
+        if (design > 0 && fc > 0) Add(rows, Loc.T("Wear"), $"{Math.Max(0, 100 - 100 * fc / design):0}%  ({100 * fc / design:0}% {Loc.T("health")})");
+        if (cyc is not null && D(cyc, "CycleCount") > 0) Add(rows, Loc.T("Charge cycles"), $"{D(cyc, "CycleCount"):0}");
         return rows;
     }
 
@@ -490,18 +489,18 @@ public static class HardwareInfo
             using var k = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\SecureBoot\State");
             if (k is not null)
             {
-                Add(rows, Nl("Opstartmodus", "Boot mode"), "UEFI");
-                Add(rows, "Secure Boot", k.GetValue("UEFISecureBootEnabled") is int i && i == 1 ? Nl("aan", "on") : Nl("uit", "off"));
+                Add(rows, Loc.T("Boot mode"), "UEFI");
+                Add(rows, "Secure Boot", k.GetValue("UEFISecureBootEnabled") is int i && i == 1 ? Loc.T("on") : Loc.T("off"));
             }
-            else Add(rows, Nl("Opstartmodus", "Boot mode"), "Legacy BIOS");
+            else Add(rows, Loc.T("Boot mode"), "Legacy BIOS");
         }
         catch { }
         var tpm = Q(@"root\CIMV2\Security\MicrosoftTpm", "SELECT IsEnabled_InitialValue, SpecVersion, ManufacturerVersion FROM Win32_Tpm").FirstOrDefault();
         if (tpm is not null)
         {
-            Add(rows, "TPM", $"{S(tpm, "SpecVersion").Split(',')[0]} · {(tpm["IsEnabled_InitialValue"] is true ? Nl("aan", "on") : Nl("uit", "off"))}");
+            Add(rows, "TPM", $"{S(tpm, "SpecVersion").Split(',')[0]} · {(tpm["IsEnabled_InitialValue"] is true ? Loc.T("on") : Loc.T("off"))}");
         }
-        else Add(rows, "TPM", Nl("niet gevonden", "not found"));
+        else Add(rows, "TPM", Loc.T("not found"));
         return rows;
     }
 
@@ -510,7 +509,7 @@ public static class HardwareInfo
     {
         var rows = new List<SpecRow>();
         foreach (var d in Q(Cim, "SELECT Name, Status, Manufacturer FROM Win32_SoundDevice"))
-            rows.Add(R(S(d, "Status") == "OK" || S(d, "Status") == "" ? Nl("Apparaat", "Device") : S(d, "Status"), S(d, "Name")));
+            rows.Add(R(S(d, "Status") == "OK" || S(d, "Status") == "" ? Loc.T("Device") : S(d, "Status"), S(d, "Name")));
         return rows;
     }
 
@@ -519,11 +518,11 @@ public static class HardwareInfo
         var rows = new List<SpecRow>();
         var seen = new HashSet<string>();
         foreach (var d in Q(Cim, "SELECT Name FROM Win32_Keyboard"))
-            if (seen.Add("k" + S(d, "Name"))) rows.Add(R(Nl("Toetsenbord", "Keyboard"), S(d, "Name")));
+            if (seen.Add("k" + S(d, "Name"))) rows.Add(R(Loc.T("Keyboard"), S(d, "Name")));
         foreach (var d in Q(Cim, "SELECT Name, NumberOfButtons FROM Win32_PointingDevice"))
-            if (seen.Add("p" + S(d, "Name"))) rows.Add(R(Nl("Muis / touchpad", "Mouse / touchpad"), S(d, "Name")));
+            if (seen.Add("p" + S(d, "Name"))) rows.Add(R(Loc.T("Mouse / touchpad"), S(d, "Name")));
         foreach (var d in Q(Cim, "SELECT Name FROM Win32_PnPEntity WHERE PNPClass = 'Camera' AND Present = TRUE"))
-            if (seen.Add("c" + S(d, "Name"))) rows.Add(R(Nl("Camera", "Camera"), S(d, "Name")));
+            if (seen.Add("c" + S(d, "Name"))) rows.Add(R(Loc.T("Camera"), S(d, "Name")));
         return rows;
     }
 
@@ -537,7 +536,7 @@ public static class HardwareInfo
         {
             string n = S(d, "Name");
             if (n == "" || BtSkip.Any(s => n.Contains(s, StringComparison.OrdinalIgnoreCase))) continue;
-            if (seen.Add(n)) rows.Add(R(rows.Count == 0 ? Nl("Adapter / apparaten", "Adapter / devices") : "", n));
+            if (seen.Add(n)) rows.Add(R(rows.Count == 0 ? Loc.T("Adapter / devices") : "", n));
             if (rows.Count >= 12) break;
         }
         return rows;
@@ -549,7 +548,7 @@ public static class HardwareInfo
     {
         var rows = new List<SpecRow>();
         foreach (var c in Q(Cim, "SELECT Name FROM Win32_USBController"))
-            rows.Add(R(Nl("Controller", "Controller"), S(c, "Name")));
+            rows.Add(R(Loc.T("Controller"), S(c, "Name")));
         var counts = new Dictionary<string, (string cls, int n)>();
         foreach (var d in Q(Cim, @"SELECT Name, PNPClass, Manufacturer FROM Win32_PnPEntity WHERE DeviceID LIKE 'USB\\%' AND Present = TRUE"))
         {

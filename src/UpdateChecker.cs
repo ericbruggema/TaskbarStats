@@ -75,9 +75,9 @@ public static class UpdateChecker
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object) return new(UpdateStatus.Failed, null, "onverwacht antwoord");
+            if (root.ValueKind != JsonValueKind.Object) return new(UpdateStatus.Failed, null, Loc.T("unexpected response"));
             string? tag = root.TryGetProperty("tag_name", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString() : null;
-            if (!TryParseTag(tag, out _, out _)) return new(UpdateStatus.Failed, null, "onbekende versietag");
+            if (!TryParseTag(tag, out _, out _)) return new(UpdateStatus.Failed, null, Loc.T("unknown version tag"));
             bool draft = root.TryGetProperty("draft", out var d) && d.ValueKind == JsonValueKind.True;
             bool pre = root.TryGetProperty("prerelease", out var p) && p.ValueKind == JsonValueKind.True;
             if (draft || pre || !IsNewer(tag, current)) return new(UpdateStatus.UpToDate);

@@ -15,21 +15,21 @@ public sealed class LogForm : Form
     {
         AppIcon.Apply(this);
         _usage = usage;
-        Text = Loc.Pick("Netwerkverbruik – log", "Network usage – log");
+        Text = Loc.T("Network usage – log");
         Size = new Size(760, 520);
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(560, 300);
 
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8, 8, 8, 0), WrapContents = false };
-        top.Controls.Add(new Label { Text = Loc.Pick("Periode:", "Period:"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
-        foreach (var d in Ranges) _range.Items.Add(Loc.Pick($"Laatste {d} dagen", $"Last {d} days"));
+        top.Controls.Add(new Label { Text = Loc.T("Period:"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
+        foreach (var d in Ranges) _range.Items.Add(Loc.T("Last {0} days", d));
         _range.SelectedIndex = 1;
         _range.SelectedIndexChanged += (_, _) => Fill();
         top.Controls.Add(_range);
 
-        var export = new Button { Text = Loc.Pick("Exporteer CSV…", "Export CSV…"), AutoSize = true };
+        var export = new Button { Text = Loc.T("Export CSV…"), AutoSize = true };
         export.Click += (_, _) => ExportCsv();
-        var clear = new Button { Text = Loc.Pick("Log wissen…", "Clear log…"), AutoSize = true };
+        var clear = new Button { Text = Loc.T("Clear log…"), AutoSize = true };
         clear.Click += (_, _) => ClearLog();
         top.Controls.Add(export);
         top.Controls.Add(clear);
@@ -42,11 +42,11 @@ public sealed class LogForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.BackgroundColor = SystemColors.Window;
-        _grid.Columns.Add("day", Loc.Pick("Datum", "Date"));
-        _grid.Columns.Add("adapter", Loc.Pick("Adapter", "Adapter"));
-        _grid.Columns.Add("down", Loc.Pick("Ontvangen", "Received"));
-        _grid.Columns.Add("up", Loc.Pick("Verzonden", "Sent"));
-        _grid.Columns.Add("total", Loc.Pick("Totaal", "Total"));
+        _grid.Columns.Add("day", Loc.T("Date"));
+        _grid.Columns.Add("adapter", Loc.T("Adapter"));
+        _grid.Columns.Add("down", Loc.T("Received"));
+        _grid.Columns.Add("up", Loc.T("Sent"));
+        _grid.Columns.Add("total", Loc.T("Total"));
         _grid.Columns["adapter"]!.FillWeight = 200;
         foreach (var n in new[] { "down", "up", "total" })
             _grid.Columns[n]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
@@ -71,7 +71,7 @@ public sealed class LogForm : Form
             long d = per.Values.Sum(u => u.Down), u2 = per.Values.Sum(u => u.Up);
             down += d; up += u2;
 
-            int i = _grid.Rows.Add(day.ToString("yyyy-MM-dd (ddd)"), Loc.Pick("Alle adapters", "All adapters"),
+            int i = _grid.Rows.Add(day.ToString("yyyy-MM-dd (ddd)"), Loc.T("All adapters"),
                                    Metrics.FormatBytes(d), Metrics.FormatBytes(u2), Metrics.FormatBytes(d + u2));
             _grid.Rows[i].DefaultCellStyle.Font = new Font(_grid.Font, FontStyle.Bold);
             _grid.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(235, 240, 248);
@@ -79,8 +79,7 @@ public sealed class LogForm : Form
             foreach (var (name, u) in per.OrderByDescending(k => k.Value.Total))
                 _grid.Rows.Add("", name, Metrics.FormatBytes(u.Down), Metrics.FormatBytes(u.Up), Metrics.FormatBytes(u.Total));
         }
-        _summary.Text = Loc.Pick($"Totaal in deze periode:  ↓ {Metrics.FormatBytes(down)}   ↑ {Metrics.FormatBytes(up)}   (samen {Metrics.FormatBytes(down + up)})",
-                                 $"Total in this period:  ↓ {Metrics.FormatBytes(down)}   ↑ {Metrics.FormatBytes(up)}   (combined {Metrics.FormatBytes(down + up)})");
+        _summary.Text = Loc.T("Total in this period:  ↓ {0}   ↑ {1}   (combined {2})", Metrics.FormatBytes(down), Metrics.FormatBytes(up), Metrics.FormatBytes(down + up));
     }
 
     private void ExportCsv()
@@ -99,7 +98,7 @@ public sealed class LogForm : Form
     private void ClearLog()
     {
         var r = MessageBox.Show(this,
-            Loc.Pick("Alle opgeslagen verbruiksgegevens wissen?", "Delete all stored usage data?"),
+            Loc.T("Delete all stored usage data?"),
             Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
         if (r != DialogResult.Yes) return;
         _usage.Clear();

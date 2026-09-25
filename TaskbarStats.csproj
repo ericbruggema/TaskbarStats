@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
+    <EmbeddedResource Include="lang\*.json" LogicalName="lang.%(Filename).json" />
   </ItemGroup>
 
   <ItemGroup>

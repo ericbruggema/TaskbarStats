@@ -16,24 +16,24 @@ public sealed partial class SettingsForm
     private List<Control> GraphSettings(FlowLayoutPanel p)
     {
         var adv = new List<Control>();
-        var two = new (string, TextGraphStyle)[] { (Loc.S("digital"), TextGraphStyle.Digital), (Loc.Pick("Grafiek", "Graph"), TextGraphStyle.Graph) };
+        var two = new (string, TextGraphStyle)[] { (Loc.T("Digital"), TextGraphStyle.Digital), (Loc.T("Graph"), TextGraphStyle.Graph) };
         var netStyle = Seg(two, () => _c.NetStyle, v => _c.NetStyle = v);
         var pingStyle = Seg(two, () => _c.PingStyle, v => _c.PingStyle = v);
         var secs = Seg(new (string, int)[] { ("30 s", 30), ("60 s", 60), ("120 s", 120) }, () => _c.GraphSeconds, v => _c.GraphSeconds = v, 56);
         var netMax = Seg(new (string, int)[]
         {
-            (Loc.Pick("Automatisch", "Automatic"), 0), ("1 MB/s", 1), ("10 MB/s", 10), ("100 MB/s", 100),
+            (Loc.T("Automatic"), 0), ("1 MB/s", 1), ("10 MB/s", 10), ("100 MB/s", 100),
         }, () => _c.NetGraphMaxMBps, v => _c.NetGraphMaxMBps = v, 56);
-        p.Controls.Add(Row(Loc.Pick("Netwerk", "Network"), netStyle));
-        adv.Add(Why(() => AnyGraph() ? null : Loc.Pick("Nog geen onderdeel heeft de stijl Grafiek (subtab Weergave). Je kunt dit alvast instellen; het werkt zodra een onderdeel een grafiek toont.", "No item uses the Graph style yet (Display subtab). You can set this already; it applies as soon as an item shows a graph.")));
-        adv.Add(Row(Loc.Pick("Netwerkgrafiek: schaal", "Network graph: scale"), netMax));
+        p.Controls.Add(Row(Loc.T("Network"), netStyle));
+        adv.Add(Why(() => AnyGraph() ? null : Loc.T("No item uses the Graph style yet (Display subtab). You can set this already; it applies as soon as an item shows a graph.")));
+        adv.Add(Row(Loc.T("Network graph: scale"), netMax));
         p.Controls.Add(Row("Ping", pingStyle));
         var len = Seg(new (string, GraphLen)[]
         {
-            (Loc.Pick("Zeer kort", "Tiny"), GraphLen.Tiny), (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium),
-            (Loc.Pick("Lang", "Long"), GraphLen.Long), (Loc.Pick("Aangepast", "Custom"), GraphLen.Custom),
+            (Loc.T("Tiny"), GraphLen.Tiny), (Loc.T("Short"), GraphLen.Short), (Loc.T("Medium"), GraphLen.Medium),
+            (Loc.T("Long"), GraphLen.Long), (Loc.T("Custom"), GraphLen.Custom),
         }, () => _c.GraphLength, v => _c.GraphLength = v, 60);
-        adv.Add(Row(Loc.Pick("Lengte van de grafiek", "Graph length"), len));
+        adv.Add(Row(Loc.T("Graph length"), len));
         // Eigen breedte: wijzigen kiest automatisch "Aangepast".
         var px = Num(16, 160, () => _c.GraphWidthPx, v =>
         {
@@ -42,9 +42,9 @@ public sealed partial class SettingsForm
         });
         var pxRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0) };
         pxRow.Controls.Add(px);
-        pxRow.Controls.Add(new Label { Text = Loc.Pick("px (16–160; Zeer kort 24, Kort 34, Middel 46, Lang 60)", "px (16–160; Tiny 24, Short 34, Medium 46, Long 60)"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
-        adv.Add(Row(Loc.Pick("Eigen breedte", "Own width"), pxRow));
-        adv.Add(Row(Loc.Pick("Periode: de laatste", "Period: the last"), secs));
+        pxRow.Controls.Add(new Label { Text = Loc.T("px (16–160; Tiny 24, Short 34, Medium 46, Long 60)"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
+        adv.Add(Row(Loc.T("Own width"), pxRow));
+        adv.Add(Row(Loc.T("Period: the last"), secs));
         return adv;
     }
 }

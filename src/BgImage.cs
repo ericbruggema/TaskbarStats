@@ -191,8 +191,8 @@ public sealed class BgLayer : IDisposable
     {
         using var dlg = new OpenFileDialog
         {
-            Title = Loc.Pick("Kies een achtergrondafbeelding", "Choose a background image"),
-            Filter = Loc.Pick("Afbeeldingen (png, jpg, bmp)|*.png;*.jpg;*.jpeg;*.bmp|Alle bestanden|*.*", "Images (png, jpg, bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"),
+            Title = Loc.T("Choose a background image"),
+            Filter = Loc.T("Images (png, jpg, bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"),
         };
         try { if (!string.IsNullOrEmpty(current)) dlg.InitialDirectory = Path.GetDirectoryName(current); } catch { }
         return dlg.ShowDialog() == DialogResult.OK ? dlg.FileName : null;

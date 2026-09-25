@@ -109,7 +109,7 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
                   een schijf bijna vol is, CPU/GPU/
                   geheugen te lang op kritiek staat, of je 80% / 100%
                   van je maandlimiet bereikt.
-- Overig        : ververssnelheid, taal (NL/EN), transparante achtergrond,
+- Overig        : ververssnelheid, taal (NL/EN/eigen taalbestand), transparante achtergrond,
                   met Windows meestarten, verbergen bij volledig scherm
                   (games/video), positie vergrendelen en vastplakken aan het systeemvak.
 

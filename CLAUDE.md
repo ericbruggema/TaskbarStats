@@ -3,7 +3,7 @@
 Windows-monitor (.NET 8, WinForms): een klein widget naast het systeemvak van de taakbalk, plus een groot
 bureaublad-dashboard en een fullscreen "cockpit". Toont CPU, GPU, geheugen, netwerk, schijven, batterij, temperaturen;
 waarden komen uit dezelfde bronnen als Taakbeheer. Openbaar op GitHub (`ericbruggema/TaskbarStats`, MIT). De gebruiker
-praat Nederlands; UI en commentaar zijn Nederlands, met een Engelse variant voor het menu/de schermen.
+praat Nederlands; commentaar in de code is Nederlands. UI-teksten staan in het Engels in de code (`Loc.T`) met vertalingen in `lang/*.json` (nu nl; Engels is de brontekst).
 
 ## Commando's
 
@@ -35,7 +35,7 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 | `ProcessSampler.cs` | top-processen; gebruik `SampleAsync()` |
 | `AppSettings.cs` | JSON-instellingen in `%AppData%\TaskbarStats\settings.json` (`TASKBARSTATS_DATA` overschrijft de map) |
 | `StartupManager.cs` | autostart = geplande taak met hoogste rechten (Run-sleutel werkt niet voor elevated apps) |
-| `Loc.cs` | `Loc.Pick(nl, en)` en een kleine sleutel-tabel |
+| `Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text", args…)` (de Engelse tekst is de sleutel; `{0}` = `string.Format`; `"text@@ctx"` bij dezelfde tekst met andere betekenis; `Loc.N` markeert teksten in arrays). Talen: ingebedde `lang/<code>.json` plus eigen bestanden in `%AppData%\TaskbarStats\lang`; ontbrekende tekst = Engels; taal automatisch uit Windows bij eerste start. Controle: `tools\check-lang.ps1`. `Loc.Pick(nl,en)` bestaat nog alleen voor de privé-onderdelen |
 
 Alle vensters zijn **layered windows** met per-pixel alpha: tekenen naar een `Bitmap` (GDI+) en `UpdateLayeredWindow`.
 Bij "transparant" is de achtergrond alpha 1 (onzichtbaar maar klikbaar); een `TransparencyKey` liet klikken doorvallen
@@ -89,7 +89,7 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Conventies
 
-- Nederlandse commentaren en UI-teksten; elke nieuwe tekst met `Loc.Pick("nl", "en")`.
+- Nederlandse commentaren; elke nieuwe zichtbare tekst als `Loc.T("English text")` en de Nederlandse vertaling in `lang/nl.json` (daarna `tools\check-lang.ps1`). Wijzig je een Engelse tekst, pas dan ook de sleutel in alle taalbestanden aan.
 - Nieuwe instelling = property in `AppSettings` met default (oude `settings.json` blijft werken), opslaan via `Persist()`/`Relayout()`.
 - Code sluit aan op de omringende stijl; geen onnodige abstracties. Bestanden hebben CRLF (`.gitattributes`).
 - Repo is **openbaar**: geen persoonlijke gegevens, geen schermafbeeldingen met privé-inhoud. Commit-auteur gebruikt het

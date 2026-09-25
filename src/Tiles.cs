@@ -9,12 +9,12 @@ public static class Tiles
     {
         "cpu" => "CPU",
         "gpu" => "GPU",
-        "mem" => Loc.S("memory"),
-        "net" => Loc.Pick("Netwerk", "Network"),
-        "disk" => Loc.S("disks"),
-        "batt" => Loc.Pick("Batterij", "Battery"),
-        "proc" => Loc.Pick("Zwaarste programma's", "Top programs"),
-        "sys" => Loc.Pick("Systeem", "System"),
+        "mem" => Loc.T("Memory"),
+        "net" => Loc.T("Network"),
+        "disk" => Loc.T("Disks"),
+        "batt" => Loc.T("Battery"),
+        "proc" => Loc.T("Top programs"),
+        "sys" => Loc.T("System"),
         _ => id,
     };
 
@@ -23,20 +23,20 @@ public static class Tiles
 
     public static string WidgetName(string id) => id switch
     {
-        "net" => Loc.Pick("Netwerk (upload/download)", "Network (upload/download)"),
+        "net" => Loc.T("Network (upload/download)"),
         "ping" => "Ping",
-        "disk" => Loc.S("diskIo"),
+        "disk" => Loc.T("Disk read/write"),
         "cpu" => "CPU",
         "gpu" => "GPU",
-        "mem" => Loc.S("memory"),
-        "batt" => Loc.Pick("Batterij", "Battery"),
-        "space" => Loc.S("diskSpace"),
-        "cputemp" => Loc.S("cpuTemp"),
-        "gputemp" => Loc.S("gpuTemp"),
-        "cpufreq" => Loc.Pick("CPU-klokfrequentie", "CPU clock speed"),
-        "diskbusy" => Loc.Pick("Schijf actief (%)", "Disk active (%)"),
-        "disktemp" => Loc.Pick("Schijftemperatuur", "Disk temperature"),
-        "mobotemp" => Loc.Pick("Hoofdbordtemperatuur", "Motherboard temperature"),
+        "mem" => Loc.T("Memory"),
+        "batt" => Loc.T("Battery"),
+        "space" => Loc.T("Disk space in widget"),
+        "cputemp" => Loc.T("CPU temperature"),
+        "gputemp" => Loc.T("GPU temperature"),
+        "cpufreq" => Loc.T("CPU clock speed"),
+        "diskbusy" => Loc.T("Disk active (%)"),
+        "disktemp" => Loc.T("Disk temperature"),
+        "mobotemp" => Loc.T("Motherboard temperature"),
         _ => id,
     };
 

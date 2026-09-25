@@ -17,7 +17,7 @@ public sealed class AboutForm : Form
     public AboutForm(Action? showWelcome = null)
     {
         AppIcon.Apply(this);
-        Text = Loc.Pick("Over TaskbarStats", "About TaskbarStats");
+        Text = Loc.T("About TaskbarStats");
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -35,7 +35,7 @@ public sealed class AboutForm : Form
         };
         var version = new Label
         {
-            Text = Loc.Pick($"Versie {Version}", $"Version {Version}"),
+            Text = Loc.T("Version {0}", Version),
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
             Location = new Point(20, 52),
@@ -66,7 +66,7 @@ public sealed class AboutForm : Form
         };
         var welcome = new Button
         {
-            Text = Loc.Pick("Welkomstscherm…", "Welcome screen…"),
+            Text = Loc.T("Welcome screen…"),
             Location = new Point(16, 458),
             Size = new Size(150, 28),
             Visible = showWelcome is not null,
@@ -78,40 +78,10 @@ public sealed class AboutForm : Form
         Controls.AddRange(new Control[] { title, version, box, welcome, ok });
     }
 
-    private static string Body() => Loc.Lang == "en" ? BodyEn : BodyNl;
+    // De brontekst is Engels; elke regel wordt afzonderlijk vertaald (lege regels blijven leeg).
+    private static string Body() => string.Join("\n", BodyEn.Replace("\r", "").Split('\n').Select(l => l.Trim().Length == 0 ? "" : Loc.T(l)));
 
-    private const string BodyNl = """
-        Een lichtgewicht monitor die naast het systeemvak van de Windows-taakbalk zweeft en live CPU, GPU, geheugen, netwerk, schijven en temperaturen toont, met waarden die overeenkomen met Taakbeheer.
-
-        HOE IS HET GEBOUWD
-        • C# op .NET 8 met Windows Forms, één uitvoerbaar bestand.
-        • Tekenen: alles wordt met GDI+ in een 32-bit ARGB-bitmap getekend en met UpdateLayeredWindow op het scherm gezet (per-pixel alpha). Daardoor kan de achtergrond transparant zijn en blijft het widget toch klikbaar. Het venster is 'owned' door de taakbalk (Shell_TrayWnd) en altijd bovenliggend.
-        • Verversen met een timer (0,1–1 s); het menu, de tooltip en de meldingen lezen dezelfde meetwaarden.
-
-        WAT IS ER GEBRUIKT
-        • Windows Performance Counters (System.Diagnostics.PerformanceCounter):
-          – CPU: Processor Information\% Processor Time (totaal en per core, zoals Taakbeheer; optioneel % Processor Utility, incl. turbo); klokfrequentie = Processor Frequency × % Processor Performance.
-          – GPU: GPU Engine\Utilization Percentage per GPU (LUID) en GPU Adapter Memory voor videogeheugen.
-          – Netwerk: Network Interface (per adapter). Schijven: PhysicalDisk (lezen/schrijven).
-        • GlobalMemoryStatusEx voor het geheugengebruik.
-        • DXGI (COM-interop) voor de namen en het videogeheugen van GPU's.
-        • LibreHardwareMonitorLib voor CPU-/GPU-temperatuur (vereist administrator).
-        • System.Net.NetworkInformation: cumulatieve bytes-tellers per adapter voor het verbruik per dag (opgeslagen in usage.json met System.Text.Json).
-        • System.Diagnostics.Process voor de zwaarste programma's in de tooltip.
-        • SHQueryUserNotificationState om het widget te verbergen bij volledig scherm.
-        • NotifyIcon voor meldingen; een geplande taak (schtasks, hoogste rechten) voor autostart zonder UAC-melding.
-        • Instellingen: JSON in %AppData%\TaskbarStats\settings.json.
-        • Installer: Inno Setup.
-
-        CREDITS
-        • Idee, ontwerp en testen: Eric Bruggema
-        • Gebouwd met Claude Code (Anthropic) — https://claude.com/claude-code
-        • LibreHardwareMonitorLib (MPL-2.0) — https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
-        • HidSharp (Apache-2.0), System.Diagnostics.PerformanceCounter en .NET (MIT)
-        • Inno Setup — https://jrsoftware.org
-
-        De genoemde onderdelen vallen onder hun eigen licenties.
-        """;
+    
 
     private const string BodyEn = """
         A lightweight monitor that floats next to the Windows taskbar's notification area and shows live CPU, GPU, memory, network, disk and temperature figures, matching Task Manager.

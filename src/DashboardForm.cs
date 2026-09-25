@@ -326,8 +326,7 @@ public sealed partial class DashboardForm : Form
                     g.DrawPath(edge, path);
                 }
                 if (tiles.Count == 0)
-                    DrawText(g, Loc.Pick("Geen tegels aan — zet ze aan via Instellingen (tab Dashboard)",
-                                         "No tiles enabled — turn them on in Settings (Dashboard tab)"), _f, Dim, 16, 30);
+                    DrawText(g, Loc.T("No tiles enabled — turn them on in Settings (Dashboard tab)"), _f, Dim, 16, 30);
                 // achtergrondafbeelding: in pixels, geclipt op de afgeronde vorm, onder de tegels
                 if (!string.IsNullOrWhiteSpace(Cfg.DashBgImage))
                 {
@@ -492,17 +491,17 @@ public sealed partial class DashboardForm : Form
     private void DrawMem(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, r, Loc.S("memory"));
+        Card(g, r, Loc.T("Memory"));
         Gauge(g, r.X + 62, r.Y + 80, 34, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
         DrawText(g, $"{Metrics.FormatSize(m.MemUsedBytes)} / {Metrics.FormatSize(m.MemTotalBytes)}", _fb, TextCol, r.X + 118, r.Y + 58);
-        DrawText(g, $"{Loc.Pick("Vrij", "Free")} {Metrics.FormatSize(m.MemTotalBytes - m.MemUsedBytes)}", _f, Dim, r.X + 118, r.Y + 82);
+        DrawText(g, $"{Loc.T("Free")} {Metrics.FormatSize(m.MemTotalBytes - m.MemUsedBytes)}", _f, Dim, r.X + 118, r.Y + 82);
         Spark(g, new RectangleF(r.X + 14, r.Y + 116, r.Width - 28, 36), _c.History.Mem, Color.FromArgb(52, 199, 89), 100);
     }
 
     private void DrawNet(Graphics g, RectangleF r, List<KeyValuePair<string, (double down, double up)>> adapters, bool limit)
     {
         var m = _c.Metrics;
-        Card(g, r, Loc.Pick("Netwerk", "Network"));
+        Card(g, r, Loc.T("Network"));
         DrawText(g, $"↓ {Metrics.FormatRate(m.NetDownBytesPerSec)}", _fb, Accent, r.X + 14, r.Y + 30);
         DrawText(g, $"↑ {Metrics.FormatRate(m.NetUpBytesPerSec)}", _f, Color.FromArgb(52, 199, 89), r.X + 14, r.Y + 52);
 
@@ -514,9 +513,9 @@ public sealed partial class DashboardForm : Form
         float y = r.Y + 34 + 66;
         foreach (var (label, u) in new[]
         {
-            (Loc.Pick("Sessie", "Session"), _c.Usage.Session(null)),
-            (Loc.Pick("Vandaag", "Today"), _c.Usage.Today(null)),
-            (Loc.Pick("Deze maand", "This month"), _c.Usage.Month(null)),
+            (Loc.T("Session"), _c.Usage.Session(null)),
+            (Loc.T("Today"), _c.Usage.Today(null)),
+            (Loc.T("This month"), _c.Usage.Month(null)),
         })
         {
             DrawText(g, label, _fs, Dim, r.X + 14, y);
@@ -527,7 +526,7 @@ public sealed partial class DashboardForm : Form
         {
             var mu = _c.Usage.Month(Cfg.NetworkAdapter);
             double pct = 100.0 * mu.Total / (Cfg.MonthlyLimitGb * 1073741824.0);
-            DrawText(g, $"{Loc.Pick("Limiet", "Limit")} {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, r.X + 14, y);
+            DrawText(g, $"{Loc.T("Limit")} {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, r.X + 14, y);
             Bar(g, r.X + 14, y + 16, r.Width - 28, pct, Thr(pct), 5);
             y += 26;
         }
@@ -549,12 +548,12 @@ public sealed partial class DashboardForm : Form
     private void DrawDisks(Graphics g, RectangleF r, List<DriveSpace> drives)
     {
         var m = _c.Metrics;
-        Card(g, r, Loc.S("disks"));
+        Card(g, r, Loc.T("Disks"));
         float y = r.Y + 30;
         foreach (var d in drives)
         {
             DrawText(g, d.Display, _f, TextCol, r.X + 14, y);
-            DrawTextRight(g, $"{Metrics.FormatSize(d.Free)} {Loc.S("freeOf")} {Metrics.FormatSize(d.Total)}", _fs, Dim, r.Right - 14, y + 2);
+            DrawTextRight(g, $"{Metrics.FormatSize(d.Free)} {Loc.T("free of")} {Metrics.FormatSize(d.Total)}", _fs, Dim, r.Right - 14, y + 2);
             Bar(g, r.X + 14, y + 19, r.Width - 28, d.UsedPercent, Thr(d.UsedPercent), 7);
             y += 34;
         }
@@ -569,7 +568,7 @@ public sealed partial class DashboardForm : Form
     private void DrawBattery(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, r, Loc.Pick("Batterij", "Battery"));
+        Card(g, r, Loc.T("Battery"));
         double pct = m.BatteryPercent;
         bool charging = m.BatteryCharging, ac = m.BatteryOnAc;
         Color fill = charging || ac ? Color.FromArgb(52, 199, 89)
@@ -594,15 +593,15 @@ public sealed partial class DashboardForm : Form
         else if (ac) WidgetForm.DrawPlug(g, bx + bw / 2, by + bh / 2, 30);
 
         DrawText(g, $"{pct:0}%", _fbig, TextCol, r.X + 78, r.Y + 36);
-        string state = charging ? Loc.Pick("Laden", "Charging") : ac ? Loc.Pick("Op netstroom", "Plugged in") : Loc.Pick("Ontladen", "On battery");
+        string state = charging ? Loc.T("Charging") : ac ? Loc.T("Plugged in") : Loc.T("On battery");
         string left = !ac && m.BatteryRemainingSec > 0
-            ? $" · {m.BatteryRemainingSec / 3600}{Loc.Pick("u", "h")} {m.BatteryRemainingSec % 3600 / 60:00}m" : "";
+            ? $" · {m.BatteryRemainingSec / 3600}{Loc.T("h")} {m.BatteryRemainingSec % 3600 / 60:00}m" : "";
         DrawText(g, state + left, _f, Dim, r.X + 80, r.Y + 68);
     }
 
     private void DrawProcs(Graphics g, RectangleF r)
     {
-        Card(g, r, Loc.Pick("Zwaarste programma's", "Top programs"));
+        Card(g, r, Loc.T("Top programs"));
         float half = (r.Width - 28) / 2;
         DrawText(g, "CPU", _fs, Dim, r.X + 14, r.Y + 28);
         DrawText(g, "RAM", _fs, Dim, r.X + 14 + half + 8, r.Y + 28);
@@ -627,11 +626,11 @@ public sealed partial class DashboardForm : Form
     private void DrawSystem(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, r, Loc.Pick("Systeem", "System"));
+        Card(g, r, Loc.T("System"));
         var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
         DrawText(g, $"{DateTime.Now:HH:mm}", _fbig, TextCol, r.X + 14, r.Y + 26);
         DrawText(g, $"{DateTime.Now:dddd d MMMM}", _f, Dim, r.X + 100, r.Y + 34);
-        DrawText(g, $"Uptime  {(int)up.TotalDays} {Loc.Pick("d", "d")} {up.Hours} {Loc.Pick("u", "h")} {up.Minutes} m", _f, TextCol, r.X + 14, r.Y + 62);
+        DrawText(g, $"Uptime  {(int)up.TotalDays} {Loc.T("d")} {up.Hours} {Loc.T("h")} {up.Minutes} m", _f, TextCol, r.X + 14, r.Y + 62);
         string temps = (m.CpuTempC is double c ? $"CPU {c:0}°C" : "") + (m.GpuTempC is double t ? $"   GPU {t:0}°C" : "");
         if (temps != "") DrawText(g, temps, _f, Dim, r.X + 14, r.Y + 80);
     }

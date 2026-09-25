@@ -101,7 +101,6 @@ public sealed record PingStats(string Host, double? Last, int Count, double Min,
     public string LastText => Last is null ? "…" : Last < 0 ? "✕" : $"{Last:0} ms";
 
     public string Details => Count == 0 ? "…" : Last < 0 && Count == 1
-        ? Loc.Pick("geen antwoord", "no reply")
-        : Loc.Pick($"min {Min:0} · gem {Avg:0} · max {Max:0} ms  ·  jitter {Jitter:0.#} ms  ·  verlies {LossPct:0.#}%  ({Count})",
-                   $"min {Min:0} · avg {Avg:0} · max {Max:0} ms  ·  jitter {Jitter:0.#} ms  ·  loss {LossPct:0.#}%  ({Count})");
+        ? Loc.T("no reply")
+        : Loc.T("min {0:0} · avg {1:0} · max {2:0} ms  ·  jitter {3:0.#} ms  ·  loss {4:0.#}%  ({5})", Min, Avg, Max, Jitter, LossPct, Count);
 }

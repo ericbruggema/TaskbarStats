@@ -279,7 +279,7 @@ public sealed partial class FullscreenForm : Form
         }
         T(g, title, _fh, TextCol, r.X + 16, r.Y + 10);
         if (sub is not null) TR(g, sub, _fs, Dim, r.Right - 16, r.Y + 15);
-        if (hot) TR(g, Loc.Pick("klik voor details", "click for details"), _fs, Color.FromArgb(200, Accent), r.Right - 16, r.Bottom - 24);
+        if (hot) TR(g, Loc.T("click for details"), _fs, Color.FromArgb(200, Accent), r.Right - 16, r.Bottom - 24);
     }
 
     private void Gauge(Graphics g, float cx, float cy, float rad, double pct, Color col, string label)
@@ -308,7 +308,7 @@ public sealed partial class FullscreenForm : Form
                 g.FillRectangle(fb, x, y, fw, h);
     }
 
-    private string WinLabel() => _win switch { 60 => Loc.Pick("1 min", "1 min"), 300 => Loc.Pick("5 min", "5 min"), _ => Loc.Pick("1 uur", "1 hour") };
+    private string WinLabel() => _win switch { 60 => Loc.T("1 min"), 300 => Loc.T("5 min"), _ => Loc.T("1 hour") };
 
     private static string Pct(double v) => $"{v:0}%";
     private static string Rate(double v) => Metrics.FormatRate(v);
@@ -337,7 +337,7 @@ public sealed partial class FullscreenForm : Form
         if (axes)
         {
             T(g, "-" + WinLabel(), _fs, Dim, p.X, p.Bottom + 6);
-            TR(g, Loc.Pick("nu", "now"), _fs, Dim, p.Right, p.Bottom + 6);
+            TR(g, Loc.T("now"), _fs, Dim, p.Right, p.Bottom + 6);
         }
         foreach (var (ring, col) in series)
         {
@@ -367,7 +367,7 @@ public sealed partial class FullscreenForm : Form
         var s = Stat(ring);
         var rows = new (string l, double v)[]
         {
-            (Loc.Pick("Nu", "Now"), s.cur), (Loc.Pick("Min", "Min"), s.min), (Loc.Pick("Gemiddeld", "Average"), s.avg), (Loc.Pick("Max", "Max"), s.max),
+            (Loc.T("Now"), s.cur), (Loc.T("Min"), s.min), (Loc.T("Average"), s.avg), (Loc.T("Max"), s.max),
         };
         for (int i = 0; i < rows.Length; i++)
         {
@@ -498,10 +498,10 @@ public sealed partial class FullscreenForm : Form
     {
         if (_c.Metrics.Sensors.Count > 0) return null;
         return Environment.TickCount64 - _openedAt < 10000
-            ? Loc.Pick("Sensoren laden…", "Loading sensors…")
+            ? Loc.T("Loading sensors…")
             : IsAdmin()
-                ? Loc.Pick("Geen sensorgegevens beschikbaar op deze computer.", "No sensor data available on this computer.")
-                : Loc.Pick("Geen sensorgegevens — LibreHardwareMonitor heeft administrator-rechten nodig.", "No sensor data — LibreHardwareMonitor needs administrator rights.");
+                ? Loc.T("No sensor data available on this computer.")
+                : Loc.T("No sensor data — LibreHardwareMonitor needs administrator rights.");
     }
 
     private static readonly bool AdminRights =
@@ -553,8 +553,8 @@ public sealed partial class FullscreenForm : Form
             if (t is not null) parts.Add(Fmt(t.Type, t.Value!.Value));
             var used = grp.FirstOrDefault(s => s.Name.Contains("Percentage Used", StringComparison.OrdinalIgnoreCase));
             var life = grp.FirstOrDefault(s => s.Name.Contains("Remaining Life", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Life", StringComparison.OrdinalIgnoreCase));
-            if (used is not null) parts.Add($"{100 - used.Value!.Value:0}% {Loc.Pick("gezond", "health")}");
-            else if (life is not null) parts.Add($"{life.Value!.Value:0}% {Loc.Pick("levensduur", "life")}");
+            if (used is not null) parts.Add($"{100 - used.Value!.Value:0}% {Loc.T("health")}");
+            else if (life is not null) parts.Add($"{life.Value!.Value:0}% {Loc.T("life")}");
             if (parts.Count > 0) res.Add((grp.Key, string.Join("  ·  ", parts)));
         }
         return res;
@@ -572,7 +572,7 @@ public sealed partial class FullscreenForm : Form
             using (var path = Rounded(chip, 8))
             using (var bg = new SolidBrush(Color.FromArgb(_hover == "spec" ? 50 : 26, 255, 255, 255)))
                 g.FillPath(bg, path);
-            TC(g, Loc.Pick("Specificaties  (I)", "Specifications  (I)"), _fb, TextCol, chip.X + chip.Width / 2, chip.Y + chip.Height / 2);
+            TC(g, Loc.T("Specifications  (I)"), _fb, TextCol, chip.X + chip.Width / 2, chip.Y + chip.Height / 2);
         }
         else
         {
@@ -582,7 +582,7 @@ public sealed partial class FullscreenForm : Form
             using (var path = Rounded(back, 10))
             using (var bg = new SolidBrush(Color.FromArgb(hot ? 50 : 26, 255, 255, 255)))
                 g.FillPath(bg, path);
-            T(g, "←  " + Loc.Pick("Terug (Esc)", "Back (Esc)"), _fb, TextCol, M + 16, 23);
+            T(g, "←  " + Loc.T("Back (Esc)"), _fb, TextCol, M + 16, 23);
         }
 
         TC(g, DateTime.Now.ToString("HH:mm:ss"), _fbig, TextCol, CW / 2 - 60, 34);
@@ -599,7 +599,7 @@ public sealed partial class FullscreenForm : Form
         TC(g, "✕", _fb, TextCol, exit.X + exit.Width / 2, exit.Y + exit.Height / 2);
 
         float x = CW - M - 4 - 56;
-        var chips = new (int w, string l)[] { (3600, Loc.Pick("1 u", "1 h")), (300, "5 m"), (60, "1 m") };
+        var chips = new (int w, string l)[] { (3600, Loc.T("1 h")), (300, "5 m"), (60, "1 m") };
         foreach (var (w, l) in chips)
         {
             var r = new RectangleF(x - 56, 16, 56, 32);
@@ -611,10 +611,10 @@ public sealed partial class FullscreenForm : Form
             TC(g, l, _fb, TextCol, r.X + r.Width / 2, r.Y + r.Height / 2);
             x -= 62;
         }
-        TR(g, Loc.Pick("grafiek:", "graph:"), _fs, Dim, x - 4, 24);
-        string hint = _tour ? Loc.Pick($"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  klik of toets = stop", $"Tour {_tourIdx + 1}/{_tourPages.Count}  ·  click or key = stop")
-                    : _detail is null ? Loc.Pick("Klik op een tegel voor details  ·  spatie = tour  ·  Esc of ✕ sluit", "Click a tile for details  ·  space = tour  ·  Esc or ✕ closes")
-                    : Loc.Pick("Esc: terug naar het overzicht", "Esc: back to the overview");
+        TR(g, Loc.T("graph:"), _fs, Dim, x - 4, 24);
+        string hint = _tour ? Loc.T("Tour {0}/{1}  ·  click or key = stop", _tourIdx + 1, _tourPages.Count)
+                    : _detail is null ? Loc.T("Click a tile for details  ·  space = tour  ·  Esc or ✕ closes")
+                    : Loc.T("Esc: back to the overview");
         TR(g, hint, _fs, _tour ? Accent : Dim, x - 110, 24);
         if (_tour)   // voortgang van de huidige pagina
         {
@@ -632,7 +632,7 @@ public sealed partial class FullscreenForm : Form
         var cells = Tiles.FullCells(visible, CW, CH, top, M);
         if (cells.Count == 0)
         {
-            T(g, Loc.Pick("Geen onderdelen aan — zet ze aan via Instellingen (tab Fullscreen).", "No components enabled — turn them on in Settings (Fullscreen tab)."), _f, Dim, M + 8, top + 20);
+            T(g, Loc.T("No components enabled — turn them on in Settings (Fullscreen tab)."), _f, Dim, M + 8, top + 20);
             return;
         }
         foreach (var (ids, r) in cells) DrawCell(g, ids, r);
@@ -662,7 +662,7 @@ public sealed partial class FullscreenForm : Form
     private void TileCpu(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        string sub = $"{m.CpuCores.Length} {Loc.Pick("kernen", "cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "") + (CpuPower() is string pw ? $"  ·  {pw}" : "");
+        string sub = $"{m.CpuCores.Length} {Loc.T("cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "") + (CpuPower() is string pw ? $"  ·  {pw}" : "");
         Card(g, "cpu", r, "CPU", sub);
         T(g, Trunc(CpuName(), 60), _fs, Dim, r.X + 16, r.Y + 36);
         Gauge(g, r.X + 96, r.Y + 140, 62, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
@@ -695,7 +695,7 @@ public sealed partial class FullscreenForm : Form
         var gpus = Gpus();
         var m = _c.Metrics;
         Card(g, "gpu", r, "GPU", m.GpuTempC is double t ? $"{t:0}°C" : null);
-        if (gpus.Count == 0) { T(g, Loc.Pick("Geen GPU-gegevens", "No GPU data"), _f, Dim, r.X + 16, r.Y + 50); return; }
+        if (gpus.Count == 0) { T(g, Loc.T("No GPU data"), _f, Dim, r.X + 16, r.Y + 50); return; }
         float sh = (r.Height - 52) / gpus.Count;
         for (int i = 0; i < gpus.Count; i++)
         {
@@ -722,20 +722,20 @@ public sealed partial class FullscreenForm : Form
     private void TileMem(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, "mem", r, Loc.S("memory"), $"{SizeStr(m.MemTotalBytes)}");
+        Card(g, "mem", r, Loc.T("Memory"), $"{SizeStr(m.MemTotalBytes)}");
         Gauge(g, r.X + 82, r.Y + 122, 50, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
         T(g, $"{SizeStr(m.MemUsedBytes)}", _fbig, TextCol, r.X + 150, r.Y + 84);
-        T(g, $"{Loc.Pick("in gebruik van", "in use of")} {SizeStr(m.MemTotalBytes)}", _f, Dim, r.X + 152, r.Y + 126);
-        T(g, $"{Loc.Pick("Vrij", "Free")}  {SizeStr(m.MemTotalBytes - m.MemUsedBytes)}", _f, Dim, r.X + 152, r.Y + 150);
+        T(g, $"{Loc.T("in use of")} {SizeStr(m.MemTotalBytes)}", _f, Dim, r.X + 152, r.Y + 126);
+        T(g, $"{Loc.T("Free")}  {SizeStr(m.MemTotalBytes - m.MemUsedBytes)}", _f, Dim, r.X + 152, r.Y + 150);
         Graph(g, new RectangleF(r.X + 16, r.Y + 190, r.Width - 32, 140), new[] { (_c.History.Mem, Green) }, 100, Pct);
-        T(g, Loc.Pick("Meeste geheugen", "Top memory"), _fs, Dim, r.X + 16, r.Y + 348);
+        T(g, Loc.T("Top memory"), _fs, Dim, r.X + 16, r.Y + 348);
         ProcList(g, r.X + 16, r.Y + 370, r.Width - 32, 5, false);
     }
 
     private void TileNet(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, "net", r, Loc.Pick("Netwerk", "Network"));
+        Card(g, "net", r, Loc.T("Network"));
         T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, r.X + 16, r.Y + 44);
         T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fh, Green, r.X + 16, r.Y + 90);
         Graph(g, new RectangleF(r.X + 210, r.Y + 44, r.Width - 226, 92), new[] { (_c.History.NetDown, Accent), (_c.History.NetUp, Green) }, 0, Rate, false);
@@ -743,9 +743,9 @@ public sealed partial class FullscreenForm : Form
         float y = r.Y + 150;
         foreach (var (label, u) in new[]
         {
-            (Loc.Pick("Sessie", "Session"), _c.Usage.Session(null)), (Loc.Pick("Vandaag", "Today"), _c.Usage.Today(null)),
-            (Loc.Pick("Gisteren", "Yesterday"), _c.Usage.Yesterday(null)), (Loc.Pick("7 dagen", "7 days"), _c.Usage.Week(null)),
-            (Loc.Pick("Deze maand", "This month"), _c.Usage.Month(null)),
+            (Loc.T("Session"), _c.Usage.Session(null)), (Loc.T("Today"), _c.Usage.Today(null)),
+            (Loc.T("Yesterday"), _c.Usage.Yesterday(null)), (Loc.T("7 days"), _c.Usage.Week(null)),
+            (Loc.T("This month"), _c.Usage.Month(null)),
         })
         {
             T(g, label, _f, Dim, r.X + 16, y);
@@ -756,7 +756,7 @@ public sealed partial class FullscreenForm : Form
         {
             var mu = _c.Usage.Month(Cfg.NetworkAdapter);
             double pct = 100.0 * mu.Total / (Cfg.MonthlyLimitGb * 1073741824.0);
-            T(g, $"{Loc.Pick("Limiet", "Limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, r.X + 16, y + 4);
+            T(g, $"{Loc.T("Limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, r.X + 16, y + 4);
             Bar(g, r.X + 16, y + 26, r.Width - 32, pct, Thr(pct), 7);
             y += 44;
         }
@@ -777,16 +777,16 @@ public sealed partial class FullscreenForm : Form
     {
         var m = _c.Metrics;
         var drives = _c.Drives();
-        Card(g, "disk", r, Loc.S("disks"));
+        Card(g, "disk", r, Loc.T("Disks"));
         float y = r.Y + 44;
         foreach (var d in drives.Take(6))
         {
             T(g, d.Display, _fb, TextCol, r.X + 16, y);
-            TR(g, $"{SizeStr(d.Free)} {Loc.S("freeOf")} {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _fs, Dim, r.Right - 16, y + 2);
+            TR(g, $"{SizeStr(d.Free)} {Loc.T("free of")} {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _fs, Dim, r.Right - 16, y + 2);
             Bar(g, r.X + 16, y + 24, r.Width - 32, d.UsedPercent, Thr(d.UsedPercent), 8);
             y += 44;
         }
-        if (drives.Count > 6) { T(g, $"+{drives.Count - 6} {Loc.Pick("meer — klik voor alle", "more — click for all")}", _fs, Dim, r.X + 16, y - 8); y += 14; }
+        if (drives.Count > 6) { T(g, $"+{drives.Count - 6} {Loc.T("more — click for all")}", _fs, Dim, r.X + 16, y - 8); y += 14; }
         T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fb, Accent, r.X + 16, y + 4);
         TR(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fb, Orange, r.Right - 16, y + 4);
         float gh = 96;
@@ -811,8 +811,8 @@ public sealed partial class FullscreenForm : Form
     private void TileBattery(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, "bat", r, Loc.Pick("Batterij", "Battery"));
-        if (!m.BatteryPresent) { T(g, Loc.Pick("Geen batterij (desktop-pc)", "No battery (desktop PC)"), _f, Dim, r.X + 16, r.Y + 56); return; }
+        Card(g, "bat", r, Loc.T("Battery"));
+        if (!m.BatteryPresent) { T(g, Loc.T("No battery (desktop PC)"), _f, Dim, r.X + 16, r.Y + 56); return; }
         DrawBatteryBig(g, r.X + 34, r.Y + 50, 46, 100, m);
         T(g, $"{m.BatteryPercent:0}%", _fhuge, TextCol, r.X + 110, r.Y + 46);
         T(g, BatteryState(m), _f, Dim, r.X + 112, r.Y + 116);
@@ -820,9 +820,9 @@ public sealed partial class FullscreenForm : Form
 
     private static string BatteryState(Metrics m)
     {
-        string state = m.BatteryCharging ? Loc.Pick("Laden", "Charging") : m.BatteryOnAc ? Loc.Pick("Op netstroom", "Plugged in") : Loc.Pick("Ontladen", "On battery");
+        string state = m.BatteryCharging ? Loc.T("Charging") : m.BatteryOnAc ? Loc.T("Plugged in") : Loc.T("On battery");
         return state + (!m.BatteryOnAc && m.BatteryRemainingSec > 0
-            ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.Pick("u", "h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.Pick("resterend", "left")}" : "");
+            ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.T("h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.T("left")}" : "");
     }
 
     private void DrawBatteryBig(Graphics g, float x, float y, float w, float h, Metrics m)
@@ -850,22 +850,22 @@ public sealed partial class FullscreenForm : Form
     private void TileSystem(Graphics g, RectangleF r)
     {
         var m = _c.Metrics;
-        Card(g, "sys", r, Loc.Pick("Systeem", "System"));
+        Card(g, "sys", r, Loc.T("System"));
         T(g, DateTime.Now.ToString("HH:mm"), _fhuge, TextCol, r.X + 16, r.Y + 40);
         T(g, DateTime.Now.ToString("dddd d MMMM"), _f, Dim, r.X + 205, r.Y + 62);
         var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
         float y = r.Y + 110;
-        KeyValue(g, r.X + 16, y, r.Width - 32, "Uptime", $"{(int)up.TotalDays} {Loc.Pick("d", "d")} {up.Hours} {Loc.Pick("u", "h")} {up.Minutes} m"); y += 24;
-        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.Pick("Computer", "Computer"), Environment.MachineName); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, "Uptime", $"{(int)up.TotalDays} {Loc.T("d")} {up.Hours} {Loc.T("h")} {up.Minutes} m"); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.T("Computer"), Environment.MachineName); y += 24;
         KeyValue(g, r.X + 16, y, r.Width - 32, "OS", Trunc(System.Runtime.InteropServices.RuntimeInformation.OSDescription, 34)); y += 24;
-        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.Pick("Werkgeheugen", "Memory"), SizeStr(m.MemTotalBytes)); y += 24;
+        KeyValue(g, r.X + 16, y, r.Width - 32, Loc.T("Memory@@ram"), SizeStr(m.MemTotalBytes)); y += 24;
         if (m.CpuTempC is double c) { KeyValue(g, r.X + 16, y, r.Width - 32, "CPU", $"{c:0}°C"); y += 24; }
         if (m.GpuTempC is double t) KeyValue(g, r.X + 16, y, r.Width - 32, "GPU", $"{t:0}°C");
     }
 
     private void TileProcs(Graphics g, RectangleF r)
     {
-        Card(g, "proc", r, Loc.Pick("Zwaarste programma's", "Top programs"));
+        Card(g, "proc", r, Loc.T("Top programs"));
         T(g, "CPU", _fs, Dim, r.X + 16, r.Y + 42);
         ProcList(g, r.X + 16, r.Y + 62, r.Width - 32, 7, true);
         float y2 = r.Y + 62 + 7 * 24 + 14;
@@ -902,12 +902,12 @@ public sealed partial class FullscreenForm : Form
     private void DetailSpecs(Graphics g, RectangleF R)
     {
         var blocks = HardwareInfo.Blocks;
-        Card(g, null, R, Loc.Pick("Specificaties", "Specifications"),
-             HardwareInfo.Loading ? Loc.Pick("bezig met laden…", "loading…") : Loc.Pick("muiswiel = scrollen", "mouse wheel = scroll"));
+        Card(g, null, R, Loc.T("Specifications"),
+             HardwareInfo.Loading ? Loc.T("loading…") : Loc.T("mouse wheel = scroll"));
         if (blocks.Count == 0)
         {
-            T(g, HardwareInfo.Loading ? Loc.Pick("Hardware-informatie wordt verzameld…", "Collecting hardware information…")
-                                      : Loc.Pick("Geen informatie beschikbaar (nieuwe poging volgt automatisch).", "No information available (retrying automatically)."), _f, Dim, R.X + 20, R.Y + 60);
+            T(g, HardwareInfo.Loading ? Loc.T("Collecting hardware information…")
+                                      : Loc.T("No information available (retrying automatically)."), _f, Dim, R.X + 20, R.Y + 60);
             if (!HardwareInfo.Loading)
             {
                 if (HardwareInfo.LastError.Length > 0) T(g, HardwareInfo.LastError, _f, Dim, R.X + 20, R.Y + 90);
@@ -962,7 +962,7 @@ public sealed partial class FullscreenForm : Form
     private void DetailCpu(Graphics g, RectangleF R)
     {
         var m = _c.Metrics;
-        Card(g, null, R, "CPU — " + Loc.Pick("details", "details"), Trunc(CpuName(), 70));
+        Card(g, null, R, "CPU — " + Loc.T("details"), Trunc(CpuName(), 70));
         float gw = 1240;
         var cores = m.CpuCores;
         int ccols = cores.Length <= 8 ? 4 : cores.Length <= 24 ? 6 : 8;
@@ -983,7 +983,7 @@ public sealed partial class FullscreenForm : Form
                 using (var path = Rounded(cell, 8))
                 using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
                     g.FillPath(bg, path);
-                T(g, Loc.Pick("Kern", "Core") + $" {i}", _fs, Dim, cell.X + 10, cell.Y + 6);
+                T(g, Loc.T("Core") + $" {i}", _fs, Dim, cell.X + 10, cell.Y + 6);
                 TR(g, $"{cores[i]:0}%", _fb, Thr(cores[i]), cell.Right - 10, cell.Y + 5);
                 if (i < _c.History.Cores.Count)
                     Graph(g, new RectangleF(cell.X + 8, cell.Y + 28, cell.Width - 16, cell.Height - 36), new[] { (_c.History.Cores[i], Accent) }, 100, Pct, false);
@@ -991,21 +991,21 @@ public sealed partial class FullscreenForm : Form
         }
 
         float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
-        T(g, Loc.Pick("Totaal", "Total"), _fs, Dim, rx, R.Y + 50);
+        T(g, Loc.T("Total"), _fs, Dim, rx, R.Y + 50);
         Gauge(g, rx + 70, R.Y + 150, 56, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
         StatRows(g, rx + 160, R.Y + 96, rw - 160, _c.History.Cpu, Pct);
         float y = R.Y + 236;
-        KeyValue(g, rx, y, rw, Loc.Pick("Kernen", "Cores"), $"{cores.Length}"); y += 24;
-        if (m.CpuMHz is double f) { KeyValue(g, rx, y, rw, Loc.Pick("Klokfrequentie", "Clock speed"), $"{f / 1000:0.00} GHz"); y += 24; }
-        if (m.CpuTempC is double t) { KeyValue(g, rx, y, rw, Loc.Pick("Temperatuur", "Temperature"), $"{t:0}°C"); y += 24; }
+        KeyValue(g, rx, y, rw, Loc.T("Cores"), $"{cores.Length}"); y += 24;
+        if (m.CpuMHz is double f) { KeyValue(g, rx, y, rw, Loc.T("Clock speed"), $"{f / 1000:0.00} GHz"); y += 24; }
+        if (m.CpuTempC is double t) { KeyValue(g, rx, y, rw, Loc.T("Temperature"), $"{t:0}°C"); y += 24; }
         y += 12;
-        T(g, Loc.Pick("Sensoren", "Sensors"), _fs, Dim, rx, y);
+        T(g, Loc.T("Sensors"), _fs, Dim, rx, y);
         var cpuRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Cpu && x.Type != SensorType.Load));
         float usedH;
-        if (cpuRows.Count == 0) { T(g, SensorHint() ?? (IsAdmin() ? Loc.Pick("Temperatuur, vermogen en klokken van deze processor worden niet door de sensorbibliotheek ondersteund.", "Temperature, power and clocks of this processor are not supported by the sensor library.") : Loc.Pick("Geen CPU-sensoren beschikbaar (administrator-rechten nodig).", "No CPU sensors available (administrator rights needed).")), _fs, Dim, rx, y + 22); usedH = 26; }
+        if (cpuRows.Count == 0) { T(g, SensorHint() ?? (IsAdmin() ? Loc.T("Temperature, power and clocks of this processor are not supported by the sensor library.") : Loc.T("No CPU sensors available (administrator rights needed).")), _fs, Dim, rx, y + 22); usedH = 26; }
         else usedH = SensorList(g, rx, y + 22, rw, 9, cpuRows);
         y += 22 + usedH + 14;
-        T(g, Loc.Pick("Zwaarste programma's (CPU)", "Top programs (CPU)"), _fs, Dim, rx, y);
+        T(g, Loc.T("Top programs (CPU)"), _fs, Dim, rx, y);
         ProcList(g, rx, y + 22, rw, 8, true);
     }
 
@@ -1013,8 +1013,8 @@ public sealed partial class FullscreenForm : Form
     {
         var gpus = Gpus();
         var m = _c.Metrics;
-        Card(g, null, R, "GPU — " + Loc.Pick("details", "details"), m.GpuTempC is double tt ? $"{tt:0}°C" : null);
-        if (gpus.Count == 0) { T(g, Loc.Pick("Geen GPU-gegevens", "No GPU data"), _f, Dim, R.X + 16, R.Y + 56); return; }
+        Card(g, null, R, "GPU — " + Loc.T("details"), m.GpuTempC is double tt ? $"{tt:0}°C" : null);
+        if (gpus.Count == 0) { T(g, Loc.T("No GPU data"), _f, Dim, R.X + 16, R.Y + 56); return; }
         float sh = (R.Height - 50) / gpus.Count;
         float col = (R.Width - 64) / 3;
         for (int i = 0; i < gpus.Count; i++)
@@ -1027,27 +1027,27 @@ public sealed partial class FullscreenForm : Form
             float gh = hh - 50;
             float x1 = R.X + 16, x2 = R.X + 32 + col, x3 = R.X + 48 + 2 * col;
 
-            T(g, Loc.Pick("Belasting", "Load"), _fs, Dim, x1, y0 + 34);
+            T(g, Loc.T("Load"), _fs, Dim, x1, y0 + 34);
             if (_c.History.GpuPer.TryGetValue(luid, out var ring))
             {
                 Graph(g, new RectangleF(x1, y0 + 54, col - 190, gh), new[] { (ring, Accent) }, 100, Pct);
                 StatRows(g, x1 + col - 170, y0 + 60, 170, ring, Pct);
             }
             long ded = Metrics.GpuDedicatedBytes(luid);
-            T(g, Loc.Pick("Videogeheugen (VRAM)", "Video memory (VRAM)"), _fs, Dim, x2, y0 + 34);
+            T(g, Loc.T("Video memory (VRAM)"), _fs, Dim, x2, y0 + 34);
             if (ded > 0 && _c.History.VramPer.TryGetValue(luid, out var vr))
             {
                 Graph(g, new RectangleF(x2, y0 + 54, col - 190, gh), new[] { (vr, Green) }, ded, SizeStr);
                 var s2 = Stat(vr);
-                KeyValue(g, x2 + col - 170, y0 + 60, 170, Loc.Pick("In gebruik", "Used"), SizeStr(s2.cur));
-                KeyValue(g, x2 + col - 170, y0 + 84, 170, Loc.Pick("Totaal", "Total"), SizeStr(ded));
+                KeyValue(g, x2 + col - 170, y0 + 60, 170, Loc.T("Used"), SizeStr(s2.cur));
+                KeyValue(g, x2 + col - 170, y0 + 84, 170, Loc.T("Total"), SizeStr(ded));
                 KeyValue(g, x2 + col - 170, y0 + 108, 170, "Max", SizeStr(s2.max));
             }
-            else T(g, Loc.Pick("Geen VRAM-gegevens", "No VRAM data"), _f, Dim, x2, y0 + 60);
+            else T(g, Loc.T("No VRAM data"), _f, Dim, x2, y0 + 60);
 
-            T(g, Loc.Pick("Sensoren", "Sensors"), _fs, Dim, x3, y0 + 34);
+            T(g, Loc.T("Sensors"), _fs, Dim, x3, y0 + 34);
             var rows = Rows(GpuSensors(gpuName).Where(x => x.Type != SensorType.Load));
-            if (rows.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen sensoren voor deze kaart.", "No sensors for this card."), _fs, Dim, x3, y0 + 60);
+            if (rows.Count == 0) T(g, SensorHint() ?? Loc.T("No sensors for this card."), _fs, Dim, x3, y0 + 60);
             else SensorList(g, x3, y0 + 58, col - 8, Math.Max(4, (int)((gh - 4) / 24)), rows);
         }
     }
@@ -1055,21 +1055,21 @@ public sealed partial class FullscreenForm : Form
     private void DetailMem(Graphics g, RectangleF R)
     {
         var m = _c.Metrics;
-        Card(g, null, R, Loc.S("memory") + " — details", SizeStr(m.MemTotalBytes));
+        Card(g, null, R, Loc.T("Memory") + " — details", SizeStr(m.MemTotalBytes));
         float gw = 1240;
         Graph(g, new RectangleF(R.X + 16, R.Y + 50, gw, 420), new[] { (_c.History.Mem, Green) }, 100, Pct);
         float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
         Gauge(g, rx + 70, R.Y + 120, 56, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
         StatRows(g, rx + 160, R.Y + 70, rw - 160, _c.History.Mem, Pct);
         float y = R.Y + 200;
-        KeyValue(g, rx, y, rw, Loc.Pick("In gebruik", "In use"), SizeStr(m.MemUsedBytes)); y += 24;
-        KeyValue(g, rx, y, rw, Loc.Pick("Beschikbaar", "Available"), SizeStr(m.MemTotalBytes - m.MemUsedBytes)); y += 24;
-        KeyValue(g, rx, y, rw, Loc.Pick("Totaal", "Total"), SizeStr(m.MemTotalBytes)); y += 40;
-        T(g, Loc.Pick("Meeste geheugen", "Top memory"), _fs, Dim, rx, y);
+        KeyValue(g, rx, y, rw, Loc.T("In use"), SizeStr(m.MemUsedBytes)); y += 24;
+        KeyValue(g, rx, y, rw, Loc.T("Available"), SizeStr(m.MemTotalBytes - m.MemUsedBytes)); y += 24;
+        KeyValue(g, rx, y, rw, Loc.T("Total"), SizeStr(m.MemTotalBytes)); y += 40;
+        T(g, Loc.T("Top memory"), _fs, Dim, rx, y);
         ProcList(g, rx, y + 22, rw, 12, false);
 
         // onderaan: gebruik in GB als tweede grafiek
-        T(g, Loc.Pick("Meeste geheugen — alle", "Top memory — all"), _fs, Dim, R.X + 16, R.Y + 500);
+        T(g, Loc.T("Top memory — all"), _fs, Dim, R.X + 16, R.Y + 500);
         float py = R.Y + 522;
         for (int i = 0; i < Math.Min(12, _procs.TopMem.Count); i++)
         {
@@ -1084,7 +1084,7 @@ public sealed partial class FullscreenForm : Form
     private void DetailNet(Graphics g, RectangleF R)
     {
         var m = _c.Metrics;
-        Card(g, null, R, Loc.Pick("Netwerk — details", "Network — details"));
+        Card(g, null, R, Loc.T("Network — details"));
         float gw = 1240;
         T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
         T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fbig, Green, R.X + 330, R.Y + 44);
@@ -1113,7 +1113,7 @@ public sealed partial class FullscreenForm : Form
         float gy = R.Y + 96 + netGh + 30;
         if (active.Count > 0)
         {
-            T(g, Loc.Pick("Per adapter", "Per adapter"), _fs, Dim, R.X + 16, gy - 4);
+            T(g, Loc.T("Per adapter"), _fs, Dim, R.X + 16, gy - 4);
             gy += 22;
             float cellW = (gw - 8) / 2;
             for (int i = 0; i < active.Count; i++)
@@ -1135,7 +1135,7 @@ public sealed partial class FullscreenForm : Form
 
         // tabel met alle adapters
         float ty = gy + 8;
-        string[] heads = { Loc.Pick("Adapter", "Adapter"), Loc.Pick("Nu ↓", "Now ↓"), Loc.Pick("Nu ↑", "Now ↑"), Loc.Pick("Sessie", "Session"), Loc.Pick("Vandaag", "Today"), Loc.Pick("Gisteren", "Yesterday"), Loc.Pick("7 dagen", "7 days"), Loc.Pick("Maand", "Month") };
+        string[] heads = { Loc.T("Adapter"), Loc.T("Now ↓"), Loc.T("Now ↑"), Loc.T("Session"), Loc.T("Today"), Loc.T("Yesterday"), Loc.T("7 days"), Loc.T("Month") };
         float[] xs = { 0, 330, 450, 570, 720, 870, 1020, 1150 };
         for (int i = 0; i < heads.Length; i++)
         {
@@ -1155,18 +1155,18 @@ public sealed partial class FullscreenForm : Form
         }
 
         float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
-        T(g, Loc.Pick("Downloadsnelheid", "Download speed"), _fs, Dim, rx, R.Y + 50);
+        T(g, Loc.T("Download speed"), _fs, Dim, rx, R.Y + 50);
         StatRows(g, rx, R.Y + 74, rw, _c.History.NetDown, Rate);
-        T(g, Loc.Pick("Uploadsnelheid", "Upload speed"), _fs, Dim, rx, R.Y + 190);
+        T(g, Loc.T("Upload speed"), _fs, Dim, rx, R.Y + 190);
         StatRows(g, rx, R.Y + 214, rw, _c.History.NetUp, Rate);
         float ry = R.Y + 330;
-        T(g, Loc.Pick("Totaal verbruik (alle adapters)", "Total usage (all adapters)"), _fs, Dim, rx, ry);
+        T(g, Loc.T("Total usage (all adapters)"), _fs, Dim, rx, ry);
         ry += 24;
         foreach (var (label, u) in new[]
         {
-            (Loc.Pick("Sessie", "Session"), _c.Usage.Session(null)), (Loc.Pick("Vandaag", "Today"), _c.Usage.Today(null)),
-            (Loc.Pick("Gisteren", "Yesterday"), _c.Usage.Yesterday(null)), (Loc.Pick("7 dagen", "7 days"), _c.Usage.Week(null)),
-            (Loc.Pick("Deze maand", "This month"), _c.Usage.Month(null)),
+            (Loc.T("Session"), _c.Usage.Session(null)), (Loc.T("Today"), _c.Usage.Today(null)),
+            (Loc.T("Yesterday"), _c.Usage.Yesterday(null)), (Loc.T("7 days"), _c.Usage.Week(null)),
+            (Loc.T("This month"), _c.Usage.Month(null)),
         })
         {
             T(g, label, _f, Dim, rx, ry);
@@ -1177,7 +1177,7 @@ public sealed partial class FullscreenForm : Form
         {
             var mu = _c.Usage.Month(Cfg.NetworkAdapter);
             double pct = 100.0 * mu.Total / (Cfg.MonthlyLimitGb * 1073741824.0);
-            T(g, $"{Loc.Pick("Maandlimiet", "Monthly limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, rx, ry + 8);
+            T(g, $"{Loc.T("Monthly limit")}  {Metrics.FormatBytes(mu.Total)} / {Cfg.MonthlyLimitGb} GB", _fs, Dim, rx, ry + 8);
             Bar(g, rx, ry + 32, rw, pct, Thr(pct), 10);
         }
     }
@@ -1186,7 +1186,7 @@ public sealed partial class FullscreenForm : Form
     {
         var m = _c.Metrics;
         var drives = _c.Drives();
-        Card(g, null, R, Loc.S("disks") + " — details");
+        Card(g, null, R, Loc.T("Disks") + " — details");
         float gw = 1240;
         T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
         T(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fbig, Orange, R.X + 380, R.Y + 44);
@@ -1194,23 +1194,23 @@ public sealed partial class FullscreenForm : Form
         Graph(g, new RectangleF(R.X + 16, R.Y + 96, gw, diskGh), new[] { (_c.History.DiskRead, Accent), (_c.History.DiskWrite, Orange) }, 0, Rate);
 
         float y = R.Y + 96 + diskGh + 24;
-        T(g, Loc.Pick("Stations", "Drives"), _fs, Dim, R.X + 16, y);
+        T(g, Loc.T("Drives"), _fs, Dim, R.X + 16, y);
         y += 24;
         foreach (var d in drives)
         {
             T(g, d.Display, _fb, TextCol, R.X + 16, y);
             Bar(g, R.X + 90, y + 6, 640, d.UsedPercent, Thr(d.UsedPercent), 12);
-            TR(g, $"{SizeStr(d.Used)} {Loc.Pick("gebruikt", "used")}  ·  {SizeStr(d.Free)} {Loc.Pick("vrij", "free")}  ·  {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _f, Dim, R.X + gw + 8, y);
+            TR(g, $"{SizeStr(d.Used)} {Loc.T("used")}  ·  {SizeStr(d.Free)} {Loc.T("free")}  ·  {SizeStr(d.Total)}  ({d.UsedPercent:0}%)", _f, Dim, R.X + gw + 8, y);
             y += 34;
         }
 
         float rx = R.X + gw + 40, rw = R.Right - 16 - rx;
-        T(g, Loc.Pick("Lezen", "Read"), _fs, Dim, rx, R.Y + 50);
+        T(g, Loc.T("Read"), _fs, Dim, rx, R.Y + 50);
         StatRows(g, rx, R.Y + 74, rw, _c.History.DiskRead, Rate);
-        T(g, Loc.Pick("Schrijven", "Write"), _fs, Dim, rx, R.Y + 190);
+        T(g, Loc.T("Write"), _fs, Dim, rx, R.Y + 190);
         StatRows(g, rx, R.Y + 214, rw, _c.History.DiskWrite, Rate);
         float ry = R.Y + 330;
-        T(g, Loc.Pick("Fysieke schijven", "Physical disks"), _fs, Dim, rx, ry);
+        T(g, Loc.T("Physical disks"), _fs, Dim, rx, ry);
         ry += 24;
         foreach (var (name, rt) in m.DiskPerDisk.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
         {
@@ -1220,9 +1220,9 @@ public sealed partial class FullscreenForm : Form
         }
         var stLines = StorageLines();
         ry += 14;
-        T(g, Loc.Pick("Temperatuur en gezondheid", "Temperature and health"), _fs, Dim, rx, ry);
+        T(g, Loc.T("Temperature and health"), _fs, Dim, rx, ry);
         ry += 24;
-        if (stLines.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen SMART-gegevens beschikbaar.", "No SMART data available."), _fs, Dim, rx, ry);
+        if (stLines.Count == 0) T(g, SensorHint() ?? Loc.T("No SMART data available."), _fs, Dim, rx, ry);
         foreach (var (name, text) in stLines)
         {
             T(g, TruncMid(name, 30), _f, TextCol, rx, ry);
@@ -1233,7 +1233,7 @@ public sealed partial class FullscreenForm : Form
         if (stRows.Count > 0)
         {
             ry += 10;
-            T(g, Loc.Pick("Alle schijfsensoren", "All disk sensors"), _fs, Dim, rx, ry);
+            T(g, Loc.T("All disk sensors"), _fs, Dim, rx, ry);
             SensorList(g, rx, ry + 22, rw, Math.Max(3, (int)((R.Bottom - 20 - (ry + 22)) / 24)), stRows);
         }
     }
@@ -1241,43 +1241,43 @@ public sealed partial class FullscreenForm : Form
     private void DetailSys(Graphics g, RectangleF R)
     {
         var m = _c.Metrics;
-        Card(g, null, R, Loc.Pick("Batterij en systeem — details", "Battery and system — details"));
+        Card(g, null, R, Loc.T("Battery and system — details"));
         float half = (R.Width - 48) / 2;
 
         // batterij
         float x = R.X + 16, y = R.Y + 56;
-        T(g, Loc.Pick("Batterij", "Battery"), _fs, Dim, x, y);
+        T(g, Loc.T("Battery"), _fs, Dim, x, y);
         if (m.BatteryPresent)
         {
             DrawBatteryBig(g, x + 20, y + 40, 90, 190, m);
             T(g, $"{m.BatteryPercent:0}%", _fhuge, TextCol, x + 150, y + 36);
             T(g, BatteryState(m), _fh, Dim, x + 152, y + 110);
-            KeyValue(g, x + 152, y + 160, 420, Loc.Pick("Netstroom", "AC power"), m.BatteryOnAc ? Loc.Pick("aangesloten", "connected") : Loc.Pick("niet aangesloten", "not connected"));
-            KeyValue(g, x + 152, y + 186, 420, Loc.Pick("Laden", "Charging"), m.BatteryCharging ? Loc.Pick("ja", "yes") : Loc.Pick("nee", "no"));
+            KeyValue(g, x + 152, y + 160, 420, Loc.T("AC power"), m.BatteryOnAc ? Loc.T("connected") : Loc.T("not connected"));
+            KeyValue(g, x + 152, y + 186, 420, Loc.T("Charging"), m.BatteryCharging ? Loc.T("yes") : Loc.T("no"));
         }
-        else T(g, Loc.Pick("Geen batterij aanwezig (desktop-pc)", "No battery present (desktop PC)"), _f, Dim, x, y + 30);
+        else T(g, Loc.T("No battery present (desktop PC)"), _f, Dim, x, y + 30);
 
         // systeem
         float sx = R.X + 32 + half, sy = R.Y + 56;
-        T(g, Loc.Pick("Systeem", "System"), _fs, Dim, sx, sy);
+        T(g, Loc.T("System"), _fs, Dim, sx, sy);
         T(g, DateTime.Now.ToString("HH:mm:ss"), _fhuge, TextCol, sx, sy + 26);
         var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
         float yy = sy + 110;
         void kv(string k, string v) { KeyValue(g, sx, yy, half - 16, k, v); yy += 26; }
-        kv(Loc.Pick("Computer", "Computer"), Environment.MachineName);
-        kv(Loc.Pick("Gebruiker", "User"), Environment.UserName);
+        kv(Loc.T("Computer"), Environment.MachineName);
+        kv(Loc.T("User"), Environment.UserName);
         kv("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription);
-        kv(Loc.Pick("Opgestart", "Booted"), (DateTime.Now - up).ToString("yyyy-MM-dd HH:mm"));
-        kv("Uptime", $"{(int)up.TotalDays} {Loc.Pick("d", "d")} {up.Hours} {Loc.Pick("u", "h")} {up.Minutes} m");
+        kv(Loc.T("Booted"), (DateTime.Now - up).ToString("yyyy-MM-dd HH:mm"));
+        kv("Uptime", $"{(int)up.TotalDays} {Loc.T("d")} {up.Hours} {Loc.T("h")} {up.Minutes} m");
         kv("CPU", Trunc(CpuName(), 46));
-        kv(Loc.Pick("Kernen", "Cores"), $"{m.CpuCores.Length} ({Environment.ProcessorCount} threads)");
-        kv(Loc.Pick("Werkgeheugen", "Memory"), SizeStr(m.MemTotalBytes));
-        if (m.CpuTempC is double c) kv(Loc.Pick("CPU-temperatuur", "CPU temperature"), $"{c:0}°C");
-        if (m.GpuTempC is double t) kv(Loc.Pick("GPU-temperatuur", "GPU temperature"), $"{t:0}°C");
+        kv(Loc.T("Cores"), $"{m.CpuCores.Length} ({Environment.ProcessorCount} threads)");
+        kv(Loc.T("Memory@@ram"), SizeStr(m.MemTotalBytes));
+        if (m.CpuTempC is double c) kv(Loc.T("CPU temperature"), $"{c:0}°C");
+        if (m.GpuTempC is double t) kv(Loc.T("GPU temperature"), $"{t:0}°C");
 
         // videokaarten en schermen onderaan links
         float by = R.Y + 340;
-        T(g, Loc.Pick("Videokaarten", "Graphics cards"), _fs, Dim, x, by);
+        T(g, Loc.T("Graphics cards"), _fs, Dim, x, by);
         by += 24;
         foreach (var kv2 in Gpus())
         {
@@ -1286,7 +1286,7 @@ public sealed partial class FullscreenForm : Form
             by += 26;
         }
         by += 16;
-        T(g, Loc.Pick("Schermen", "Displays"), _fs, Dim, x, by);
+        T(g, Loc.T("Displays"), _fs, Dim, x, by);
         by += 24;
         foreach (var sc in Screen.AllScreens)
         {
@@ -1296,9 +1296,9 @@ public sealed partial class FullscreenForm : Form
 
         // Hoofdbord, ventilatoren, geheugen, batterij en overige sensoren (LibreHardwareMonitor)
         float sy2 = R.Y + 470;
-        T(g, Loc.Pick("Hoofdbord, ventilatoren en overige sensoren", "Motherboard, fans and other sensors"), _fs, Dim, sx, sy2);
+        T(g, Loc.T("Motherboard, fans and other sensors"), _fs, Dim, sx, sy2);
         var others = Rows(_c.Metrics.Sensors.Where(x => x.HwType != HardwareType.Cpu && !IsGpuHw(x.HwType) && x.HwType != HardwareType.Storage));
-        if (others.Count == 0) T(g, SensorHint() ?? Loc.Pick("Geen extra sensoren gevonden.", "No additional sensors found."), _fs, Dim, sx, sy2 + 24);
+        if (others.Count == 0) T(g, SensorHint() ?? Loc.T("No additional sensors found."), _fs, Dim, sx, sy2 + 24);
         else
         {
             int perCol = Math.Max(3, (int)((R.Bottom - 16 - (sy2 + 24)) / 24));
@@ -1314,14 +1314,13 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailProcs(Graphics g, RectangleF R)
     {
-        Card(g, null, R, Loc.Pick("Zwaarste programma's — details", "Top programs — details"));
+        Card(g, null, R, Loc.T("Top programs — details"));
         float half = (R.Width - 64) / 2;
-        T(g, Loc.Pick("Meeste CPU", "Most CPU"), _fh, TextCol, R.X + 16, R.Y + 50);
+        T(g, Loc.T("Most CPU"), _fh, TextCol, R.X + 16, R.Y + 50);
         ProcList(g, R.X + 16, R.Y + 90, half, 12, true);
-        T(g, Loc.Pick("Meeste geheugen", "Most memory"), _fh, TextCol, R.X + 48 + half, R.Y + 50);
+        T(g, Loc.T("Most memory"), _fh, TextCol, R.X + 48 + half, R.Y + 50);
         ProcList(g, R.X + 48 + half, R.Y + 90, half, 12, false);
-        T(g, Loc.Pick("Gegroepeerd per programma (alle processen van dezelfde naam opgeteld). Ververst elke 2 seconden.",
-                      "Grouped per program (all processes with the same name added together). Refreshes every 2 seconds."),
+        T(g, Loc.T("Grouped per program (all processes with the same name added together). Refreshes every 2 seconds."),
           _fs, Dim, R.X + 16, R.Bottom - 34);
     }
 }

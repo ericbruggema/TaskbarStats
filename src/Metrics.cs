@@ -30,7 +30,7 @@ public sealed record SensorInfo(string Hardware, HardwareType HwType, string Nam
 public readonly record struct DriveSpace(string Name, long Total, long Free, bool Network = false)
 {
     /// <summary>Naam voor weergave; netwerkschijven krijgen "(net)" erachter.</summary>
-    public string Display => Network ? Name + " (net)" : Name;
+    public string Display => Network ? Name + " " + Loc.T("(net)") : Name;
     public long Used => Total - Free;
     public double UsedPercent => Total <= 0 ? 0 : 100.0 * Used / Total;
 }
@@ -325,7 +325,7 @@ public sealed partial class Metrics : IDisposable
             var list = new List<SensorInfo>();
             try { foreach (var hw in _lhm.Hardware) VisitHardware(hw, list); } catch { }
             if (ReadThermalZone() is double tz)
-                list.Add(new SensorInfo("ACPI", HardwareType.Cpu, Loc.Pick("Thermal zone (ACPI, systeem)", "Thermal zone (ACPI, system)"), SensorType.Temperature, tz, null, null));
+                list.Add(new SensorInfo("ACPI", HardwareType.Cpu, Loc.T("Thermal zone (ACPI, system)"), SensorType.Temperature, tz, null, null));
             _sensors = list.ToArray();
         }
     }

@@ -129,8 +129,8 @@ public sealed partial class WidgetForm
 
     private void AppendExtraTooltip(StringBuilder sb)
     {
-        if (_cfg.ShowDiskBusy && _metrics.DiskBusyPercent is double busy) sb.AppendLine($"{Loc.Pick("Schijf actief", "Disk active")}  {busy:0}%");
-        if (_cfg.ShowDiskTemp && _metrics.DiskTempC is double dt) sb.AppendLine($"{Loc.Pick("Schijf", "Disk")}  {dt:0}°C");
-        if (_cfg.ShowMoboTemp && _metrics.MoboTempC is double mt) sb.AppendLine($"{Loc.Pick("Hoofdbord", "Motherboard")}  {mt:0}°C");
+        if (_cfg.ShowDiskBusy && _metrics.DiskBusyPercent is double busy) sb.AppendLine($"{Loc.T("Disk active")}  {busy:0}%");
+        if (_cfg.ShowDiskTemp && _metrics.DiskTempC is double dt) sb.AppendLine($"{Loc.T("Disk")}  {dt:0}°C");
+        if (_cfg.ShowMoboTemp && _metrics.MoboTempC is double mt) sb.AppendLine($"{Loc.T("Motherboard")}  {mt:0}°C");
     }
 }

@@ -113,7 +113,7 @@ public sealed partial class AppSettings
     public bool AutoHeight { get; set; } = true;      // hoogte volgt de taakbalk
     public int WidgetHeight { get; set; } = 44;       // vaste hoogte (als AutoHeight uit staat)
     public int RefreshMs { get; set; } = 1000;
-    public string Language { get; set; } = "nl";   // "nl" of "en"
+    public string Language { get; set; } = "";   // taalcode ("nl", "en", ...); leeg = taal van het besturingssysteem
     public bool LabelsAbove { get; set; } = false;   // label (CPU/GPU/MEM) boven de grafiek i.p.v. ernaast
     public bool Compact { get; set; } = false;       // korte eenheden, kleinere marges en lettertype
     public int FontSize { get; set; } = 9;
@@ -142,6 +142,7 @@ public sealed partial class AppSettings
             ? custom
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
         Directory.CreateDirectory(dir);
+        Loc.ExternalDir = Path.Combine(dir, "lang");   // eigen taalbestanden
         var path = Path.Combine(dir, "settings.json");
 
         AppSettings s;

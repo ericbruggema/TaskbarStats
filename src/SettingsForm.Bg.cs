@@ -15,13 +15,13 @@ public sealed partial class SettingsForm
         {
             if (parent is FlowLayoutPanel f) f.Controls.Add(c); else parent.Controls.Add(c);
         }
-        add(Head(Loc.Pick("Achtergrondafbeelding", "Background image")));
+        add(Head(Loc.T("Background image")));
 
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = new Padding(0, 2, 0, 2) };
         var thumb = new PictureBox { Width = 80, Height = 45, SizeMode = PictureBoxSizeMode.Zoom, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 0, 8, 0) };
         var name = new Label { AutoSize = false, Width = 170, Height = 22, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 0, 0, 2) };
-        var pick = Btn(Loc.Pick("Kies…", "Choose…"), 80);
-        var clear = Btn(Loc.Pick("Wissen", "Clear"), 80);
+        var pick = Btn(Loc.T("Choose…"), 80);
+        var clear = Btn(Loc.T("Clear"), 80);
         var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = new Padding(0) };
         buttons.Controls.Add(pick);
         buttons.Controls.Add(clear);
@@ -36,7 +36,7 @@ public sealed partial class SettingsForm
         {
             var p = getPath();
             bool has = !string.IsNullOrWhiteSpace(p);
-            name.Text = has ? Path.GetFileName(p) : Loc.Pick("(geen afbeelding)", "(no image)");
+            name.Text = has ? Path.GetFileName(p) : Loc.T("(no image)");
             clear.Enabled = has;
             if (p == shown) return;
             shown = p ?? "";
@@ -71,14 +71,14 @@ public sealed partial class SettingsForm
 
         var modes = new (string, BgMode)[]
         {
-            (Loc.Pick("Uitgerekt", "Stretch"), BgMode.Stretch), (Loc.Pick("Vullen", "Fill"), BgMode.Fill), (Loc.Pick("Passen", "Fit"), BgMode.Fit),
-            (Loc.Pick("Tegelen", "Tile"), BgMode.Tile), (Loc.Pick("Gecentreerd", "Center"), BgMode.Center),
+            (Loc.T("Stretch"), BgMode.Stretch), (Loc.T("Fill"), BgMode.Fill), (Loc.T("Fit"), BgMode.Fit),
+            (Loc.T("Tile"), BgMode.Tile), (Loc.T("Center"), BgMode.Center),
         };
         var seg = Seg(modes, getMode, setMode, 56);
         seg.MaximumSize = new Size(440, 0);
         var op = Slider(0, 100, 5, getOpacity, setOpacity, "%");
-        add(Row(Loc.Pick("Modus", "Mode"), seg, 60));
-        add(Row(Loc.Pick("Dekking", "Opacity"), op, 60));
+        add(Row(Loc.T("Mode"), seg, 60));
+        add(Row(Loc.T("Opacity"), op, 60));
     }
 
     /// <summary>Kleine miniatuur (max. 160 px) voor het instellingenvenster; null bij een fout.</summary>

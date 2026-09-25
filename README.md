@@ -4,11 +4,11 @@ Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuu
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
 overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een fullscreen "cockpit".
 
-## Rondleiding
+## Tour
 
-![Rondleiding door TaskbarStats](docs/tour/taskbarstats-tour-nl.gif)
+![Tour of TaskbarStats](docs/tour/taskbarstats-tour-en.gif)
 
-Een rondleiding van ± 70 seconden langs het widget, de instellingen, het dashboard en het fullscreen-scherm. Liever een video of in het Engels? Download de [mp4 (NL)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/taskbarstats-tour-nl.mp4), de [mp4 (EN)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/taskbarstats-tour-en.mp4) of bekijk de [gif (EN)](docs/tour/taskbarstats-tour-en.gif).
+A 70-second tour of the widget, the settings, the dashboard and the fullscreen screen. Prefer a video? Download the [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/taskbarstats-tour-en.mp4).
 
 ## Screenshots
 

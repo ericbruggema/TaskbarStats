@@ -76,7 +76,7 @@ public sealed class DashContext
 /// met grafiekjes. Halfdoorzichtig, schaalbaar, op de voor- of achtergrond en eventueel klik-door.
 /// Tekent zichzelf naar een ARGB-bitmap (UpdateLayeredWindow), net als het taakbalk-widget.
 /// </summary>
-public sealed class DashboardForm : Form
+public sealed partial class DashboardForm : Form
 {
     private const int CW = 300, Spacing = 12, Pad = 16;
     private static readonly Color Dim = Color.FromArgb(155, 164, 178);

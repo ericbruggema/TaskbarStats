@@ -45,7 +45,7 @@ public readonly record struct DriveSpace(string Name, long Total, long Free, boo
 ///  - DISK : "PhysicalDisk\Disk Read/Write Bytes/sec" (per schijf, plus totaal).
 ///  - TEMP : LibreHardwareMonitorLib (vereist administrator-rechten).
 /// </summary>
-public sealed class Metrics : IDisposable
+public sealed partial class Metrics : IDisposable
 {
     private double _rCpu, _rMem, _rGpu, _rDown, _rUp;
     private double[] _rCores = Array.Empty<double>();

@@ -16,7 +16,7 @@ public enum BatteryPercentMode { Inside, Beside, Off }
 /// Instellingen, opgeslagen als settings.json in %AppData%\TaskbarStats
 /// (overleeft herbouw/herinstallatie). Wijzigingen via het menu worden direct bewaard.
 /// </summary>
-public sealed class AppSettings
+public sealed partial class AppSettings
 {
     // Welke onderdelen tonen we?
     public bool ShowCpu { get; set; } = true;

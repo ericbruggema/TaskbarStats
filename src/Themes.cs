@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace TaskbarStats;
 
 /// <summary>Een thema: alles wat uiterlijk en indeling bepaalt (geen posities, taal of andere persoonlijke keuzes).</summary>
-public sealed class ThemeData
+public sealed partial class ThemeData
 {
     public string Name { get; set; } = "";
     public string? Author { get; set; }

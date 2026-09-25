@@ -10,7 +10,7 @@ namespace TaskbarStats;
 /// Het widget: tekent per onderdeel een cel (digitaal, meter of balk), met
 /// instelbare kleuren en waarschuwingsdrempels. Rechtermuisknop = instellingen.
 /// </summary>
-public sealed class WidgetForm : Form
+public sealed partial class WidgetForm : Form
 {
     private readonly AppSettings _cfg;
     private readonly Metrics _metrics = new();

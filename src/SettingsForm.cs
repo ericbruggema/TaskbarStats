@@ -19,7 +19,7 @@ public sealed class SettingsHost
 /// zodat je het effect meteen op het widget, het dashboard en het fullscreen-scherm ziet.
 /// Bedieningselementen die door een andere keuze geen effect hebben, worden uitgeschakeld (<see cref="Dep"/>).
 /// </summary>
-public sealed class SettingsForm : Form
+public sealed partial class SettingsForm : Form
 {
     private readonly AppSettings _c;
     private readonly Action _apply;

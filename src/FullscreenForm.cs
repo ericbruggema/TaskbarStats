@@ -10,7 +10,7 @@ namespace TaskbarStats;
 /// programma's) op een vast canvas van 1920x1080 dat meeschaalt naar het scherm. Klik op een tegel voor de
 /// diepgaande weergave; Esc gaat een stap terug (en sluit vanuit het overzicht). Toetsen 1/2/3 = grafiek 1 min / 5 min / 1 uur.
 /// </summary>
-public sealed class FullscreenForm : Form
+public sealed partial class FullscreenForm : Form
 {
     private const float CW = 1920, CH = 1080, M = 16;
     private static readonly Color Bg = Color.FromArgb(11, 13, 18);

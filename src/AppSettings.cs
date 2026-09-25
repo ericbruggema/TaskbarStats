@@ -156,9 +156,20 @@ public sealed partial class AppSettings
         return s;
     }
 
+    private static readonly object _saveLock = new();
+
     public void Save()
     {
-        try { File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts)); }
-        catch { /* best-effort */ }
+        // Atomair: eerst naar een tijdelijk bestand en dan vervangen, zodat een crash of stroomuitval het bestand nooit half achterlaat.
+        lock (_saveLock)
+        {
+            try
+            {
+                string tmp = FilePath + ".tmp";
+                File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
+                File.Move(tmp, FilePath, true);
+            }
+            catch { /* best-effort */ }
+        }
     }
 }

@@ -19,5 +19,6 @@ public sealed partial class WidgetForm
         if (!force && Location.X == x && Location.Y == y) return;
         Location = new Point(x, y);
         _cfg.FloatX = x; _cfg.FloatY = y;
+        _cfg.Save();   // de positie is veranderd: direct bewaren
     }
 }

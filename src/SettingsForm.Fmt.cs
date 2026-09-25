@@ -31,6 +31,7 @@ public sealed partial class SettingsForm
             (Loc.Pick("Bytes (MB/s)", "Bytes (MB/s)"), RateUnitKind.Bytes), (Loc.Pick("Bits (Mb/s)", "Bits (Mb/s)"), RateUnitKind.Bits),
         }, () => _c.NetUnit, v => _c.NetUnit = v, 110);
         p.Controls.Add(Row(Loc.Pick("Netwerk-eenheid", "Network unit"), unit));
+        p.Controls.Add(Why(() => _c.ShowNetUp || _c.ShowNetDown ? null : Loc.Pick("Upload en Download staan uit: zet er een aan bij Onderdelen.", "Upload and Download are off: turn one on under Components.")));
 
         var scale = Seg(new (string, RateScale)[]
         {
@@ -44,16 +45,20 @@ public sealed partial class SettingsForm
             (Loc.Pick("Beschikbaar (GB)", "Available (GB)"), MemShowMode.Available),
         }, () => _c.MemShow, v => _c.MemShow = v, 110);
         p.Controls.Add(Row(Loc.Pick("Geheugen (digitaal)", "Memory (digital)"), mem));
+        p.Controls.Add(Why(() => !_c.ShowMem ? Loc.Pick("Geheugen staat uit: zet Geheugen aan bij Onderdelen.", "Memory is off: turn Memory on under Components.")
+                               : _c.MemStyle != DisplayStyle.Digital ? Loc.Pick("Alleen bij de weergavestijl Digitaal. Nu staat Geheugen op meter, balk of grafiek (subtab Weergave); zet daar Geheugen op Digitaal.", "Only for the Digital display style. Memory is now a gauge, bar or graph (Display subtab); set Memory to Digital there.") : null));
 
         var busyStyle = Seg(new (string, DisplayStyle)[] { (Loc.S("digital"), DisplayStyle.Digital), (Loc.S("gauge"), DisplayStyle.Gauge), (Loc.S("bar"), DisplayStyle.Bar) },
                             () => _c.DiskBusyStyle, v => _c.DiskBusyStyle = v);
         p.Controls.Add(Row(Loc.Pick("Schijf actief: stijl", "Disk active: style"), busyStyle));
+        p.Controls.Add(Why(() => _c.ShowDiskBusy ? null : Loc.Pick("\"Schijf actief (%)\" staat uit: zet het aan bij Onderdelen.", "\"Disk active (%)\" is off: turn it on under Components.")));
 
         var shortV = Check(Loc.Pick("Korte waarden (minder decimalen)", "Short values (fewer decimals)"), _c.ShortValues, v => _c.ShortValues = v, ColW * 2);
         var hideUnit = Check(Loc.Pick("Eenheid weglaten (MB/s, GB, GHz)", "Hide the unit (MB/s, GB, GHz)"), _c.HideUnit, v => _c.HideUnit = v, ColW * 2);
         var hidePct = Check(Loc.Pick("%-teken weglaten", "Hide the % sign"), _c.HidePercent, v => _c.HidePercent = v, ColW * 2);
         var swap = Check(Loc.Pick("Upload en download omwisselen (download boven)", "Swap upload and download (download on top)"), _c.SwapNet, v => _c.SwapNet = v, ColW * 2);
         p.Controls.Add(Grid(shortV, hideUnit, hidePct, swap));
+        p.Controls.Add(Why(() => _c.ShowNetUp && _c.ShowNetDown ? null : Loc.Pick("Omwisselen kan alleen als Upload én Download aan staan (Onderdelen).", "Swapping needs both Upload and Download turned on (Components).")));
 
         Dep(() =>
         {

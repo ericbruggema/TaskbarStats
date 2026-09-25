@@ -3,6 +3,15 @@ namespace TaskbarStats;
 // Instellingen voor de mini-grafiek in het widget (uitbreiding van het gedeelte "Weergave" op tabblad Widget).
 public sealed partial class SettingsForm
 {
+    private bool AnyGraph() =>
+        _c.ShowCpu && !_c.CpuPerCore && _c.CpuStyle == DisplayStyle.Graph
+        || _c.ShowGpu && _c.GpuStyle == DisplayStyle.Graph
+        || _c.ShowMem && _c.MemStyle == DisplayStyle.Graph
+        || _c.ShowCpuTemp && !(_c.TempMerge && _c.ShowCpu) && _c.CpuTempStyle == DisplayStyle.Graph
+        || _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu) && _c.GpuTempStyle == DisplayStyle.Graph
+        || (_c.ShowNetUp || _c.ShowNetDown) && _c.NetStyle == TextGraphStyle.Graph
+        || _c.ShowPing && _c.PingStyle == TextGraphStyle.Graph;
+
     // Geeft de geavanceerde rijen (lengte, periode, schaal) terug; die staan op het subtabblad Geavanceerd.
     private List<Control> GraphSettings(FlowLayoutPanel p)
     {
@@ -16,8 +25,11 @@ public sealed partial class SettingsForm
             (Loc.Pick("Automatisch", "Automatic"), 0), ("1 MB/s", 1), ("10 MB/s", 10), ("100 MB/s", 100),
         }, () => _c.NetGraphMaxMBps, v => _c.NetGraphMaxMBps = v, 56);
         p.Controls.Add(Row(Loc.Pick("Netwerk", "Network"), netStyle));
+        p.Controls.Add(Why(() => _c.ShowNetUp || _c.ShowNetDown ? null : Loc.Pick("Upload en Download staan uit: zet er een aan bij Onderdelen.", "Upload and Download are off: turn one on under Components.")));
+        adv.Add(Why(() => AnyGraph() ? null : Loc.Pick("Nog geen onderdeel heeft de stijl Grafiek (subtab Weergave). Je kunt dit alvast instellen; het werkt zodra een onderdeel een grafiek toont.", "No item uses the Graph style yet (Display subtab). You can set this already; it applies as soon as an item shows a graph.")));
         adv.Add(Row(Loc.Pick("Netwerkgrafiek: schaal", "Network graph: scale"), netMax));
         p.Controls.Add(Row("Ping", pingStyle));
+        p.Controls.Add(Why(() => _c.ShowPing ? null : Loc.Pick("Ping staat uit: zet Ping aan bij Onderdelen.", "Ping is off: turn Ping on under Components.")));
         var len = Seg(new (string, GraphLen)[]
         {
             (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium), (Loc.Pick("Lang", "Long"), GraphLen.Long),
@@ -28,15 +40,6 @@ public sealed partial class SettingsForm
         {
             netStyle.Enabled = _c.ShowNetUp || _c.ShowNetDown;
             pingStyle.Enabled = _c.ShowPing;
-            netMax.Enabled = netStyle.Enabled && _c.NetStyle == TextGraphStyle.Graph;
-            bool cpu = _c.ShowCpu && !_c.CpuPerCore && _c.CpuStyle == DisplayStyle.Graph;
-            bool gpu = _c.ShowGpu && _c.GpuStyle == DisplayStyle.Graph;
-            bool mem = _c.ShowMem && _c.MemStyle == DisplayStyle.Graph;
-            bool ct = _c.ShowCpuTemp && !(_c.TempMerge && _c.ShowCpu) && _c.CpuTempStyle == DisplayStyle.Graph;
-            bool gt = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu) && _c.GpuTempStyle == DisplayStyle.Graph;
-            bool net = netStyle.Enabled && _c.NetStyle == TextGraphStyle.Graph;
-            bool ping = _c.ShowPing && _c.PingStyle == TextGraphStyle.Graph;
-            secs.Enabled = len.Enabled = cpu || gpu || mem || ct || gt || net || ping;
         });
         return adv;
     }

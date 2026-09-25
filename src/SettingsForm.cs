@@ -68,6 +68,7 @@ public sealed partial class SettingsForm : Form
         _tabs.TabPages.Add(ThemesTab());
         _tabs.TabPages.Add(GeneralTab());
         _tabs.SelectedIndex = Math.Clamp(select, 0, _tabs.TabPages.Count - 1);
+        RestoreSubs();
         ResumeLayout();
         RunDeps();
         _snapshot = Snap();
@@ -294,7 +295,9 @@ public sealed partial class SettingsForm : Form
     // ---------- tabblad Algemeen ----------
     private TabPage GeneralTab()
     {
-        var p = Page(Loc.Pick("Algemeen", "General"), out var tab);
+        Page(Loc.Pick("Algemeen", "General"), out var tab);
+        var sub = Subs(tab, () => _generalSub, v => _generalSub = v);
+        var p = SubPage(sub, Loc.Pick("Algemeen", "General"));
 
         p.Controls.Add(Head(Loc.S("language")));
         p.Controls.Add(Seg(new (string, string)[] { (Loc.S("dutch"), "nl"), (Loc.S("english"), "en") }, () => _c.Language, v =>
@@ -325,9 +328,11 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Note(Loc.Pick("Langer wachten geeft je meer tijd om met de muis op het widget te staan en rechts te klikken.",
                                      "A longer delay gives you more time to rest the mouse on the widget and right-click.")));
 
+        p = SubPage(sub, Loc.Pick("Meldingen", "Notifications"));
         p.Controls.Add(Head(Loc.Pick("Meldingen", "Notifications")));
         var notify = Check(Loc.Pick("Meldingen aan", "Notifications on"), _c.Notifications, v => _c.Notifications = v);
         p.Controls.Add(notify);
+        p.Controls.Add(Why(() => _c.Notifications ? null : Loc.Pick("Meldingen staan uit: de drempels hieronder doen niets tot je \"Meldingen aan\" aanvinkt.", "Notifications are off: the thresholds below do nothing until you tick \"Notifications on\".")));
         var diskFull = Seg(new (string, int)[] { ("80%", 80), ("85%", 85), ("90%", 90), ("95%", 95) }, () => _c.DiskFullPercent, v => _c.DiskFullPercent = v, 56);
         var critSecs = Seg(new (string, int)[] { ("10 s", 10), ("30 s", 30), ("60 s", 60), ("120 s", 120) }, () => _c.CritSeconds, v => _c.CritSeconds = v, 56);
         p.Controls.Add(Row(Loc.Pick("Schijf bijna vol vanaf", "Disk almost full at"), diskFull, 230));
@@ -344,6 +349,8 @@ public sealed partial class SettingsForm : Form
         log.Margin = new Padding(3, 6, 3, 3);
         log.Click += (_, _) => _h.ShowLog();
         p.Controls.Add(log);
+
+        p = SubPage(sub, Loc.Pick("Muis en updates", "Mouse and updates"));
         MouseSection(p);
         UpdateSection(p);
         return tab;
@@ -387,6 +394,7 @@ public sealed partial class SettingsForm : Form
         foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu)) gpuItems.Add((Metrics.GpuName(l), l));
         var gpuSrc = Seg(gpuItems, () => _c.GpuLuid ?? "", v => _c.GpuLuid = v == "" ? null : v, 60);
         p.Controls.Add(Row(Loc.S("gpu"), gpuSrc));
+        p.Controls.Add(Why(() => _c.ShowGpu ? null : Loc.Pick("GPU staat uit: zet GPU aan bij Onderdelen.", "GPU is off: turn GPU on under Components.")));
 
         var cpuMode = Seg(new (string, bool)[]
         {
@@ -409,6 +417,7 @@ public sealed partial class SettingsForm : Form
             Changed();
         };
         p.Controls.Add(Row(Loc.S("netAdapter"), adapters));
+        p.Controls.Add(Why(() => _c.ShowNetUp || _c.ShowNetDown ? null : Loc.Pick("Upload en Download staan uit: zet er een aan bij Onderdelen.", "Upload and Download are off: turn one on under Components.")));
 
         var spaceMode = Seg(new (string, DiskSpaceMode)[]
         {
@@ -422,6 +431,7 @@ public sealed partial class SettingsForm : Form
         driveBox.SelectedIndex = Math.Max(0, driveBox.FindStringExact(_c.DiskSpaceDrive));
         driveBox.SelectedIndexChanged += (_, _) => { if (_building || driveBox.SelectedItem is not string dn) return; _c.DiskSpaceDrive = dn; Changed(); };
         p.Controls.Add(Row(Loc.Pick("Welke schijf", "Which drive"), driveBox));
+        p.Controls.Add(Why(() => _c.DiskSpace == DiskSpaceMode.Single ? null : Loc.Pick("Alleen bij Schijfruimte = \"Eén schijf\".", "Only when Disk space = \"One drive\".")));
         p.Controls.Add(Check(Loc.Pick("Netwerkschijven meenemen (ook in dashboard en fullscreen)", "Include network drives (also in dashboard and fullscreen)"),
                              _c.IncludeNetworkDrives, v => _c.IncludeNetworkDrives = v));
         var pingHost = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Width = 200 };
@@ -436,6 +446,7 @@ public sealed partial class SettingsForm : Form
             Changed();
         };
         p.Controls.Add(Row(Loc.Pick("Ping-doel", "Ping target"), pingHost));
+        p.Controls.Add(Why(() => _c.ShowPing ? null : Loc.Pick("Ping staat uit: zet Ping aan bij Onderdelen.", "Ping is off: turn Ping on under Components.")));
         Dep(() =>
         {
             pingHost.Enabled = _c.ShowPing;
@@ -454,15 +465,23 @@ public sealed partial class SettingsForm : Form
         var cpuNote = Note(Loc.Pick("Bij \"per core\" toont de CPU altijd balkjes; de stijl hierboven telt dan niet mee.", "With \"per core\" the CPU always shows bars; the style above is not used."));
         p.Controls.Add(Row(Loc.S("cpu"), cpuStyle));
         p.Controls.Add(perCore);
+        p.Controls.Add(Why(() => _c.ShowCpu ? null : Loc.Pick("CPU staat uit: zet CPU aan bij Onderdelen.", "CPU is off: turn CPU on under Components.")));
         p.Controls.Add(cpuNote);
         p.Controls.Add(Row(Loc.S("gpu"), gpuStyle));
+        p.Controls.Add(Why(() => _c.ShowGpu ? null : Loc.Pick("GPU staat uit: zet GPU aan bij Onderdelen.", "GPU is off: turn GPU on under Components.")));
         p.Controls.Add(Row(Loc.S("memory"), memStyle));
+        p.Controls.Add(Why(() => _c.ShowMem ? null : Loc.Pick("Geheugen staat uit: zet Geheugen aan bij Onderdelen.", "Memory is off: turn Memory on under Components.")));
         var cpuTempStyle = Seg(styles, () => _c.CpuTempStyle, v => _c.CpuTempStyle = v);
         var gpuTempStyle = Seg(styles, () => _c.GpuTempStyle, v => _c.GpuTempStyle = v);
         p.Controls.Add(Row(Loc.S("cpuTemp"), cpuTempStyle));
+        p.Controls.Add(Why(() => !_c.ShowCpuTemp ? Loc.Pick("CPU-temperatuur staat uit: zet die aan bij Onderdelen.", "CPU temperature is off: turn it on under Components.")
+                               : _c.TempMerge && _c.ShowCpu ? Loc.Pick("Samengevoegd met de CPU-cel (zie het vinkje hieronder): de stijl van de CPU-cel geldt.", "Merged into the CPU cell (see the tick below): the CPU cell style applies.") : null));
         p.Controls.Add(Row(Loc.S("gpuTemp"), gpuTempStyle));
+        p.Controls.Add(Why(() => !_c.ShowGpuTemp ? Loc.Pick("GPU-temperatuur staat uit: zet die aan bij Onderdelen.", "GPU temperature is off: turn it on under Components.")
+                               : _c.TempMerge && _c.ShowGpu ? Loc.Pick("Samengevoegd met de GPU-cel (zie het vinkje hieronder): de stijl van de GPU-cel geldt.", "Merged into the GPU cell (see the tick below): the GPU cell style applies.") : null));
         var tempMerge = Check(Loc.Pick("Temperatuur klein achter de CPU-/GPU-cel (smaller)", "Temperature small after the CPU/GPU cell (narrower)"), _c.TempMerge, v => _c.TempMerge = v);
         p.Controls.Add(tempMerge);
+        p.Controls.Add(Why(() => _c.ShowCpuTemp || _c.ShowGpuTemp ? null : Loc.Pick("Zet CPU- of GPU-temperatuur aan bij Onderdelen.", "Turn on CPU or GPU temperature under Components.")));
         Dep(() =>
         {
             cpuTempStyle.Enabled = _c.ShowCpuTemp && !(_c.TempMerge && _c.ShowCpu);
@@ -477,6 +496,7 @@ public sealed partial class SettingsForm : Form
             (Loc.Pick("Uit", "Off"), BatteryPercentMode.Off),
         }, () => _c.BatteryPercent, v => _c.BatteryPercent = v);
         p.Controls.Add(Row(Loc.Pick("Batterij: percentage", "Battery: percentage"), batt));
+        p.Controls.Add(Why(() => _c.ShowBattery ? null : Loc.Pick("Batterij staat uit: zet Batterij aan bij Onderdelen.", "Battery is off: turn Battery on under Components.")));
 
         var labels = Check(Loc.Pick("Labels boven", "Labels above"), _c.LabelsAbove, v => _c.LabelsAbove = v, ColW);
         var compact = Check(Loc.Pick("Compact (kort en klein)", "Compact (short and small)"), _c.Compact, v =>
@@ -485,6 +505,7 @@ public sealed partial class SettingsForm : Form
             if (v) { _c.LabelsAbove = true; _building = true; labels.Checked = true; _building = false; }
         }, ColW);
         p.Controls.Add(Grid(labels, compact, Check(Loc.S("transparent"), _c.TransparentBackground, v => _c.TransparentBackground = v, ColW)));
+        p.Controls.Add(Why(() => _c.Compact ? Loc.Pick("Compact zet de labels altijd boven het getal.", "Compact always puts the labels above the value.") : null));
 
         p = SubPage(sub, Loc.Pick("Waarden", "Values"));
         AddValueSettings(p);
@@ -571,73 +592,72 @@ public sealed partial class SettingsForm : Form
     // ---------- tabblad Dashboard ----------
     private TabPage DashTab()
     {
-        var p = Page("Dashboard", out var tab);
-        var cols = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1 };
-        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        var left = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 0, 24, 0) };
-        var right = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        Page("Dashboard", out var tab);
+        var sub = Subs(tab, () => _dashSub, v => _dashSub = v);
+        var p = SubPage(sub, Loc.Pick("Venster", "Window"));
 
-        left.Controls.Add(Head(Loc.Pick("Bureaublad-dashboard", "Desktop dashboard")));
-        left.Controls.Add(Check(Loc.Pick("Dashboard tonen", "Show dashboard"), _c.ShowDashboard, v => _c.ShowDashboard = v));
-        left.Controls.Add(Check(Loc.Pick("Klik-door (Ctrl+Alt+D)", "Click-through (Ctrl+Alt+D)"), _c.DashClickThrough, v => _c.DashClickThrough = v));
-        left.Controls.Add(Check(Loc.Pick("Positie vergrendelen", "Lock position"), _c.DashLocked, v => _c.DashLocked = v));
-        left.Controls.Add(Head(Loc.Pick("Positie", "Layer")));
-        left.Controls.Add(Seg(new (string, bool)[]
+        p.Controls.Add(Head(Loc.Pick("Bureaublad-dashboard", "Desktop dashboard")));
+        p.Controls.Add(Check(Loc.Pick("Dashboard tonen", "Show dashboard"), _c.ShowDashboard, v => _c.ShowDashboard = v));
+        p.Controls.Add(Check(Loc.Pick("Klik-door (Ctrl+Alt+D)", "Click-through (Ctrl+Alt+D)"), _c.DashClickThrough, v => _c.DashClickThrough = v));
+        p.Controls.Add(Check(Loc.Pick("Positie vergrendelen", "Lock position"), _c.DashLocked, v => _c.DashLocked = v));
+        p.Controls.Add(Head(Loc.Pick("Positie", "Layer")));
+        p.Controls.Add(Seg(new (string, bool)[]
         {
             (Loc.Pick("Achtergrond", "Background"), false),
             (Loc.Pick("Voorgrond", "In front"), true),
         }, () => _c.DashFront, v => _c.DashFront = v, 100));
-        left.Controls.Add(Head(Loc.Pick("Doorzichtigheid", "Opacity")));
-        left.Controls.Add(Slider(20, 100, 10, () => _c.DashOpacity, v => _c.DashOpacity = v, "%"));
-        left.Controls.Add(Head(Loc.Pick("Schaal", "Scale")));
-        left.Controls.Add(Slider(50, 300, 25, () => _c.DashScale, v => _c.DashScale = v, "%"));
-        left.Controls.Add(Head(Loc.Pick("Kolommen", "Columns")));
-        left.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
-        BgSection(left, () => _c.DashBgImage, v => _c.DashBgImage = v, () => _c.DashBgMode, v => _c.DashBgMode = v, () => _c.DashBgOpacity, v => _c.DashBgOpacity = v);
         var reset = Btn(Loc.Pick("Reset positie dashboard", "Reset dashboard position"), 170);
         reset.Margin = new Padding(0, 12, 0, 0);
         reset.Click += (_, _) => _h.ResetDash();
-        left.Controls.Add(reset);
+        p.Controls.Add(reset);
 
-        right.Controls.Add(Head(Loc.Pick("Onderdelen en volgorde", "Components and order")));
-        right.Controls.Add(Note(Loc.Pick("Vink aan of uit; verplaats met de knoppen.", "Tick to show or hide; move with the buttons."), 300));
-        right.Controls.Add(TileEditor(() => _c.DashOrder, v => _c.DashOrder = v, id => Tiles.DashOn(_c, id), (id, on) => Tiles.SetDashOn(_c, id, on)));
+        p = SubPage(sub, Loc.Pick("Uiterlijk", "Appearance"));
+        p.Controls.Add(Head(Loc.Pick("Doorzichtigheid", "Opacity")));
+        p.Controls.Add(Slider(20, 100, 10, () => _c.DashOpacity, v => _c.DashOpacity = v, "%"));
+        p.Controls.Add(Head(Loc.Pick("Schaal", "Scale")));
+        p.Controls.Add(Slider(50, 300, 25, () => _c.DashScale, v => _c.DashScale = v, "%"));
+        p.Controls.Add(Head(Loc.Pick("Kolommen", "Columns")));
+        p.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
+        BgSection(p, () => _c.DashBgImage, v => _c.DashBgImage = v, () => _c.DashBgMode, v => _c.DashBgMode = v, () => _c.DashBgOpacity, v => _c.DashBgOpacity = v);
 
-        cols.Controls.Add(left, 0, 0);
-        cols.Controls.Add(right, 1, 0);
-        p.Controls.Add(cols);
+        p = SubPage(sub, Loc.Pick("Onderdelen", "Components"));
+        p.Controls.Add(Head(Loc.Pick("Onderdelen en volgorde", "Components and order")));
+        p.Controls.Add(Note(Loc.Pick("Vink aan of uit; verplaats met de knoppen.", "Tick to show or hide; move with the buttons."), 300));
+        p.Controls.Add(TileEditor(() => _c.DashOrder, v => _c.DashOrder = v, id => Tiles.DashOn(_c, id), (id, on) => Tiles.SetDashOn(_c, id, on)));
         return tab;
     }
 
     // ---------- tabblad Fullscreen ----------
     private TabPage FullTab()
     {
-        var p = Page("Fullscreen", out var tab);
+        Page("Fullscreen", out var tab);
+        var sub = Subs(tab, () => _fullSub, v => _fullSub = v);
+        var p = SubPage(sub, Loc.Pick("Scherm en tour", "Screen and tour"));
+
+        p.Controls.Add(Head(Loc.Pick("Fullscreen dashboard (Ctrl+Alt+F)", "Fullscreen dashboard (Ctrl+Alt+F)")));
+        p.Controls.Add(Note(Loc.Pick("Open het scherm met Ctrl+Alt+F om het effect te zien; het past zich aan het aantal onderdelen aan.",
+                                     "Open the screen with Ctrl+Alt+F to see the effect; it adapts to the number of components."), 520));
+        var screens = new List<(string, string?)> { (Loc.Pick("Automatisch (waar het widget staat)", "Automatic (where the widget is)"), null) };
+        foreach (var sc in Screen.AllScreens)
+            screens.Add(($"{sc.DeviceName.TrimStart('\\', '.')}  {sc.Bounds.Width}×{sc.Bounds.Height}{(sc.Primary ? " *" : "")}", sc.DeviceName));
+        p.Controls.Add(Head(Loc.Pick("Scherm", "Display")));
+        var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
+        foreach (var s in screens) cb.Items.Add(s.Item1);
+        cb.SelectedIndex = Math.Max(0, screens.FindIndex(s => s.Item2 == _c.FullMonitor));
+        cb.SelectedIndexChanged += (_, _) => { if (_building || cb.SelectedIndex < 0) return; _c.FullMonitor = screens[cb.SelectedIndex].Item2; Changed(); };
+        p.Controls.Add(cb);
+        p.Controls.Add(Head(Loc.Pick("Automatische tour", "Automatic tour")));
+        p.Controls.Add(Note(Loc.Pick("Klik 3× op een lege plek in het fullscreen-scherm (of druk op de spatiebalk) om alle pagina's af te lopen. Tijd per pagina:",
+                                     "Click 3 times on an empty spot in the fullscreen screen (or press the space bar) to step through all pages. Time per page:"), 520));
+        p.Controls.Add(Seg(new (string, int)[] { ("5 s", 5), ("10 s", 10), ("15 s", 15), ("20 s", 20), ("30 s", 30), ("60 s", 60) },
+                           () => _c.TourSeconds, v => _c.TourSeconds = v, 44));
+
+        p = SubPage(sub, Loc.Pick("Onderdelen en indeling", "Components and layout"));
         var cols = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1 };
         cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         var left = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 0, 24, 0) };
         var right = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-
-        left.Controls.Add(Head(Loc.Pick("Fullscreen dashboard (Ctrl+Alt+F)", "Fullscreen dashboard (Ctrl+Alt+F)")));
-        left.Controls.Add(Note(Loc.Pick("Open het scherm met Ctrl+Alt+F om het effect te zien; het past zich aan het aantal onderdelen aan.",
-                                        "Open the screen with Ctrl+Alt+F to see the effect; it adapts to the number of components."), 260));
-        var screens = new List<(string, string?)> { (Loc.Pick("Automatisch (waar het widget staat)", "Automatic (where the widget is)"), null) };
-        foreach (var sc in Screen.AllScreens)
-            screens.Add(($"{sc.DeviceName.TrimStart('\\', '.')}  {sc.Bounds.Width}×{sc.Bounds.Height}{(sc.Primary ? " *" : "")}", sc.DeviceName));
-        left.Controls.Add(Head(Loc.Pick("Automatische tour", "Automatic tour")));
-        left.Controls.Add(Note(Loc.Pick("Klik 3× op een lege plek in het fullscreen-scherm (of druk op de spatiebalk) om alle pagina's af te lopen. Tijd per pagina:",
-                                        "Click 3 times on an empty spot in the fullscreen screen (or press the space bar) to step through all pages. Time per page:"), 260));
-        left.Controls.Add(Seg(new (string, int)[] { ("5 s", 5), ("10 s", 10), ("15 s", 15), ("20 s", 20), ("30 s", 30), ("60 s", 60) },
-                              () => _c.TourSeconds, v => _c.TourSeconds = v, 44));
-        left.Controls.Add(Head(Loc.Pick("Scherm", "Display")));
-        var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-        foreach (var s in screens) cb.Items.Add(s.Item1);
-        cb.SelectedIndex = Math.Max(0, screens.FindIndex(s => s.Item2 == _c.FullMonitor));
-        cb.SelectedIndexChanged += (_, _) => { if (_building || cb.SelectedIndex < 0) return; _c.FullMonitor = screens[cb.SelectedIndex].Item2; Changed(); };
-        left.Controls.Add(cb);
-        BgSection(left, () => _c.FullBgImage, v => _c.FullBgImage = v, () => _c.FullBgMode, v => _c.FullBgMode = v, () => _c.FullBgOpacity, v => _c.FullBgOpacity = v);
 
         // Miniatuur van de indeling, zodat je de volgorde meteen ziet zonder het scherm te openen.
         left.Controls.Add(Head(Loc.Pick("Voorbeeld van de indeling", "Layout preview")));
@@ -669,6 +689,9 @@ public sealed partial class SettingsForm : Form
         cols.Controls.Add(left, 0, 0);
         cols.Controls.Add(right, 1, 0);
         p.Controls.Add(cols);
+
+        p = SubPage(sub, Loc.Pick("Achtergrond", "Background"));
+        BgSection(p, () => _c.FullBgImage, v => _c.FullBgImage = v, () => _c.FullBgMode, v => _c.FullBgMode = v, () => _c.FullBgOpacity, v => _c.FullBgOpacity = v);
         return tab;
     }
 

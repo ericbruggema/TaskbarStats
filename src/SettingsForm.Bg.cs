@@ -79,7 +79,6 @@ public sealed partial class SettingsForm
         var op = Slider(0, 100, 5, getOpacity, setOpacity, "%");
         add(Row(Loc.Pick("Modus", "Mode"), seg, 60));
         add(Row(Loc.Pick("Dekking", "Opacity"), op, 60));
-        Dep(() => { seg.Enabled = op.Enabled = !string.IsNullOrWhiteSpace(getPath()); });
     }
 
     /// <summary>Kleine miniatuur (max. 160 px) voor het instellingenvenster; null bij een fout.</summary>

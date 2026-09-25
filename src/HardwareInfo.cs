@@ -25,17 +25,26 @@ public static class HardwareInfo
 
     public static IReadOnlyList<SpecBlock> Blocks => _blocks;
     public static bool Loading => _loading;
+    /// <summary>Laatste fout of overgeslagen onderdeel (voor de uitleg op de pagina als er niets te tonen is).</summary>
+    public static string LastError { get; private set; } = "";
+    private static long _failedAt;
 
     /// <summary>Start (of ververst) het verzamelen op een achtergrondthread.</summary>
     public static void Refresh(Metrics metrics)
     {
         if (_loading) return;
         if (_blocks.Count > 0 && Environment.TickCount64 - _loadedAt < 30_000) return;
+        if (_blocks.Count == 0 && _failedAt != 0 && Environment.TickCount64 - _failedAt < 10_000) return;
         _loading = true;
         var t = new Thread(() =>
         {
-            try { _blocks = Collect(metrics); _loadedAt = Environment.TickCount64; }
-            catch { }
+            try
+            {
+                var list = Collect(metrics);
+                if (list.Count > 0) { _blocks = list; _failedAt = 0; } else _failedAt = Environment.TickCount64;
+                _loadedAt = Environment.TickCount64;
+            }
+            catch (Exception ex) { LastError = ex.GetType().Name + ": " + ex.Message; _failedAt = Environment.TickCount64; }
             finally { _loading = false; }
         })
         { IsBackground = true, Name = "TaskbarStats specs", Priority = ThreadPriority.BelowNormal };
@@ -92,25 +101,42 @@ public static class HardwareInfo
     private static List<SpecBlock> Collect(Metrics m)
     {
         var res = new List<SpecBlock>();
-        void Put(string title, List<SpecRow> rows) { if (rows.Count > 0) res.Add(new SpecBlock(title, rows)); }
+        bool first = _blocks.Count == 0;   // eerste keer: blokken tonen zodra ze klaar zijn (WMI kan op trage computers lang duren)
+        void Show() { if (first) _blocks = new List<SpecBlock>(res); }
+        // Elk onderdeel apart: als er één faalt (WMI uit, ontbrekende API, beperkte rechten) blijft de rest gewoon zichtbaar.
+        T Safe<T>(string what, Func<T> f, T fallback)
+        {
+            try { return f(); }
+            catch (Exception ex) { LastError = what + ": " + ex.GetType().Name + " " + ex.Message; return fallback; }
+        }
+        void Put(string title, string what, Func<List<SpecRow>> rows)
+        {
+            var r = Safe(what, rows, new List<SpecRow>());
+            if (r.Count > 0) { res.Add(new SpecBlock(title, r)); Show(); }
+        }
+        void Many(string what, Func<IEnumerable<SpecBlock>> blocks)
+        {
+            var r = Safe(what, () => blocks().ToList(), new List<SpecBlock>());
+            if (r.Count > 0) { res.AddRange(r); Show(); }
+        }
 
-        Put(Nl("Computer", "Computer"), Computer());
-        Put(Nl("Besturingssysteem", "Operating system"), Os());
-        Put(Nl("Processor", "Processor"), Cpu(m));
-        Put(Nl("Processor — instructiesets", "Processor — instruction sets"), Features());
-        foreach (var b in Gpus()) res.Add(b);
-        Put(Nl("Werkgeheugen", "Memory"), Memory(m));
-        foreach (var b in Dimms()) res.Add(b);
-        foreach (var b in Storage()) res.Add(b);
-        Put(Nl("Volumes", "Volumes"), Volumes());
-        foreach (var b in Displays()) res.Add(b);
-        foreach (var b in Network()) res.Add(b);
-        Put(Nl("Batterij", "Battery"), Battery());
-        Put(Nl("Beveiliging", "Security"), Security());
-        Put(Nl("Geluid", "Audio"), Audio());
-        Put(Nl("Invoerapparaten", "Input devices"), Input());
-        Put("Bluetooth", Bluetooth());
-        Put(Nl("USB-apparaten", "USB devices"), Usb());
+        Put(Nl("Computer", "Computer"), "computer", Computer);
+        Put(Nl("Besturingssysteem", "Operating system"), "os", Os);
+        Put(Nl("Processor", "Processor"), "cpu", () => Cpu(m));
+        Put(Nl("Processor — instructiesets", "Processor — instruction sets"), "features", Features);
+        Many("gpu", Gpus);
+        Put(Nl("Werkgeheugen", "Memory"), "memory", () => Memory(m));
+        Many("dimms", Dimms);
+        Many("storage", Storage);
+        Put(Nl("Volumes", "Volumes"), "volumes", Volumes);
+        Many("displays", Displays);
+        Many("network", Network);
+        Put(Nl("Batterij", "Battery"), "battery", Battery);
+        Put(Nl("Beveiliging", "Security"), "security", Security);
+        Put(Nl("Geluid", "Audio"), "audio", Audio);
+        Put(Nl("Invoerapparaten", "Input devices"), "input", Input);
+        Put("Bluetooth", "bluetooth", Bluetooth);
+        Put(Nl("USB-apparaten", "USB devices"), "usb", Usb);
         return res;
     }
 

@@ -40,7 +40,6 @@ public sealed partial class SettingsForm
             n.Width = 80;
             host.Controls.Add(n);
             host.Controls.Add(new Label { Text = unit, AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
-            Dep(() => n.Enabled = _c.Notifications);
             return Row(label, host, 230);
         }
         p.Controls.Add(numRow(Loc.Pick("CPU-temperatuur vanaf", "CPU temperature from"), 120, "°C", () => _c.AlertCpuTempC, v => _c.AlertCpuTempC = v));

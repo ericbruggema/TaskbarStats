@@ -332,13 +332,11 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Head(Loc.Pick("Meldingen", "Notifications")));
         var notify = Check(Loc.Pick("Meldingen aan", "Notifications on"), _c.Notifications, v => _c.Notifications = v);
         p.Controls.Add(notify);
-        p.Controls.Add(Why(() => _c.Notifications ? null : Loc.Pick("Meldingen staan uit: de drempels hieronder doen niets tot je \"Meldingen aan\" aanvinkt.", "Notifications are off: the thresholds below do nothing until you tick \"Notifications on\".")));
         var diskFull = Seg(new (string, int)[] { ("80%", 80), ("85%", 85), ("90%", 90), ("95%", 95) }, () => _c.DiskFullPercent, v => _c.DiskFullPercent = v, 56);
         var critSecs = Seg(new (string, int)[] { ("10 s", 10), ("30 s", 30), ("60 s", 60), ("120 s", 120) }, () => _c.CritSeconds, v => _c.CritSeconds = v, 56);
         p.Controls.Add(Row(Loc.Pick("Schijf bijna vol vanaf", "Disk almost full at"), diskFull, 230));
         p.Controls.Add(Row(Loc.Pick("Hoge belasting melden na", "Notify on high load after"), critSecs, 230));
         p.Controls.Add(Note(Loc.Pick("Hoge belasting geldt voor CPU, GPU en geheugen.", "High load applies to CPU, GPU and memory.")));
-        Dep(() => { diskFull.Enabled = critSecs.Enabled = _c.Notifications; });
         ExtraAlertsSection(p);
 
         p.Controls.Add(Head(Loc.Pick("Netwerkverbruik", "Network usage")));
@@ -394,7 +392,6 @@ public sealed partial class SettingsForm : Form
         foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu)) gpuItems.Add((Metrics.GpuName(l), l));
         var gpuSrc = Seg(gpuItems, () => _c.GpuLuid ?? "", v => _c.GpuLuid = v == "" ? null : v, 60);
         p.Controls.Add(Row(Loc.S("gpu"), gpuSrc));
-        p.Controls.Add(Why(() => _c.ShowGpu ? null : Loc.Pick("GPU staat uit: zet GPU aan bij Onderdelen.", "GPU is off: turn GPU on under Components.")));
 
         var cpuMode = Seg(new (string, bool)[]
         {
@@ -417,7 +414,6 @@ public sealed partial class SettingsForm : Form
             Changed();
         };
         p.Controls.Add(Row(Loc.S("netAdapter"), adapters));
-        p.Controls.Add(Why(() => _c.ShowNetUp || _c.ShowNetDown ? null : Loc.Pick("Upload en Download staan uit: zet er een aan bij Onderdelen.", "Upload and Download are off: turn one on under Components.")));
 
         var spaceMode = Seg(new (string, DiskSpaceMode)[]
         {
@@ -431,7 +427,6 @@ public sealed partial class SettingsForm : Form
         driveBox.SelectedIndex = Math.Max(0, driveBox.FindStringExact(_c.DiskSpaceDrive));
         driveBox.SelectedIndexChanged += (_, _) => { if (_building || driveBox.SelectedItem is not string dn) return; _c.DiskSpaceDrive = dn; Changed(); };
         p.Controls.Add(Row(Loc.Pick("Welke schijf", "Which drive"), driveBox));
-        p.Controls.Add(Why(() => _c.DiskSpace == DiskSpaceMode.Single ? null : Loc.Pick("Alleen bij Schijfruimte = \"Eén schijf\".", "Only when Disk space = \"One drive\".")));
         p.Controls.Add(Check(Loc.Pick("Netwerkschijven meenemen (ook in dashboard en fullscreen)", "Include network drives (also in dashboard and fullscreen)"),
                              _c.IncludeNetworkDrives, v => _c.IncludeNetworkDrives = v));
         var pingHost = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Width = 200 };
@@ -446,14 +441,6 @@ public sealed partial class SettingsForm : Form
             Changed();
         };
         p.Controls.Add(Row(Loc.Pick("Ping-doel", "Ping target"), pingHost));
-        p.Controls.Add(Why(() => _c.ShowPing ? null : Loc.Pick("Ping staat uit: zet Ping aan bij Onderdelen.", "Ping is off: turn Ping on under Components.")));
-        Dep(() =>
-        {
-            pingHost.Enabled = _c.ShowPing;
-            gpuSrc.Enabled = _c.ShowGpu;
-            adapters.Enabled = _c.ShowNetUp || _c.ShowNetDown;
-            driveBox.Enabled = _c.DiskSpace == DiskSpaceMode.Single;
-        });
 
         p = SubPage(sub, Loc.Pick("Weergave", "Display"));
         p.Controls.Add(Head(Loc.S("display")));
@@ -465,29 +452,15 @@ public sealed partial class SettingsForm : Form
         var cpuNote = Note(Loc.Pick("Bij \"per core\" toont de CPU altijd balkjes; de stijl hierboven telt dan niet mee.", "With \"per core\" the CPU always shows bars; the style above is not used."));
         p.Controls.Add(Row(Loc.S("cpu"), cpuStyle));
         p.Controls.Add(perCore);
-        p.Controls.Add(Why(() => _c.ShowCpu ? null : Loc.Pick("CPU staat uit: zet CPU aan bij Onderdelen.", "CPU is off: turn CPU on under Components.")));
         p.Controls.Add(cpuNote);
         p.Controls.Add(Row(Loc.S("gpu"), gpuStyle));
-        p.Controls.Add(Why(() => _c.ShowGpu ? null : Loc.Pick("GPU staat uit: zet GPU aan bij Onderdelen.", "GPU is off: turn GPU on under Components.")));
         p.Controls.Add(Row(Loc.S("memory"), memStyle));
-        p.Controls.Add(Why(() => _c.ShowMem ? null : Loc.Pick("Geheugen staat uit: zet Geheugen aan bij Onderdelen.", "Memory is off: turn Memory on under Components.")));
         var cpuTempStyle = Seg(styles, () => _c.CpuTempStyle, v => _c.CpuTempStyle = v);
         var gpuTempStyle = Seg(styles, () => _c.GpuTempStyle, v => _c.GpuTempStyle = v);
         p.Controls.Add(Row(Loc.S("cpuTemp"), cpuTempStyle));
-        p.Controls.Add(Why(() => !_c.ShowCpuTemp ? Loc.Pick("CPU-temperatuur staat uit: zet die aan bij Onderdelen.", "CPU temperature is off: turn it on under Components.")
-                               : _c.TempMerge && _c.ShowCpu ? Loc.Pick("Samengevoegd met de CPU-cel (zie het vinkje hieronder): de stijl van de CPU-cel geldt.", "Merged into the CPU cell (see the tick below): the CPU cell style applies.") : null));
         p.Controls.Add(Row(Loc.S("gpuTemp"), gpuTempStyle));
-        p.Controls.Add(Why(() => !_c.ShowGpuTemp ? Loc.Pick("GPU-temperatuur staat uit: zet die aan bij Onderdelen.", "GPU temperature is off: turn it on under Components.")
-                               : _c.TempMerge && _c.ShowGpu ? Loc.Pick("Samengevoegd met de GPU-cel (zie het vinkje hieronder): de stijl van de GPU-cel geldt.", "Merged into the GPU cell (see the tick below): the GPU cell style applies.") : null));
         var tempMerge = Check(Loc.Pick("Temperatuur klein achter de CPU-/GPU-cel (smaller)", "Temperature small after the CPU/GPU cell (narrower)"), _c.TempMerge, v => _c.TempMerge = v);
         p.Controls.Add(tempMerge);
-        p.Controls.Add(Why(() => _c.ShowCpuTemp || _c.ShowGpuTemp ? null : Loc.Pick("Zet CPU- of GPU-temperatuur aan bij Onderdelen.", "Turn on CPU or GPU temperature under Components.")));
-        Dep(() =>
-        {
-            cpuTempStyle.Enabled = _c.ShowCpuTemp && !(_c.TempMerge && _c.ShowCpu);
-            gpuTempStyle.Enabled = _c.ShowGpuTemp && !(_c.TempMerge && _c.ShowGpu);
-            tempMerge.Enabled = _c.ShowCpuTemp || _c.ShowGpuTemp;
-        });
         advGraph.AddRange(GraphSettings(p));
         var batt = Seg(new (string, BatteryPercentMode)[]
         {
@@ -496,7 +469,6 @@ public sealed partial class SettingsForm : Form
             (Loc.Pick("Uit", "Off"), BatteryPercentMode.Off),
         }, () => _c.BatteryPercent, v => _c.BatteryPercent = v);
         p.Controls.Add(Row(Loc.Pick("Batterij: percentage", "Battery: percentage"), batt));
-        p.Controls.Add(Why(() => _c.ShowBattery ? null : Loc.Pick("Batterij staat uit: zet Batterij aan bij Onderdelen.", "Battery is off: turn Battery on under Components.")));
 
         var labels = Check(Loc.Pick("Labels boven", "Labels above"), _c.LabelsAbove, v => _c.LabelsAbove = v, ColW);
         var compact = Check(Loc.Pick("Compact (kort en klein)", "Compact (short and small)"), _c.Compact, v =>
@@ -540,12 +512,7 @@ public sealed partial class SettingsForm : Form
         // Wat geen effect heeft, uitschakelen.
         Dep(() =>
         {
-            cpuStyle.Enabled = _c.ShowCpu && !_c.CpuPerCore;
-            perCore.Enabled = _c.ShowCpu;
             cpuNote.Visible = _c.ShowCpu && _c.CpuPerCore;
-            gpuStyle.Enabled = _c.ShowGpu;
-            memStyle.Enabled = _c.ShowMem;
-            batt.Enabled = _c.ShowBattery;
             labels.Enabled = !_c.Compact;
         });
         // Geavanceerd: opties voor wie het precies wil instellen; de standaardwaarden zijn meestal goed.

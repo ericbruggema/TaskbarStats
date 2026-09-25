@@ -25,22 +25,15 @@ public sealed partial class SettingsForm
             (Loc.Pick("Automatisch", "Automatic"), 0), ("1 MB/s", 1), ("10 MB/s", 10), ("100 MB/s", 100),
         }, () => _c.NetGraphMaxMBps, v => _c.NetGraphMaxMBps = v, 56);
         p.Controls.Add(Row(Loc.Pick("Netwerk", "Network"), netStyle));
-        p.Controls.Add(Why(() => _c.ShowNetUp || _c.ShowNetDown ? null : Loc.Pick("Upload en Download staan uit: zet er een aan bij Onderdelen.", "Upload and Download are off: turn one on under Components.")));
         adv.Add(Why(() => AnyGraph() ? null : Loc.Pick("Nog geen onderdeel heeft de stijl Grafiek (subtab Weergave). Je kunt dit alvast instellen; het werkt zodra een onderdeel een grafiek toont.", "No item uses the Graph style yet (Display subtab). You can set this already; it applies as soon as an item shows a graph.")));
         adv.Add(Row(Loc.Pick("Netwerkgrafiek: schaal", "Network graph: scale"), netMax));
         p.Controls.Add(Row("Ping", pingStyle));
-        p.Controls.Add(Why(() => _c.ShowPing ? null : Loc.Pick("Ping staat uit: zet Ping aan bij Onderdelen.", "Ping is off: turn Ping on under Components.")));
         var len = Seg(new (string, GraphLen)[]
         {
             (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium), (Loc.Pick("Lang", "Long"), GraphLen.Long),
         }, () => _c.GraphLength, v => _c.GraphLength = v, 76);
         adv.Add(Row(Loc.Pick("Lengte van de grafiek", "Graph length"), len));
         adv.Add(Row(Loc.Pick("Periode: de laatste", "Period: the last"), secs));
-        Dep(() =>
-        {
-            netStyle.Enabled = _c.ShowNetUp || _c.ShowNetDown;
-            pingStyle.Enabled = _c.ShowPing;
-        });
         return adv;
     }
 }

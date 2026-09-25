@@ -1358,7 +1358,7 @@ public sealed partial class WidgetForm : Form
         RefreshDrives(true);
         AddUpdateMenuItem(menu);
 
-        var settingsItem = new ToolStripMenuItem(Loc.Pick("Instellingen (uiterlijk, indeling, thema's)…", "Settings (looks, layout, themes)…")) { Tag = "close" };
+        var settingsItem = new ToolStripMenuItem(Loc.Pick("Instellingen…", "Settings…")) { Tag = "close" };
         settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold);
         settingsItem.Click += (_, _) => ShowSettings();
         menu.Items.Add(settingsItem);

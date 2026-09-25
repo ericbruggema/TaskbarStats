@@ -907,7 +907,12 @@ public sealed partial class FullscreenForm : Form
         if (blocks.Count == 0)
         {
             T(g, HardwareInfo.Loading ? Loc.Pick("Hardware-informatie wordt verzameld…", "Collecting hardware information…")
-                                      : Loc.Pick("Geen informatie beschikbaar.", "No information available."), _f, Dim, R.X + 20, R.Y + 60);
+                                      : Loc.Pick("Geen informatie beschikbaar (nieuwe poging volgt automatisch).", "No information available (retrying automatically)."), _f, Dim, R.X + 20, R.Y + 60);
+            if (!HardwareInfo.Loading)
+            {
+                if (HardwareInfo.LastError.Length > 0) T(g, HardwareInfo.LastError, _f, Dim, R.X + 20, R.Y + 90);
+                HardwareInfo.Refresh(_c.Metrics);   // begrensd tot 1 poging per 10 s
+            }
             return;
         }
         var area = new RectangleF(R.X + 12, R.Y + 48, R.Width - 24, R.Height - 58);

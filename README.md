@@ -1,14 +1,25 @@
 # TaskbarStats
 
+![TaskbarStats live in the taskbar](docs/tour/intro/c-loop-en.gif)
+
 Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
 overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een fullscreen "cockpit".
 
-## Tour
+## Tour and videos
 
 ![Tour of TaskbarStats](docs/tour/taskbarstats-tour-en.gif)
 
 A 70-second tour of the widget, the settings, the dashboard and the fullscreen screen. Prefer a video? Download the [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/taskbarstats-tour-en.mp4).
+
+**Short intros** (English, 8 to 15 seconds), all downloadable from the [1.4.0 release](https://github.com/ericbruggema/TaskbarStats/releases/tag/v1.4.0):
+
+| Version | What it is | Download |
+|---------|------------|----------|
+| Story (14.5 s) | Live widget, styles, dashboard and fullscreen | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/a-story-en.mp4) · [gif](docs/tour/intro/a-story-en.gif) |
+| Montage (13.4 s) | Fast cuts through the main features | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/b-montage-en.mp4) |
+| Loop (8 s) | The live widget on a taskbar, made to repeat | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/c-loop-en.mp4) · [gif](docs/tour/intro/c-loop-en.gif) |
+| Square (14.5 s, 1080×1080) | The story version for social media | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/d-square-en.mp4) |
 
 ## Screenshots
 

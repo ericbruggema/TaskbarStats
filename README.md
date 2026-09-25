@@ -187,6 +187,26 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 
 ![Temperatuur als cijfer, meter, balk of samengevoegd](docs/screenshots/widget-temperatuur.png)
 
+**Waardeopmaak** (Instellingen → *Widget* → *Waarden*, alleen het widget): netwerksnelheid in bytes (MB/s) of bits (Mb/s), automatische of vaste eenheid (KB/s of MB/s), korte waarden, eenheid of %-teken weglaten, upload en download omwisselen, en het geheugen als percentage, gebruikt (GB) of beschikbaar (GB).
+
+**Extra onderdelen** voor het widget: CPU-klokfrequentie, schijf actief (%), schijftemperatuur en hoofdbordtemperatuur. De laatste twee lezen sensoren via LibreHardwareMonitor (administrator nodig) en verdwijnen vanzelf als er geen waarde is.
+
+**Grafiek als weergavestijl**: CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
+
+![Widget met de nieuwe onderdelen, grafieken en opmaak](docs/screenshots/widget-nieuw.png)
+
+**Achtergrondafbeelding**: kies per venster (widget, dashboard en fullscreen; Instellingen, tabbladen *Widget*, *Dashboard* en *Fullscreen*) een png/jpg/bmp met modus *Vullen*, *Uitgerekt*, *Passen*, *Tegelen* of *Gecentreerd* en een dekking van 0–100%. De afbeelding komt onder de tekst en tegels; ontbreekt het bestand, dan geldt de gewone achtergrond. Paden horen niet bij thema's.
+
+![Widget met achtergrondafbeelding](docs/screenshots/widget-achtergrond.png)
+
+**Windows-thema volgen** (widget, Instellingen → *Kleuren*): *Donker/licht* kiest een donkere of lichte achtergrond met automatisch leesbare tekst; *Donker/licht + accent* gebruikt ook de accentkleur van Windows voor meters en balken. Het wisselen van het Windows-thema wordt direct gevolgd.
+
+**Muisacties en klik-door** (Instellingen → *Algemeen*): kies wat een dubbelklik en de middelste muisknop doen (Taakbeheer, dashboard, fullscreen, instellingen, verbruikslog, kopieer info, menu of niets). **Ctrl+Alt+W** (of het pictogram bij de klok) laat klikken door het widget heen vallen.
+
+**Meer meldingen**: drempels voor CPU-, GPU- en schijftemperatuur, geheugengebruik en netwerkverbruik per dag (0 = uit).
+
+**Updatecontrole** (optioneel, standaard uit): hoogstens 1× per 24 uur wordt via GitHub gekeken of er een nieuwere versie is; dat wordt alleen gemeld (menu-item en melding), er wordt nooit iets gedownload of geïnstalleerd.
+
 **Sensoren** (LibreHardwareMonitor, alleen actief zolang het fullscreen-scherm open is): CPU-vermogen, -temperaturen en -klokken,
 GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
 geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder

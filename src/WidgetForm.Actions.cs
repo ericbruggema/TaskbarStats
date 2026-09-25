@@ -95,6 +95,10 @@ public sealed partial class WidgetForm
             Alert("gputemp", 15 * 60_000L, Loc.Pick("Hoge GPU-temperatuur", "High GPU temperature"),
                   Loc.Pick($"De videokaart is {gt:0} °C (drempel {_cfg.AlertGpuTempC} °C)", $"The graphics card is at {gt:0} °C (threshold {_cfg.AlertGpuTempC} °C)"));
 
+        if (_cfg.AlertDiskTempC > 0 && _metrics.DiskTempC is double dt && dt >= _cfg.AlertDiskTempC)
+            Alert("disktemp", 15 * 60_000L, Loc.Pick("Hoge schijftemperatuur", "High drive temperature"),
+                  Loc.Pick($"De schijf is {dt:0} °C (drempel {_cfg.AlertDiskTempC} °C)", $"The drive is at {dt:0} °C (threshold {_cfg.AlertDiskTempC} °C)"));
+
         if (_cfg.AlertDayNetGb > 0)
         {
             double gb = _usage.Today(_cfg.NetworkAdapter).Total / 1073741824.0;

@@ -125,7 +125,7 @@ public sealed partial class WidgetForm
         return 0;
     }
 
-    private void ApplyExtraWanted() => _metrics.SetExtraWanted(_cfg.ShowDiskBusy, _cfg.ShowDiskTemp, _cfg.ShowMoboTemp);
+    private void ApplyExtraWanted() => _metrics.SetExtraWanted(_cfg.ShowDiskBusy, _cfg.ShowDiskTemp || _cfg.AlertDiskTempC > 0, _cfg.ShowMoboTemp);
 
     private void AppendExtraTooltip(StringBuilder sb)
     {

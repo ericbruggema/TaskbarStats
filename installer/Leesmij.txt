@@ -74,6 +74,24 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Tour          : 3x klikken op een lege plek in het fullscreen-scherm (of
                   spatie) loopt alle pagina's af; de tijd per pagina (standaard
                   10 s) stel je in via het menu of Instellingen > Fullscreen.
+- Waarden       : Instellingen > Widget > Waarden: netwerk in bytes of bits, vaste
+                  eenheid, korte waarden, eenheid/%-teken weglaten, upload en
+                  download omwisselen, geheugen als percentage of in GB.
+- Extra vinkjes : CPU-klokfrequentie, Schijf actief, Schijftemperatuur en
+                  Hoofdbordtemperatuur (de laatste twee alleen als administrator
+                  en als de computer de sensor aanbiedt).
+- Grafiek       : weergavestijl Grafiek (laatste 30/60/120 s) voor CPU, GPU,
+                  geheugen, temperaturen, netwerk en ping.
+- Achtergrond   : per venster (widget, dashboard, fullscreen) een afbeelding met
+                  modus en dekking: Instellingen > tabblad Widget/Dashboard/
+                  Fullscreen, onderaan "Achtergrondafbeelding".
+- Windows-thema : Instellingen > Kleuren: het widget volgt donker/licht en
+                  eventueel de accentkleur van Windows.
+- Muis          : Instellingen > Algemeen: kies wat dubbelklik en de middelste
+                  knop doen. Ctrl+Alt+W (of het pictogram bij de klok) laat
+                  klikken door het widget heen vallen.
+- Meldingen     : ook drempels voor CPU-/GPU-/schijftemperatuur, geheugen en
+                  dagverbruik. Updatecontrole staat standaard uit.
 - Temperatuur   : Instellingen > Widget > Weergave: CPU- en GPU-temperatuur als
                   cijfer, meter of balk, of smal klein achter de CPU-/GPU-cel.
 - Ping          : Instellingen > Widget > "Ping (latency)": het widget toont de
@@ -196,4 +214,4 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
- Versie / Version 1.3.0
+ Versie / Version 1.4.0

@@ -15,6 +15,7 @@ public sealed partial class AppSettings
     // Extra meldingen (0 = uit)
     public int AlertCpuTempC { get; set; } = 0;
     public int AlertGpuTempC { get; set; } = 0;
+    public int AlertDiskTempC { get; set; } = 0;     // schijftemperatuur (LibreHardwareMonitor, administrator)
     public int AlertDayNetGb { get; set; } = 0;      // netwerkverbruik vandaag (gekozen adapter of alle adapters)
     public int AlertMemPercent { get; set; } = 0;
 

@@ -45,6 +45,7 @@ public sealed partial class SettingsForm
         }
         p.Controls.Add(numRow(Loc.Pick("CPU-temperatuur vanaf", "CPU temperature from"), 120, "°C", () => _c.AlertCpuTempC, v => _c.AlertCpuTempC = v));
         p.Controls.Add(numRow(Loc.Pick("GPU-temperatuur vanaf", "GPU temperature from"), 120, "°C", () => _c.AlertGpuTempC, v => _c.AlertGpuTempC = v));
+        p.Controls.Add(numRow(Loc.Pick("Schijftemperatuur vanaf", "Drive temperature from"), 120, "°C", () => _c.AlertDiskTempC, v => _c.AlertDiskTempC = v));
         p.Controls.Add(numRow(Loc.Pick("Geheugengebruik vanaf", "Memory use from"), 100, "%", () => _c.AlertMemPercent, v => _c.AlertMemPercent = v));
         p.Controls.Add(numRow(Loc.Pick("Netwerkverbruik per dag vanaf", "Network use per day from"), 5000, "GB", () => _c.AlertDayNetGb, v => _c.AlertDayNetGb = v));
         p.Controls.Add(Note(Loc.Pick("Temperatuurmeldingen zetten het meten van temperaturen aan. Het dagverbruik geldt voor de gekozen netwerkadapter (of alle adapters).",

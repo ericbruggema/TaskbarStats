@@ -255,6 +255,8 @@ public sealed partial class DashboardForm : Form
         return Accent;
     }
 
+    private BgLayer? _bg;
+
     public void Render()
     {
         if (!IsHandleCreated || _suppressed) return;
@@ -326,6 +328,16 @@ public sealed partial class DashboardForm : Form
                 if (tiles.Count == 0)
                     DrawText(g, Loc.Pick("Geen tegels aan — zet ze aan via Instellingen (tab Dashboard)",
                                          "No tiles enabled — turn them on in Settings (Dashboard tab)"), _f, Dim, 16, 30);
+                // achtergrondafbeelding: in pixels, geclipt op de afgeronde vorm, onder de tegels
+                if (!string.IsNullOrWhiteSpace(Cfg.DashBgImage))
+                {
+                    var st = g.Save();
+                    using (var clipPath = Rounded(new RectangleF(0, 0, logicalW, logicalH), 14)) g.SetClip(clipPath);
+                    g.ResetTransform();
+                    (_bg ??= new BgLayer(this, 1024, Render)).Draw(g, Cfg.DashBgImage, Cfg.DashBgMode, Cfg.DashBgOpacity, w, h);
+                    g.Restore(st);
+                }
+                else if (_bg is not null) { _bg.Dispose(); _bg = null; }
                 foreach (var (t, r) in placed) t.Draw(g, r);
             }
             Push(bmp);
@@ -645,7 +657,7 @@ public sealed partial class DashboardForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _zTimer.Dispose();
+        if (disposing) { _zTimer.Dispose(); _bg?.Dispose(); }
         base.Dispose(disposing);
     }
 }

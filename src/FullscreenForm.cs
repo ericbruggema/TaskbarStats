@@ -24,6 +24,7 @@ public sealed partial class FullscreenForm : Form
     private readonly List<(string key, RectangleF r)> _hits = new();
     private readonly Font _f, _fs, _fb, _fh, _fbig, _fhuge;
     private string? _detail, _hover;
+    private BgLayer? _bg;
     private int _win = 300;
     private float _s = 1, _ox, _oy;
     private long _procAt, _openedAt;
@@ -205,6 +206,7 @@ public sealed partial class FullscreenForm : Form
         _timer.Dispose();
         _c.Metrics.SetSensorsWanted(false);
         foreach (var f in new[] { _f, _fs, _fb, _fh, _fbig, _fhuge }) f.Dispose();
+        _bg?.Dispose(); _bg = null;
         base.OnFormClosed(e);
     }
 
@@ -215,6 +217,9 @@ public sealed partial class FullscreenForm : Form
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         g.Clear(Bg);
+        if (!string.IsNullOrWhiteSpace(Cfg.FullBgImage))
+            (_bg ??= new BgLayer(this, 1920, Invalidate, keepSource: false)).Draw(g, Cfg.FullBgImage, Cfg.FullBgMode, Cfg.FullBgOpacity, ClientSize.Width, ClientSize.Height);
+        else if (_bg is not null) { _bg.Dispose(); _bg = null; }
         _s = Math.Min(ClientSize.Width / CW, ClientSize.Height / CH);
         _ox = (ClientSize.Width - CW * _s) / 2;
         _oy = (ClientSize.Height - CH * _s) / 2;

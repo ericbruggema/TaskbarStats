@@ -506,6 +506,7 @@ public sealed partial class SettingsForm : Form
 
         var intervals = new (string, int)[] { ("0,1 s", 100), ("0,2 s", 200), ("0,25 s", 250), ("0,5 s", 500), ("1 s", 1000), ("2 s", 2000) };
         p.Controls.Add(Row(Loc.S("interval"), Seg(intervals, () => _c.RefreshMs, v => _c.RefreshMs = v, 56)));
+        BgSection(p, () => _c.WidgetBgImage, v => _c.WidgetBgImage = v, () => _c.WidgetBgMode, v => _c.WidgetBgMode = v, () => _c.WidgetBgOpacity, v => _c.WidgetBgOpacity = v);
 
         // Wat geen effect heeft, uitschakelen.
         Dep(() =>
@@ -572,6 +573,7 @@ public sealed partial class SettingsForm : Form
         left.Controls.Add(Slider(50, 300, 25, () => _c.DashScale, v => _c.DashScale = v, "%"));
         left.Controls.Add(Head(Loc.Pick("Kolommen", "Columns")));
         left.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
+        BgSection(left, () => _c.DashBgImage, v => _c.DashBgImage = v, () => _c.DashBgMode, v => _c.DashBgMode = v, () => _c.DashBgOpacity, v => _c.DashBgOpacity = v);
         var reset = Btn(Loc.Pick("Reset positie dashboard", "Reset dashboard position"), 170);
         reset.Margin = new Padding(0, 12, 0, 0);
         reset.Click += (_, _) => _h.ResetDash();
@@ -614,6 +616,7 @@ public sealed partial class SettingsForm : Form
         cb.SelectedIndex = Math.Max(0, screens.FindIndex(s => s.Item2 == _c.FullMonitor));
         cb.SelectedIndexChanged += (_, _) => { if (_building || cb.SelectedIndex < 0) return; _c.FullMonitor = screens[cb.SelectedIndex].Item2; Changed(); };
         left.Controls.Add(cb);
+        BgSection(left, () => _c.FullBgImage, v => _c.FullBgImage = v, () => _c.FullBgMode, v => _c.FullBgMode = v, () => _c.FullBgOpacity, v => _c.FullBgOpacity = v);
 
         // Miniatuur van de indeling, zodat je de volgorde meteen ziet zonder het scherm te openen.
         left.Controls.Add(Head(Loc.Pick("Voorbeeld van de indeling", "Layout preview")));

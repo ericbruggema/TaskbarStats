@@ -777,6 +777,8 @@ public sealed partial class WidgetForm : Form
     }
 
     // ---------- Tekenen ----------
+    private BgLayer? _bg;
+
     private void Render()
     {
         if (!IsHandleCreated || !Visible || _hidden) return;
@@ -799,6 +801,8 @@ public sealed partial class WidgetForm : Form
             g.Clear(_cfg.TransparentBackground
                 ? Color.FromArgb(1, 0, 0, 0)
                 : C(_cfg.BackgroundColor, Color.FromArgb(20, 20, 20)));
+            // achtergrondafbeelding (onder de cellen; alleen in de echte tekenronde, niet in de meetronde)
+            (_bg ??= new BgLayer(this, 512, Render)).Draw(g, _cfg.WidgetBgImage, _cfg.WidgetBgMode, _cfg.WidgetBgOpacity, Width, Height);
             DrawAll(g);
             Cadence.Cap(g, Width, Height);
             Cadence.Fool(g, Width, Height, _font);
@@ -1506,6 +1510,7 @@ public sealed partial class WidgetForm : Form
         _tray.Dispose();
         _dash?.Close();
         _full?.Close();
+        _bg?.Dispose();
         _usage.Save();
         _tip.Dispose();
         StopSampler();   // eerst de thread stoppen, dan pas de tellers opruimen

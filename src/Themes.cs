@@ -25,6 +25,9 @@ public sealed partial class ThemeData
     public DisplayStyle CpuTempStyle { get; set; }
     public DisplayStyle GpuTempStyle { get; set; }
     public bool TempMerge { get; set; }
+    public int GraphSeconds { get; set; } = 60;
+    public TextGraphStyle NetStyle { get; set; }
+    public TextGraphStyle PingStyle { get; set; }
     public bool CpuPerCore { get; set; }
     public BatteryPercentMode BatteryPercent { get; set; } = BatteryPercentMode.Inside;
     public bool LabelsAbove { get; set; }
@@ -67,6 +70,7 @@ public sealed partial class ThemeData
             ShowCpuFreq = c.ShowCpuFreq, ShowDiskBusy = c.ShowDiskBusy, DiskBusyStyle = c.DiskBusyStyle, ShowDiskTemp = c.ShowDiskTemp, ShowMoboTemp = c.ShowMoboTemp,
             CpuStyle = c.CpuStyle, GpuStyle = c.GpuStyle, MemStyle = c.MemStyle, CpuPerCore = c.CpuPerCore,
             CpuTempStyle = c.CpuTempStyle, GpuTempStyle = c.GpuTempStyle, TempMerge = c.TempMerge,
+            GraphSeconds = c.GraphSeconds, NetStyle = c.NetStyle, PingStyle = c.PingStyle,
             BatteryPercent = c.BatteryPercent, LabelsAbove = c.LabelsAbove, Compact = c.Compact, AutoHeight = c.AutoHeight,
             WidgetHeight = c.WidgetHeight, FontFamily = c.FontFamily, FontSize = c.FontSize, TransparentBackground = c.TransparentBackground,
             TextColor = c.TextColor, BackgroundColor = c.BackgroundColor, AccentColor = c.AccentColor, WarnColor = c.WarnColor,
@@ -87,6 +91,7 @@ public sealed partial class ThemeData
         c.ShowCpuFreq = ShowCpuFreq; c.ShowDiskBusy = ShowDiskBusy; c.DiskBusyStyle = DiskBusyStyle; c.ShowDiskTemp = ShowDiskTemp; c.ShowMoboTemp = ShowMoboTemp;
         c.CpuStyle = CpuStyle; c.GpuStyle = GpuStyle; c.MemStyle = MemStyle; c.CpuPerCore = CpuPerCore;
         c.CpuTempStyle = CpuTempStyle; c.GpuTempStyle = GpuTempStyle; c.TempMerge = TempMerge;
+        c.GraphSeconds = GraphSeconds <= 30 ? 30 : GraphSeconds >= 120 ? 120 : 60; c.NetStyle = NetStyle; c.PingStyle = PingStyle;
         c.BatteryPercent = BatteryPercent; c.Compact = Compact; c.LabelsAbove = LabelsAbove || Compact;   // compact hoort bij labels boven
         c.AutoHeight = AutoHeight;
         c.WidgetHeight = Math.Clamp(WidgetHeight, 24, 96);

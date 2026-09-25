@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace TaskbarStats;
 
 /// <summary>Weergavestijl per onderdeel.</summary>
-public enum DisplayStyle { Digital, Gauge, Bar }
+public enum DisplayStyle { Digital, Gauge, Bar, Graph }
 
 /// <summary>Wat tonen we van de schijfruimte in het widget?</summary>
 public enum DiskSpaceMode { Off, Total, Each, Single }

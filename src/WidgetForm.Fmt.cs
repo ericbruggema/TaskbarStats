@@ -59,6 +59,7 @@ public sealed partial class WidgetForm
 
     private int DrawNetwork(Graphics g, int x)
     {
+        if (_cfg.NetStyle == TextGraphStyle.Graph) return DrawNetGraph(g, x);
         bool bits = _cfg.NetUnit == RateUnitKind.Bits;
         using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
         string up = _cfg.ShowNetUp ? "↑ " + WidgetRate(_metrics.NetUpBytesPerSec, bits) : "";

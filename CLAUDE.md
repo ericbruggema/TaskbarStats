@@ -3,7 +3,7 @@
 Windows-monitor (.NET 8, WinForms): een klein widget naast het systeemvak van de taakbalk, plus een groot
 bureaublad-dashboard en een fullscreen "cockpit". Toont CPU, GPU, geheugen, netwerk, schijven, batterij, temperaturen;
 waarden komen uit dezelfde bronnen als Taakbeheer. Openbaar op GitHub (`ericbruggema/TaskbarStats`, MIT). De gebruiker
-praat Nederlands; commentaar in de code is Nederlands. UI-teksten staan in het Engels in de code (`Loc.T`) met vertalingen in `lang/*.json` (nu nl; Engels is de brontekst).
+praat Nederlands; commentaar in de code is Nederlands. UI-teksten staan in het Engels in de code (`Loc.T`) met vertalingen in `lang/*.json` (nu nl en de; Engels is de brontekst).
 
 ## Commando's
 

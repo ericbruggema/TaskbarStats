@@ -218,12 +218,13 @@ die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen
 
 **Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
 
-**Talen**: de app is beschikbaar in het Nederlands en Engels; bij een eerste start volgt hij de taal van Windows als die beschikbaar is. Teksten staan niet meer in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een taal toevoegen (bijvoorbeeld Duits):
+**Talen**: de app is beschikbaar in het Nederlands, Engels en Duits; bij een eerste start volgt hij de taal van Windows als die beschikbaar is. Teksten staan niet meer in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een taal toevoegen (bijvoorbeeld Frans):
 
-1. Kopieer `lang/nl.json` naar `lang/de.json`, zet `"_name": "Deutsch"` en vertaal de waarden rechts. De sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
-2. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
-3. Een ontbrekende tekst valt terug op Engels. `powershell -File tools\check-lang.ps1` toont wat er nog ontbreekt of niet meer gebruikt wordt.
-4. Deel je vertaling via een pull request (`lang/de.json`).
+1. Kopieer `lang/nl.json` naar `lang/fr.json`, zet `"_name": "Français"` en vertaal de waarden rechts. De sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
+2. Let op spaties aan het begin of eind van een tekst: die horen ook in de vertaling te staan (het controlescript meldt het).
+3. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
+4. Een ontbrekende tekst valt terug op Engels. `powershell -File tools\check-lang.ps1` toont wat er nog ontbreekt of niet meer gebruikt wordt.
+5. Deel je vertaling via een pull request (`lang/fr.json`).
 
 **Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het.
 

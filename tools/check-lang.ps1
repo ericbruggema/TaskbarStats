@@ -33,11 +33,13 @@ foreach ($f in $files) {
     $names = [string[]]$t.Keys
     $missing = @($keys | Where-Object { -not $t.ContainsKey([string]$_) })
     $unused = @($names | Where-Object { $_ -ne "_name" -and -not $keys.Contains([string]$_) -and -not $code.Contains($_) -and -not $code.Contains($_.Replace('"', '\"')) })
+    $badWs = @($names | Where-Object { $_ -ne "_name" -and $_.Trim().Length -gt 0 -and (($_ -replace '\S.*', '').Length -ne (($t[$_]) -replace '\S.*', '').Length -or ($_.Length - $_.TrimEnd().Length) -ne ($t[$_].Length - $t[$_].TrimEnd().Length)) })
     $badPh = @($names | Where-Object { $_ -ne "_name" -and ((Placeholders $_) -join ",") -ne ((Placeholders $t[$_]) -join ",") })
-    "{0}: {1} vertalingen, {2} ontbreken, {3} ongebruikt, {4} met foute plaatsaanduidingen" -f $f.BaseName, ($names.Count - 1), $missing.Count, $unused.Count, $badPh.Count
+    "{0}: {1} vertalingen, {2} ontbreken, {3} ongebruikt, {4} met foute plaatsaanduidingen of spaties" -f $f.BaseName, ($names.Count - 1), $missing.Count, $unused.Count, ($badPh.Count + $badWs.Count)
     $missing | Select-Object -First 15 | ForEach-Object { "  ONTBREEKT: $_" }
     $unused | Select-Object -First 15 | ForEach-Object { "  ONGEBRUIKT: $_" }
     $badPh | ForEach-Object { "  FOUT: $_" }
-    if ($badPh.Count -gt 0) { $fail = 1 }
+    $badWs | ForEach-Object { "  SPATIES ANDERS (begin/eind): $_" }
+    if ($badPh.Count + $badWs.Count -gt 0) { $fail = 1 }
 }
 exit $fail

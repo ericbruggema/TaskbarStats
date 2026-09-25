@@ -517,10 +517,14 @@ public sealed partial class SettingsForm : Form
     private TabPage ColorsTab()
     {
         var p = Page(Loc.S("colors"), out var tab);
+        var cText = ColorRow(Loc.Pick("Tekst", "Text"), () => _c.TextColor, v => _c.TextColor = v);
+        var cBack = ColorRow(Loc.Pick("Achtergrond", "Background"), () => _c.BackgroundColor, v => _c.BackgroundColor = v);
+        var cAccent = ColorRow(Loc.Pick("Meter/balk", "Meter/bar"), () => _c.AccentColor, v => _c.AccentColor = v);
+        WinThemeSection(p, cText, cBack, cAccent);
         p.Controls.Add(Head(Loc.S("colors")));
-        p.Controls.Add(ColorRow(Loc.Pick("Tekst", "Text"), () => _c.TextColor, v => _c.TextColor = v));
-        p.Controls.Add(ColorRow(Loc.Pick("Achtergrond", "Background"), () => _c.BackgroundColor, v => _c.BackgroundColor = v));
-        p.Controls.Add(ColorRow(Loc.Pick("Meter/balk", "Meter/bar"), () => _c.AccentColor, v => _c.AccentColor = v));
+        p.Controls.Add(cText);
+        p.Controls.Add(cBack);
+        p.Controls.Add(cAccent);
         p.Controls.Add(ColorRow(Loc.Pick("Waarschuwing", "Warning"), () => _c.WarnColor, v => _c.WarnColor = v));
         p.Controls.Add(ColorRow(Loc.Pick("Kritiek", "Critical"), () => _c.CritColor, v => _c.CritColor = v));
         p.Controls.Add(ColorRow(Loc.S("borderColor"), () => _c.BorderColor, v => _c.BorderColor = v, allowNone: true));

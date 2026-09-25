@@ -61,7 +61,7 @@ public sealed partial class WidgetForm
     {
         if (_cfg.NetStyle == TextGraphStyle.Graph) return DrawNetGraph(g, x);
         bool bits = _cfg.NetUnit == RateUnitKind.Bits;
-        using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
+        using var b = new SolidBrush(EffectiveText());
         string up = _cfg.ShowNetUp ? "↑ " + WidgetRate(_metrics.NetUpBytesPerSec, bits) : "";
         string dn = _cfg.ShowNetDown ? "↓ " + WidgetRate(_metrics.NetDownBytesPerSec, bits) : "";
         string top = _cfg.SwapNet ? dn : up, bottom = _cfg.SwapNet ? up : dn;
@@ -75,7 +75,7 @@ public sealed partial class WidgetForm
 
     private int DrawDisk(Graphics g, int x)
     {
-        using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
+        using var b = new SolidBrush(EffectiveText());
         string rd = "R " + WidgetRate(_metrics.DiskReadBytesPerSec, false);
         string wr = "W " + WidgetRate(_metrics.DiskWriteBytesPerSec, false);
         float w = Reserve(g, "R " + RateTemplate(false), rd, wr);   // vaste reservering
@@ -99,7 +99,7 @@ public sealed partial class WidgetForm
         string fmt = _cfg.ShortValues ? "0" : "0.0";
         string unit = _cfg.HideUnit ? "" : " GB";
         string tpl = new string('0', Math.Max(1, total.ToString("0").Length)) + (_cfg.ShortValues ? "" : ".0") + unit;
-        return DrawTextCell(g, x, "MEM", gb.ToString(fmt) + unit, tpl, ThresholdColor(m.MemPercent, C(_cfg.TextColor, Color.White)));
+        return DrawTextCell(g, x, "MEM", gb.ToString(fmt) + unit, tpl, ThresholdColor(m.MemPercent, EffectiveText()));
     }
 
     // ---------- Extra onderdelen ----------
@@ -109,7 +109,7 @@ public sealed partial class WidgetForm
     /// <summary>Tekent een extra onderdeel en geeft de breedte terug (0 = niets getekend: uit of geen waarde).</summary>
     private int DrawExtraItem(Graphics g, int x, string id)
     {
-        var textCol = C(_cfg.TextColor, Color.White);
+        var textCol = EffectiveText();
         switch (id)
         {
             case "cpufreq" when _cfg.ShowCpuFreq && _metrics.CpuMHz is double mhz && mhz > 0:

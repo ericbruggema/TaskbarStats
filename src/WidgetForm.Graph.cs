@@ -46,14 +46,14 @@ public sealed partial class WidgetForm
         int gx = above ? x + (cellW - gw) / 2 : x + lw + 3;
         int gy = above ? top : (Height - gh) / 2;
         r = new Rectangle(gx, gy, gw, gh);
-        using var bg = new SolidBrush(Color.FromArgb(50, 50, 50));
+        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(50, 50, 50)));
         g.FillRectangle(bg, r);
         return cellW;
     }
 
     private void GraphFrame(Graphics g, Rectangle r)
     {
-        using var pen = new Pen(Color.FromArgb(110, 110, 110));
+        using var pen = new Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
         var sm = g.SmoothingMode;
         g.SmoothingMode = SmoothingMode.None;
         g.DrawRectangle(pen, r.X, r.Y, r.Width - 1, r.Height - 1);
@@ -98,7 +98,7 @@ public sealed partial class WidgetForm
     private int DrawGraphRing(Graphics g, int x, string label, double v, Ring? ring)
     {
         int cell = GraphCell(g, x, label, out var r);
-        if (ring is not null) PlotLine(g, r, FillPoints(ring, r, 100, GraphN), ThresholdColor(v, C(_cfg.AccentColor, Color.DodgerBlue)), true);
+        if (ring is not null) PlotLine(g, r, FillPoints(ring, r, 100, GraphN), ThresholdColor(v, EffectiveAccent()), true);
         GraphFrame(g, r);
         return cell;
     }
@@ -123,7 +123,7 @@ public sealed partial class WidgetForm
             if (dn) max = Math.Max(max, _history.NetDown.Max(n));
             if (up) max = Math.Max(max, _history.NetUp.Max(n));
         }
-        var accent = C(_cfg.AccentColor, Color.DodgerBlue);
+        var accent = EffectiveAccent();
         var upCol = Color.FromArgb(52, 199, 89);
         if (dn) PlotLine(g, r, FillPoints(_history.NetDown, r, max, n), accent, true);
         if (up) PlotLine(g, r, FillPoints(_history.NetUp, r, max, n), upCol, !dn);
@@ -152,9 +152,9 @@ public sealed partial class WidgetForm
 
         var crit = C(_cfg.CritColor, Color.Red);
         double last = cnt == 0 ? 0 : s[^1];
-        Color col = cnt == 0 ? C(_cfg.AccentColor, Color.DodgerBlue)
+        Color col = cnt == 0 ? EffectiveAccent()
                   : last < 0 || last >= 250 ? crit
-                  : last >= 100 ? C(_cfg.WarnColor, Color.Orange) : C(_cfg.AccentColor, Color.DodgerBlue);
+                  : last >= 100 ? C(_cfg.WarnColor, Color.Orange) : EffectiveAccent();
         float w = r.Width - 1, bottom = r.Bottom - 2, hgt = r.Height - 3;
         using var pen = new Pen(col, Math.Max(1.2f, (float)(1.3 * UiScale))) { LineJoin = LineJoin.Round };
         using var lost = new SolidBrush(crit);

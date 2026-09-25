@@ -107,7 +107,7 @@ public sealed partial class WidgetForm : Form
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
         DoubleBuffered = true;
-        BackColor = C(_cfg.BackgroundColor, Color.FromArgb(20, 20, 20));
+        BackColor = EffectiveBackground();
         Height = TargetHeight();
         Width = 240;
 
@@ -614,6 +614,7 @@ public sealed partial class WidgetForm : Form
         RegisterHotKey(Handle, HotkeyId, 0x0001 | 0x0002 /* ALT | CTRL */, 0x44 /* D */);
         RegisterHotKey(Handle, HotkeyFullId, 0x0001 | 0x0002, 0x46 /* F */);
         RegisterClickHotkey();
+        WinThemeHook();
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
@@ -677,7 +678,8 @@ public sealed partial class WidgetForm : Form
     /// <summary>Past alle instellingen toe op widget, dashboard en fullscreen-scherm (aangeroepen door het instellingenvenster).</summary>
     private void ApplyAll()
     {
-        BackColor = C(_cfg.BackgroundColor, Color.Black);
+        BackColor = EffectiveBackground();
+        WinThemeRefresh();
         ApplyHeight();
         ApplyFonts();
         _metrics.EnableTemperatures(_cfg.ShowCpuTemp || _cfg.ShowGpuTemp);
@@ -800,7 +802,7 @@ public sealed partial class WidgetForm : Form
         {
             g.Clear(_cfg.TransparentBackground
                 ? Color.FromArgb(1, 0, 0, 0)
-                : C(_cfg.BackgroundColor, Color.FromArgb(20, 20, 20)));
+                : EffectiveBackground());
             // achtergrondafbeelding (onder de cellen; alleen in de echte tekenronde, niet in de meetronde)
             (_bg ??= new BgLayer(this, 512, Render)).Draw(g, _cfg.WidgetBgImage, _cfg.WidgetBgMode, _cfg.WidgetBgOpacity, Width, Height);
             DrawAll(g);
@@ -824,7 +826,7 @@ public sealed partial class WidgetForm : Form
 
         int x = _cfg.Compact ? 4 : 6;
         int gap = Gap;
-        var textCol = C(_cfg.TextColor, Color.White);
+        var textCol = EffectiveText();
         foreach (var id in Tiles.WidgetOrder(_cfg.WidgetOrder))
         {
             switch (id)
@@ -996,7 +998,7 @@ public sealed partial class WidgetForm : Form
     private void DrawTopLabel(Graphics g, int x, int cellW, string label)
     {
         float w = g.MeasureString(label, _fontSmall).Width;
-        using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
+        using var b = new SolidBrush(EffectiveText());
         g.DrawString(label, _fontSmall, b, x + (cellW - w) / 2, 0);
     }
 
@@ -1021,7 +1023,7 @@ public sealed partial class WidgetForm : Form
     {
         if (_cfg.PingStyle == TextGraphStyle.Graph) return DrawPingGraph(g, x);
         var st = _metrics.Ping.Stats();
-        var textCol = C(_cfg.TextColor, Color.White);
+        var textCol = EffectiveText();
         double? last = st.Last is double l && l >= 0 ? Cadence.M(7, l) : st.Last;
         Color col = last is null ? textCol
                   : last < 0 || last >= 250 ? C(_cfg.CritColor, Color.Red)
@@ -1035,7 +1037,7 @@ public sealed partial class WidgetForm : Form
         DisplayStyle.Gauge => DrawGauge(g, x, label, v),
         DisplayStyle.Bar   => DrawBar(g, x, label, v),
         DisplayStyle.Graph => DrawGraph(g, x, label, v),
-        _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, C(_cfg.TextColor, Color.White))),
+        _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, EffectiveText())),
     };
 
     // Temperatuur als eigen cel: cijfer ("CPU 51°"), meter of balk (0-100 °C); als meter/balk met "CPU°" om het van het percentage te onderscheiden.
@@ -1065,13 +1067,13 @@ public sealed partial class WidgetForm : Form
         int pw = above ? 3 : Math.Max(3, (int)Math.Round(4 * UiScale)), inset = above ? 2 : 0;
 
         var rect = new Rectangle(gx + inset, gy + inset, d - 2 * inset, d - 2 * inset);
-        using var bg = new Pen(Color.FromArgb(80, 80, 80), pw);
-        using var fg = new Pen(ThresholdColor(v, C(_cfg.AccentColor, Color.DodgerBlue)), pw);
+        using var bg = new Pen(EffectiveTrack(Color.FromArgb(80, 80, 80)), pw);
+        using var fg = new Pen(ThresholdColor(v, EffectiveAccent()), pw);
         g.DrawArc(bg, rect, 0, 360);
         g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(v, 0, 100) / 100.0));
         var txt = $"{v:0}";
         var sz = g.MeasureString(txt, _fontSmall);
-        using var tb = new SolidBrush(C(_cfg.TextColor, Color.White));
+        using var tb = new SolidBrush(EffectiveText());
         g.DrawString(txt, _fontSmall, tb, gx + (d - sz.Width) / 2, gy + (d - sz.Height) / 2);
         return cellW;
     }
@@ -1088,11 +1090,11 @@ public sealed partial class WidgetForm : Form
         int bx = above ? x + (cellW - bw) / 2 : x + lw + 3;
         int by = above ? top + (h - bh) / 2 : (Height - bh) / 2;
         var rect = new Rectangle(bx, by, bw, bh);
-        using var bg = new SolidBrush(Color.FromArgb(70, 70, 70));
-        using var fg = new SolidBrush(ThresholdColor(v, C(_cfg.AccentColor, Color.DodgerBlue)));
+        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
+        using var fg = new SolidBrush(ThresholdColor(v, EffectiveAccent()));
         g.FillRectangle(bg, rect);
         g.FillRectangle(fg, new Rectangle(rect.X, rect.Y, (int)(bw * Math.Clamp(v, 0, 100) / 100.0), bh));
-        using var pen = new Pen(Color.FromArgb(110, 110, 110));
+        using var pen = new Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
         g.DrawRectangle(pen, rect);
         return cellW;
     }
@@ -1108,12 +1110,12 @@ public sealed partial class WidgetForm : Form
         int cellW = above ? Math.Max(coresW, lw) : lw + 3 + coresW;
         if (above) DrawTopLabel(g, x, cellW, label);
         int cx = above ? x + (cellW - coresW) / 2 : x + lw + 3;
-        using var bg = new SolidBrush(Color.FromArgb(70, 70, 70));
+        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
         foreach (var v in cores)
         {
             g.FillRectangle(bg, cx, top, barW, h);
             int fh = (int)(h * Math.Clamp(v, 0, 100) / 100.0);
-            using var fg = new SolidBrush(ThresholdColor(v, C(_cfg.AccentColor, Color.DodgerBlue)));
+            using var fg = new SolidBrush(ThresholdColor(v, EffectiveAccent()));
             g.FillRectangle(fg, cx, top + (h - fh), barW, fh);
             cx += barW + gap;
         }
@@ -1166,7 +1168,7 @@ public sealed partial class WidgetForm : Form
         Color fill = charging || ac ? Color.FromArgb(52, 199, 89)
                    : pct <= 10 ? C(_cfg.CritColor, Color.Red)
                    : pct <= 20 ? C(_cfg.WarnColor, Color.Orange)
-                   : C(_cfg.AccentColor, Color.DodgerBlue);
+                   : EffectiveAccent();
 
         int bodyH = Math.Max(20, Height - 14);
         int bodyW = Math.Max(16, (int)Math.Round(bodyH * 0.58));
@@ -1215,7 +1217,7 @@ public sealed partial class WidgetForm : Form
         {
             string t = $"{pct:0}%";
             var sz = g.MeasureString(t, _font);
-            using var tb = new SolidBrush(C(_cfg.TextColor, Color.White));
+            using var tb = new SolidBrush(EffectiveText());
             g.DrawString(t, _font, tb, bx + bodyW + 5, (Height - sz.Height) / 2);
             w = bodyW + 2 + 5 + (int)Math.Ceiling(g.MeasureString("100%", _font).Width);
         }
@@ -1225,7 +1227,7 @@ public sealed partial class WidgetForm : Form
     private int DrawLabel(Graphics g, int x, string label)
     {
         var sz = g.MeasureString(label, _fontSmall);
-        using var b = new SolidBrush(C(_cfg.TextColor, Color.White));
+        using var b = new SolidBrush(EffectiveText());
         g.DrawString(label, _fontSmall, b, x, (Height - sz.Height) / 2);
         return (int)Math.Ceiling(sz.Width);
     }
@@ -1499,6 +1501,7 @@ public sealed partial class WidgetForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        WinThemeUnhook();
         _cfg.Save();
         _timer.Stop();
         _topTimer.Stop();

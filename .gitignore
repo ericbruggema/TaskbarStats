@@ -12,3 +12,5 @@ installer/Output/
 # Losse back-ups
 *.bak
 *.bak-*
+
+docs/tour/*.mp4

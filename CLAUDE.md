@@ -64,7 +64,7 @@ taalwissel wordt het menu opnieuw opgebouwd en heropend (`ReopenMenu`). Het menu
 het sluiten -> "Collection was modified"); `Close()` op het widget.
 
 **Windows-details.** "Bureaublad weergeven" minimaliseert/verbergt vensters → het dashboard herstelt zichzelf
-(`EnsureVisible`). Bovendien haalt de shell dan het bureaubladvenster (Progman) boven alle gewone vensters: `HWND_BOTTOM` liet het dashboard erachter verdwijnen. `PlaceAboveDesktop` (elke 0,4 s) gaat er dan via TOPMOST→NOTOPMOST bovenop (`HWND_TOP` alleen werkt niet) en zakt weer als Progman terug is; testen met `Shell.Application.ToggleDesktop()` en z-volgorde/`WindowFromPoint`. Fullscreen-apps worden herkend met `SHQueryUserNotificationState`. Hotkeys: Ctrl+Alt+D (klik-door dashboard),
+(`EnsureVisible`). Bovendien haalt de shell dan het bureaubladvenster (Progman) boven alle gewone vensters: `HWND_BOTTOM` liet het dashboard erachter verdwijnen. `PlaceAboveDesktop` (elke 0,4 s) gaat er dan via TOPMOST→NOTOPMOST bovenop (`HWND_TOP` alleen werkt niet) en zakt weer als Progman terug is; "getoond" = er staat een zichtbaar programmavenster van een ander proces ONDER Progman (`AppWindowBelow`; tellen van vensters onder Progman werkt niet: er zitten altijd ~18 verborgen hulpvensters onder en dat gaf knipperen); testen met `Shell.Application.ToggleDesktop()` en z-volgorde/`WindowFromPoint`. Fullscreen-apps worden herkend met `SHQueryUserNotificationState`. Hotkeys: Ctrl+Alt+D (klik-door dashboard),
 Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `HideInFullscreen`). Perf-namen zijn Engels
 (`PdhAddEnglishCounter`/`PerformanceCounter` gebruiken Engelse namen, ook op Nederlandse Windows).
 

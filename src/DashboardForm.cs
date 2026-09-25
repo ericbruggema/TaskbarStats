@@ -240,21 +240,45 @@ public sealed partial class DashboardForm : Form
         if ((GetWindowLong(Handle, -20) & 0x8) != 0)                                           // nog TOPMOST (na wisselen van voor- naar achtergrond)
             SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, flags);                           // NOTOPMOST
         var host = DesktopHost();
-        int zh = host == IntPtr.Zero ? int.MaxValue : ZIndex(host), zs = ZIndex(Handle);
-        if (zh < zs)
+        // Bij "Bureaublad weergeven" haalt de shell het bureaublad boven alle gewone vensters: de programmavensters (nu
+        // geminimaliseerd/verborgen) staan dan eronder. Normaal staan die erboven. Zo herkennen we de toestand betrouwbaar,
+        // ook als het bureaublad lang "weergegeven" blijft (het aantal vensters onder het bureaublad zegt niets: er zitten altijd
+        // verborgen hulpvensters onder).
+        bool shown = host != IntPtr.Zero && AppWindowBelow(host);
+        if (shown)
         {
-            // HWND_TOP alleen haalt het bureaublad niet in; via topmost en weer gewoon komen we bovenaan de gewone vensters.
-            SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, flags);                           // TOPMOST
-            SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, flags);                           // NOTOPMOST
-            _raised = true;
+            if (ZIndex(Handle) > ZIndex(host))
+            {
+                // HWND_TOP alleen haalt het bureaublad niet in; via topmost en weer gewoon komen we bovenaan de gewone vensters.
+                SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, flags);                       // TOPMOST
+                SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, flags);                       // NOTOPMOST
+            }
+            _raised = true;                                                                    // erbovenop blijven zolang het bureaublad getoond wordt
             return;
         }
-        if (_raised && zh - zs <= 3) return;                                                   // bureaublad nog "weergegeven": erbovenop blijven
-        if (_raised || !periodic || ++_zTick % 5 == 0)                                                      // anders af en toe (2 s) onderaan zetten
+        if (_raised || !periodic || ++_zTick % 5 == 0)                                         // anders af en toe (2 s) onderaan zetten
         {
             SetWindowPos(Handle, new IntPtr(1), 0, 0, 0, 0, flags);                            // BOTTOM
             _raised = false;
         }
+    }
+
+    /// <summary>Staat er onder dit venster een zichtbaar programmavenster (ook een geminimaliseerd) van een ander proces?</summary>
+    private static bool AppWindowBelow(IntPtr h)
+    {
+        uint me = (uint)Environment.ProcessId;
+        int n = 0;
+        for (var w = GetWindow(h, 2 /* GW_HWNDNEXT */); w != IntPtr.Zero && n < 5000; w = GetWindow(w, 2), n++)
+        {
+            if (!IsWindowVisible(w)) continue;
+            int ex = GetWindowLong(w, -20);
+            if ((ex & 0x8 /* TOPMOST */) != 0 || (ex & 0x80 /* TOOLWINDOW */) != 0) continue;
+            GetWindowThreadProcessId(w, out uint pid);
+            if (pid == me) continue;
+            if (DwmGetWindowAttribute(w, 14 /* DWMWA_CLOAKED */, out int cloaked, 4) == 0 && cloaked != 0) continue;
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Aantal vensters boven dit venster in de z-volgorde (0 = bovenaan).</summary>
@@ -695,6 +719,8 @@ public sealed partial class DashboardForm : Form
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindow(string? cls, string? name);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? name);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr hWnd, int attr, out int value, int size);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
     [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);

@@ -83,7 +83,7 @@ WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Subtabs      : tabblad Widget heeft subtabs: Onderdelen, Bronnen, Weergave,
                   Waarden, Uiterlijk en Geavanceerd (grafieklengte/-periode,
                   CPU-meting, verversnelheid).
-- Grafiek       : weergavestijl Grafiek (lengte kort/middel/lang, periode 30/60/
+- Grafiek       : weergavestijl Grafiek (lengte zeer kort/kort/middel/lang/eigen breedte, periode 30/60/
                   120 s) voor CPU, GPU,
                   geheugen, temperaturen, netwerk en ping.
 - Achtergrond   : per venster (widget, dashboard, fullscreen) een afbeelding met

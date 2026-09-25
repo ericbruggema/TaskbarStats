@@ -30,9 +30,20 @@ public sealed partial class SettingsForm
         p.Controls.Add(Row("Ping", pingStyle));
         var len = Seg(new (string, GraphLen)[]
         {
-            (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium), (Loc.Pick("Lang", "Long"), GraphLen.Long),
-        }, () => _c.GraphLength, v => _c.GraphLength = v, 76);
+            (Loc.Pick("Zeer kort", "Tiny"), GraphLen.Tiny), (Loc.Pick("Kort", "Short"), GraphLen.Short), (Loc.Pick("Middel", "Medium"), GraphLen.Medium),
+            (Loc.Pick("Lang", "Long"), GraphLen.Long), (Loc.Pick("Aangepast", "Custom"), GraphLen.Custom),
+        }, () => _c.GraphLength, v => _c.GraphLength = v, 60);
         adv.Add(Row(Loc.Pick("Lengte van de grafiek", "Graph length"), len));
+        // Eigen breedte: wijzigen kiest automatisch "Aangepast".
+        var px = Num(16, 160, () => _c.GraphWidthPx, v =>
+        {
+            _c.GraphWidthPx = v; _c.GraphLength = GraphLen.Custom;
+            bool was = _building; _building = true; len.Controls.OfType<RadioButton>().Last().Checked = true; _building = was;
+        });
+        var pxRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0) };
+        pxRow.Controls.Add(px);
+        pxRow.Controls.Add(new Label { Text = Loc.Pick("px (16–160; Zeer kort 24, Kort 34, Middel 46, Lang 60)", "px (16–160; Tiny 24, Short 34, Medium 46, Long 60)"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
+        adv.Add(Row(Loc.Pick("Eigen breedte", "Own width"), pxRow));
         adv.Add(Row(Loc.Pick("Periode: de laatste", "Period: the last"), secs));
         return adv;
     }

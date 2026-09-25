@@ -193,11 +193,11 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 
 **Extra onderdelen** voor het widget: CPU-klokfrequentie, schijf actief (%), schijftemperatuur en hoofdbordtemperatuur. De laatste twee lezen sensoren via LibreHardwareMonitor (administrator nodig) en verdwijnen vanzelf als er geen waarde is.
 
-**Grafiek als weergavestijl** (lengte kort, middel of lang; periode 30/60/120 s): CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
+**Grafiek als weergavestijl** (lengte zeer kort, kort, middel, lang of zelf in te stellen in pixels; periode 30/60/120 s): CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
 
 ![Widget met de nieuwe onderdelen, grafieken en opmaak](docs/screenshots/widget-nieuw.png)
 
-![Grafiek in drie lengtes: kort, middel, lang](docs/screenshots/widget-grafieklengte.png)
+![Grafiek in vier lengtes: zeer kort, kort, middel, lang](docs/screenshots/widget-grafieklengte.png)
 
 **Achtergrondafbeelding**: kies per venster (widget, dashboard en fullscreen; Instellingen, tabbladen *Widget*, *Dashboard* en *Fullscreen*) een png/jpg/bmp met modus *Vullen*, *Uitgerekt*, *Passen*, *Tegelen* of *Gecentreerd* en een dekking van 0–100%. De afbeelding komt onder de tekst en tegels; ontbreekt het bestand, dan geldt de gewone achtergrond. Paden horen niet bij thema's.
 

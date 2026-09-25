@@ -67,13 +67,10 @@ public sealed class CreditsForm : Form
         _stage.MouseWheel += (_, e) => _y = Math.Max(-_stage.Height, _y + e.Delta / 2f);
 
         var bar = new Panel { Dock = DockStyle.Fill, BackColor = _bg };
-        var readme = new Button { Text = Loc.Pick("Leesmij openen", "Open readme"), Location = new Point(16, 12), Size = new Size(140, 30), FlatStyle = FlatStyle.System };
-        string file = Path.Combine(AppContext.BaseDirectory, "Leesmij.txt");
-        readme.Enabled = File.Exists(file);
-        readme.Click += (_, _) => { try { Process.Start(new ProcessStartInfo(file) { UseShellExecute = true }); } catch { } };
-        var close = new Button { Text = Loc.Pick("Sluiten", "Close"), DialogResult = DialogResult.Cancel, Location = new Point(504, 12), Size = new Size(100, 30), FlatStyle = FlatStyle.System };
-        var hint = new Label { Text = Loc.Pick("klik = pauze · scrollwiel = handmatig", "click = pause · wheel = scroll"), AutoSize = true, ForeColor = Color.FromArgb(140, _fg), Location = new Point(190, 20) };
-        bar.Controls.AddRange(new Control[] { readme, close, hint });
+        var close = new Button { Text = Loc.Pick("Sluiten", "Close"), Location = new Point(504, 12), Size = new Size(100, 30), FlatStyle = FlatStyle.System };
+        var hint = new Label { Text = Loc.Pick("klik = pauze · scrollwiel = handmatig", "click = pause · wheel = scroll"), AutoSize = true, ForeColor = Color.FromArgb(140, _fg), Location = new Point(16, 20) };
+        close.Click += (_, _) => Close();   // het venster is niet modaal: DialogResult alleen sluit hem niet
+        bar.Controls.AddRange(new Control[] { close, hint });
         CancelButton = close;
         Controls.Add(bar);
         Controls.Add(_stage);
@@ -151,7 +148,6 @@ public sealed class CreditsForm : Form
         var j = Jokes[Random.Shared.Next(Jokes.Length)];
         L(K.Sub, Loc.Pick(j.nl, j.en));
         L(K.Gap, ""); L(K.Gap, "");
-        L(K.Fine, Loc.Pick("Klik op “Leesmij openen” voor de gebruiksaanwijzing.", "Click “Open readme” for the user guide."));
     }
 
     private static string N0(double v) => v.ToString("N0", CultureInfo.CurrentCulture);

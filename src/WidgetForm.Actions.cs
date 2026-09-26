@@ -12,7 +12,7 @@ public sealed partial class WidgetForm
         switch (a)
         {
             case MouseAction.TaskManager:
-                try { Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true }); } catch { }
+                try { Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true }); } catch (Exception dex) { Diag.Swallow(dex); }
                 break;
             case MouseAction.Dashboard: _cfg.ShowDashboard = !_cfg.ShowDashboard; ApplyAll(); break;
             case MouseAction.Fullscreen: ToggleFullscreen(); break;
@@ -114,7 +114,7 @@ public sealed partial class WidgetForm
         if (!_cfg.CheckUpdates || UpdateChecker.Available is not { } u) return;
         var it = new ToolStripMenuItem(Loc.T("New version {0} available", u.Tag.TrimStart('v', 'V')))
             { Tag = "close", Font = new Font(Font, FontStyle.Bold) };
-        it.Click += (_, _) => { try { Process.Start(new ProcessStartInfo(u.Url) { UseShellExecute = true }); } catch { } };
+        it.Click += (_, _) => { try { Process.Start(new ProcessStartInfo(u.Url) { UseShellExecute = true }); } catch (Exception dex) { Diag.Swallow(dex); } };
         menu.Items.Add(it);
         menu.Items.Add(new ToolStripSeparator());
     }
@@ -126,7 +126,7 @@ public sealed partial class WidgetForm
             var r = await UpdateChecker.RunAsync(_cfg, AboutForm.Version, false);
             if (r.Status == UpdateStatus.Newer) NotifyUpdate();
         }
-        catch { /* een mislukte controle mag nooit iets kapotmaken */ }
+        catch (Exception dex) { Diag.Swallow(dex); /* een mislukte controle mag nooit iets kapotmaken */ }
     }
 
     private void NotifyUpdate()

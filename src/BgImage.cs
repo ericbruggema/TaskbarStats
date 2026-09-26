@@ -194,7 +194,7 @@ public sealed class BgLayer : IDisposable
             Title = Loc.T("Choose a background image"),
             Filter = Loc.T("Images (png, jpg, bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"),
         };
-        try { if (!string.IsNullOrEmpty(current)) dlg.InitialDirectory = Path.GetDirectoryName(current); } catch { }
+        try { if (!string.IsNullOrEmpty(current)) dlg.InitialDirectory = Path.GetDirectoryName(current); } catch (Exception dex) { Diag.Swallow(dex); }
         return dlg.ShowDialog() == DialogResult.OK ? dlg.FileName : null;
     }
 }

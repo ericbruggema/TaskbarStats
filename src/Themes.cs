@@ -239,7 +239,7 @@ public static class ThemeStore
                     res.Add(t);
                 }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return res;
     }
 

@@ -170,7 +170,7 @@ public sealed partial class AppSettings
                 File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
                 File.Move(tmp, FilePath, true);
             }
-            catch { /* best-effort */ }
+            catch (Exception dex) { Diag.Swallow(dex); /* best-effort */ }
         }
     }
 }

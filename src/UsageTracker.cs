@@ -83,7 +83,7 @@ public sealed class UsageTracker
                 _last[key] = (rx, tx);
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         if (_dirty && now - _lastSave > 60_000) Save();
     }
@@ -108,7 +108,7 @@ public sealed class UsageTracker
             json = JsonSerializer.Serialize(_days, Json);
         }
         try { File.WriteAllText(_path, json); }   // schrijven buiten het slot
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     public void Clear()

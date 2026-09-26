@@ -15,7 +15,7 @@ public static class AppIcon
             using var s = typeof(AppIcon).Assembly.GetManifestResourceStream("app.ico");
             if (s is not null) return new Icon(s, size);
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return SystemIcons.Application;
     }
 
@@ -31,7 +31,7 @@ public static class AppIcon
     /// </summary>
     public static void Apply(Form f)
     {
-        try { f.Icon = Large; } catch { }
+        try { f.Icon = Large; } catch (Exception dex) { Diag.Swallow(dex); }
         f.HandleCreated += (_, _) => f.BeginInvoke(new Action(() => SetSized(f)));
         f.DpiChanged += (_, _) => SetSized(f);
     }
@@ -52,7 +52,7 @@ public static class AppIcon
             SendMessage(f.Handle, 0x0080 /* WM_SETICON */, (IntPtr)1 /* ICON_BIG */, big.Handle);
             SendMessage(f.Handle, 0x0080, IntPtr.Zero /* ICON_SMALL */, small.Handle);
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     [DllImport("user32.dll")] private static extern int GetSystemMetricsForDpi(int index, int dpi);

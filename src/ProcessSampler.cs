@@ -38,7 +38,7 @@ public sealed class ProcessSampler
         Task.Run(() =>
         {
             try { Sample(); }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
             finally { Volatile.Write(ref _busy, 0); }
         });
     }
@@ -61,7 +61,7 @@ public sealed class ProcessSampler
                     string name;
                     try { name = p.ProcessName; } catch { continue; }
 
-                    try { mem[name] = mem.GetValueOrDefault(name) + p.WorkingSet64; } catch { }
+                    try { mem[name] = mem.GetValueOrDefault(name) + p.WorkingSet64; } catch (Exception dex) { Diag.Swallow(dex); }
 
                     try
                     {
@@ -75,7 +75,7 @@ public sealed class ProcessSampler
                                             (t - pr.cpu).TotalSeconds / dt / Environment.ProcessorCount * 100.0;
                         }
                     }
-                    catch { /* geen toegang tot dit proces */ }
+                    catch (Exception dex) { Diag.Swallow(dex); /* geen toegang tot dit proces */ }
                 }
             }
 

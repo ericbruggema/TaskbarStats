@@ -246,8 +246,8 @@ public sealed partial class WidgetForm : Form
             {
                 long t0 = Environment.TickCount64;
                 // Niemand kijkt (widget verborgen, geen dashboard/fullscreen): zeldzamer meten (meldingen blijven werken).
-                try { _metrics.Update(); } catch { }
-                if (t0 - lastUsage >= 5000) { lastUsage = t0; try { _usage.Sample(); } catch { } }
+                try { _metrics.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
+                if (t0 - lastUsage >= 5000) { lastUsage = t0; try { _usage.Sample(); } catch (Exception dex) { Diag.Swallow(dex); } }
                 int wait = _idle ? 5000 : Math.Max(20, _cfg.RefreshMs - (int)(Environment.TickCount64 - t0));
                 _stopSampler.Wait(wait);
             }
@@ -491,7 +491,7 @@ public sealed partial class WidgetForm : Form
             Clipboard.SetText(text);
             _tip.Show(Loc.T("✔ Copied to clipboard"), this, 0, -Height, 1500);
         }
-        catch { /* klembord kan tijdelijk bezet zijn */ }
+        catch (Exception dex) { Diag.Swallow(dex); /* klembord kan tijdelijk bezet zijn */ }
     }
 
     // ---------- Bureaublad-dashboard ----------
@@ -548,7 +548,7 @@ public sealed partial class WidgetForm : Form
         if (code != 1) return;
         var t = Cadence.Look();
         t.ApplyTo(_cfg);
-        try { ThemeStore.Write(ThemeStore.FileFor(_cfg, t.Name), t); } catch { }
+        try { ThemeStore.Write(ThemeStore.FileFor(_cfg, t.Name), t); } catch (Exception dex) { Diag.Swallow(dex); }
         ApplyAll();
     }
 
@@ -617,6 +617,13 @@ public sealed partial class WidgetForm : Form
         RegisterHotKey(Handle, HotkeyFullId, 0x0001 | 0x0002, 0x46 /* F */);
         RegisterClickHotkey();
         WinThemeHook();
+        Program.ShowRequested += OnShowRequested;
+    }
+
+    /// <summary>Tweede start van de app: laat zien dat hij draait door de instellingen te openen.</summary>
+    private void OnShowRequested()
+    {
+        try { if (IsHandleCreated && !IsDisposed) BeginInvoke(new Action(ShowSettings)); } catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
@@ -624,6 +631,7 @@ public sealed partial class WidgetForm : Form
         UnregisterHotKey(Handle, HotkeyId);
         UnregisterHotKey(Handle, HotkeyFullId);
         UnregisterClickHotkey();
+        Program.ShowRequested -= OnShowRequested;
         base.OnHandleDestroyed(e);
     }
 

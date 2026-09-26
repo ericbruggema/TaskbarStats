@@ -72,17 +72,30 @@ public sealed class AboutForm : Form
             Visible = showWelcome is not null,
         };
         welcome.Click += (_, _) => { DialogResult = DialogResult.OK; Close(); showWelcome?.Invoke(); };
+        var diag = new Button
+        {
+            Text = Loc.T("Copy diagnostics"),
+            Location = new Point(welcome.Visible ? 176 : 16, 458),
+            Size = new Size(150, 28),
+        };
+        diag.Click += (_, _) =>
+        {
+            try { Clipboard.SetText(Diag.Report(Loc.Lang)); diag.Text = Loc.T("Copied"); }
+            catch (Exception dex) { Diag.Swallow(dex); }
+        };
+        new ToolTip().SetToolTip(diag, Loc.T("Copies version, Windows, screen and the last log lines (no personal names) to paste into a bug report."));
         AcceptButton = ok;
         CancelButton = ok;
 
-        Controls.AddRange(new Control[] { title, version, box, welcome, ok });
+        Controls.AddRange(new Control[] { title, version, box, welcome, diag, ok });
     }
 
     // De brontekst is Engels; elke regel wordt afzonderlijk vertaald (lege regels blijven leeg).
-    private static string Body() => string.Join("\n", BodyEn.Replace("\r", "").Split('\n').Select(l => l.Trim().Length == 0 ? "" : Loc.T(l)));
+    private static string Body() => string.Join("\n", BodyEn.Replace("\r", "").Split('\n').Select(l => l.Trim().Length == 0 ? "" : Loc.T(l)));   // lang-dynamic: de regels van BodyEn staan hieronder als sleutels
 
     
 
+    // lang-lines
     private const string BodyEn = """
         A lightweight monitor that floats next to the Windows taskbar's notification area and shows live CPU, GPU, memory, network, disk and temperature figures, matching Task Manager.
 

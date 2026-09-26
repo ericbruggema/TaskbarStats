@@ -52,9 +52,9 @@ public static class StartupManager
             string tmp = Path.Combine(Path.GetTempPath(), $"TaskbarStats-task-{Environment.ProcessId}.xml");
             File.WriteAllText(tmp, xml, Encoding.Unicode);
             try { Schtasks($"/Create /TN \"{TaskName}\" /XML \"{tmp}\" /F"); }
-            finally { try { File.Delete(tmp); } catch { } }
+            finally { try { File.Delete(tmp); } catch (Exception dex) { Diag.Swallow(dex); } }
         }
-        catch { /* best-effort */ }
+        catch (Exception dex) { Diag.Swallow(dex); /* best-effort */ }
     }
 
     // Oudere versies gebruikten HKCU\...\Run; die zou anders naast de taak blijven bestaan.
@@ -65,7 +65,7 @@ public static class StartupManager
             using var key = Registry.CurrentUser.OpenSubKey(LegacyRunKey, true);
             key?.DeleteValue(TaskName, false);
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     private static int Schtasks(string args)

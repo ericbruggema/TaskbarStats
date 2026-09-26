@@ -63,7 +63,7 @@ public static class HardwareInfo
             s.Options.Timeout = TimeSpan.FromSeconds(10);
             foreach (ManagementBaseObject o in s.Get()) res.Add(o);
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return res;
     }
 
@@ -169,14 +169,14 @@ public static class HardwareInfo
         {
             Add(rows, "Windows", S(os, "Caption").Replace("Microsoft ", ""));
             string ubr = "";
-            try { using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"); ubr = k?.GetValue("UBR")?.ToString() ?? ""; } catch { }
+            try { using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"); ubr = k?.GetValue("UBR")?.ToString() ?? ""; } catch (Exception dex) { Diag.Swallow(dex); }
             Add(rows, Loc.T("Version"), $"{S(os, "Version")}{(ubr != "" ? "." + ubr : "")} (build {S(os, "BuildNumber")})");
             try
             {
                 using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
                 Add(rows, Loc.T("Release"), k?.GetValue("DisplayVersion")?.ToString());
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
             Add(rows, Loc.T("Architecture"), S(os, "OSArchitecture"));
             Add(rows, Loc.T("Installed"), Date(S(os, "InstallDate")));
             Add(rows, Loc.T("Last boot"), Date(S(os, "LastBootUpTime")));
@@ -253,7 +253,7 @@ public static class HardwareInfo
             Add(rows, Loc.T("Manufacturer"), S(v, "AdapterCompatibility"));
             Add(rows, "GPU", S(v, "VideoProcessor"));
             long ded = 0;
-            try { foreach (var luid in Metrics.GetGpuLuids()) if (Metrics.GpuName(luid).Equals(name, StringComparison.OrdinalIgnoreCase)) ded = Metrics.GpuDedicatedBytes(luid); } catch { }
+            try { foreach (var luid in Metrics.GetGpuLuids()) if (Metrics.GpuName(luid).Equals(name, StringComparison.OrdinalIgnoreCase)) ded = Metrics.GpuDedicatedBytes(luid); } catch (Exception dex) { Diag.Swallow(dex); }
             if (ded <= 0) ded = (long)D(v, "AdapterRAM");
             if (ded > 0) Add(rows, Loc.T("Video memory"), Size(ded));
             Add(rows, Loc.T("Driver"), S(v, "DriverVersion"));
@@ -365,10 +365,10 @@ public static class HardwareInfo
                     string name = d.Name.TrimEnd('\\');
                     rows.Add(R(name, $"{kind}{label}{d.DriveFormat} · {Size(d.TotalFreeSpace)} {Loc.T("free of")} {Size(d.TotalSize)}"));
                 }
-                catch { }
+                catch (Exception dex) { Diag.Swallow(dex); }
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return rows;
     }
 
@@ -413,7 +413,7 @@ public static class HardwareInfo
             }
             Add(rows, Loc.T("Resolution"), $"{sc.Bounds.Width} × {sc.Bounds.Height}");
             var dm = new DEVMODE { dmSize = (ushort)Marshal.SizeOf<DEVMODE>() };
-            try { if (EnumDisplaySettings(sc.DeviceName, -1, ref dm)) Add(rows, Loc.T("Refresh rate"), $"{dm.dmDisplayFrequency} Hz"); } catch { }
+            try { if (EnumDisplaySettings(sc.DeviceName, -1, ref dm)) Add(rows, Loc.T("Refresh rate"), $"{dm.dmDisplayFrequency} Hz"); } catch (Exception dex) { Diag.Swallow(dex); }
             Add(rows, Loc.T("Colour depth"), $"{sc.BitsPerPixel}-bit");
             Add(rows, Loc.T("Position"), $"{sc.Bounds.X}, {sc.Bounds.Y}");
             Add(rows, Loc.T("Work area"), $"{sc.WorkingArea.Width} × {sc.WorkingArea.Height}");
@@ -456,7 +456,7 @@ public static class HardwareInfo
                 if (res.Count >= 4) break;
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return res;
     }
 
@@ -494,7 +494,7 @@ public static class HardwareInfo
             }
             else Add(rows, Loc.T("Boot mode"), "Legacy BIOS");
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         var tpm = Q(@"root\CIMV2\Security\MicrosoftTpm", "SELECT IsEnabled_InitialValue, SpecVersion, ManufacturerVersion FROM Win32_Tpm").FirstOrDefault();
         if (tpm is not null)
         {

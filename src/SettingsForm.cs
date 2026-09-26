@@ -811,7 +811,7 @@ public sealed partial class SettingsForm : Form
         {
             if (list.SelectedIndex < 0 || entries[list.SelectedIndex] is not { builtIn: false, file: { } f }) return;
             if (MessageBox.Show(this, Loc.T("Delete this theme?"), Text, MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-            try { File.Delete(f); } catch { }
+            try { File.Delete(f); } catch (Exception dex) { Diag.Swallow(dex); }
             reload();
         });
         Add(Loc.T("Import…"), () =>
@@ -847,7 +847,7 @@ public sealed partial class SettingsForm : Form
                 Directory.CreateDirectory(ThemeStore.Dir(_c));
                 Process.Start(new ProcessStartInfo(ThemeStore.Dir(_c)) { UseShellExecute = true });
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         });
         list.DoubleClick += (_, _) => applySelected();
 

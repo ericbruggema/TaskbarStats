@@ -89,7 +89,7 @@ public sealed partial class WidgetForm
                 light = (pk?.GetValue("SystemUsesLightTheme") ?? pk?.GetValue("AppsUseLightTheme")) is int l && l != 0;
                 prev = pk?.GetValue("ColorPrevalence") is int p && p != 0;
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
             try
             {
                 using var dk = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
@@ -98,7 +98,7 @@ public sealed partial class WidgetForm
                 else if (dk?.GetValue("ColorizationColor") is int cc)   // 0xAARRGGBB
                     accent = Color.FromArgb((cc >> 16) & 0xFF, (cc >> 8) & 0xFF, cc & 0xFF);
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         }
         _winLight = light; _winPrevalence = prev; _winAccent = accent;
     }
@@ -145,6 +145,6 @@ public sealed partial class WidgetForm
                 _winTimer.Stop(); _winTimer.Start();
             });
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 }

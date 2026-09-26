@@ -18,6 +18,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Hulpprogramma's en tests zijn eigen projecten: hun bestanden horen niet in de app -->
+    <Compile Remove="tools\**;tests\**" />
+    <EmbeddedResource Remove="tools\**;tests\**" />
+    <None Remove="tools\**;tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
     <EmbeddedResource Include="lang\*.json" LogicalName="lang.%(Filename).json" />
   </ItemGroup>
@@ -34,5 +41,15 @@
     <!-- WMI voor de specificatiepagina (hardware-inventaris) -->
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
+
+  <!-- Elke build controleert de taalbestanden tegen de code (tools\LangTool): fouten (kapotte {0}, meervoud, dubbele sleutel, Loc-aanroep
+       zonder vaste tekst) laten de build mislukken; ontbrekende vertalingen zijn waarschuwingen (-p:LangStrict=true maakt ze fouten).
+       Overslaan: -p:SkipLangCheck=true -->
+  <Target Name="CheckLang" AfterTargets="CoreCompile" Condition="'$(SkipLangCheck)' != 'true' And Exists('$(MSBuildProjectDirectory)\tools\LangTool\LangTool.csproj')"
+          Inputs="@(Compile);$(MSBuildProjectDirectory)\lang\*.json" Outputs="$(IntermediateOutputPath)langcheck.stamp">
+    <PropertyGroup><LangArgs Condition="'$(LangStrict)' == 'true'">--strict</LangArgs></PropertyGroup>
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\tools\LangTool\LangTool.csproj&quot; -c Release --verbosity quiet -- check $(LangArgs) --root &quot;$(MSBuildProjectDirectory)&quot;" />
+    <Touch Files="$(IntermediateOutputPath)langcheck.stamp" AlwaysCreate="true" />
+  </Target>
 
 </Project>

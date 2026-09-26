@@ -193,7 +193,7 @@ public sealed partial class Metrics : IDisposable
                 _cpuCores.Add(c);
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     // ---------- Temperatuur ----------
@@ -238,7 +238,7 @@ public sealed partial class Metrics : IDisposable
 
     private void CloseLhm()
     {
-        try { _lhm?.Close(); } catch { }
+        try { _lhm?.Close(); } catch (Exception dex) { Diag.Swallow(dex); }
         _lhm = null;
         CpuTempC = null;
         GpuTempC = null;
@@ -272,7 +272,7 @@ public sealed partial class Metrics : IDisposable
                         }
                     }
                 }
-                catch { }
+                catch (Exception dex) { Diag.Swallow(dex); }
             // Sommige processors (bv. nieuwe Ryzen AI) hebben geen bruikbare sensor in LibreHardwareMonitor: dan de ACPI-thermal zone van Windows.
             CpuTempC = cpu ?? ReadThermalZone();
             GpuTempC = gpuCore ?? gpuAlt;
@@ -298,7 +298,7 @@ public sealed partial class Metrics : IDisposable
             {
                 _tzInit = true;
                 foreach (var inst in new PerformanceCounterCategory("Thermal Zone Information").GetInstanceNames())
-                    try { _tz.Add(new PerformanceCounter("Thermal Zone Information", "High Precision Temperature", inst, true)); } catch { }
+                    try { _tz.Add(new PerformanceCounter("Thermal Zone Information", "High Precision Temperature", inst, true)); } catch (Exception dex) { Diag.Swallow(dex); }
             }
             double? best = null;
             foreach (var c in _tz)
@@ -323,7 +323,7 @@ public sealed partial class Metrics : IDisposable
         {
             if (_lhm is null || !_lhmExtended) return;
             var list = new List<SensorInfo>();
-            try { foreach (var hw in _lhm.Hardware) VisitHardware(hw, list); } catch { }
+            try { foreach (var hw in _lhm.Hardware) VisitHardware(hw, list); } catch (Exception dex) { Diag.Swallow(dex); }
             if (ReadThermalZone() is double tz)
                 list.Add(new SensorInfo("ACPI", HardwareType.Cpu, Loc.T("Thermal zone (ACPI, system)"), SensorType.Temperature, tz, null, null));
             _sensors = list.ToArray();
@@ -332,7 +332,7 @@ public sealed partial class Metrics : IDisposable
 
     private static void VisitHardware(IHardware hw, List<SensorInfo> list)
     {
-        try { hw.Update(); } catch { }
+        try { hw.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
         foreach (var s in hw.Sensors)
             list.Add(new SensorInfo(hw.Name, hw.HardwareType, s.Name, s.SensorType,
                                     s.Value is float v ? v : null, s.Min is float mn ? mn : null, s.Max is float mx ? mx : null));
@@ -363,7 +363,7 @@ public sealed partial class Metrics : IDisposable
                 r.NextValue(); s.NextValue();
                 _net[n] = (r, s);
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         }
     }
 
@@ -392,7 +392,7 @@ public sealed partial class Metrics : IDisposable
                 r.NextValue(); w.NextValue();
                 _disks[n] = (r, w);
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         }
     }
 
@@ -409,10 +409,10 @@ public sealed partial class Metrics : IDisposable
                     if (d.DriveType != type || !d.IsReady) continue;
                     list.Add(new DriveSpace(d.Name.TrimEnd('\\'), d.TotalSize, d.AvailableFreeSpace, type == DriveType.Network));
                 }
-                catch { }
+                catch (Exception dex) { Diag.Swallow(dex); }
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         // Een als administrator draaiend programma ziet de netwerkstations van de gewone sessie niet in DriveInfo
         // (UAC: elke sessie heeft eigen stationsletters). De koppelingen staan wel in HKCU\Network; de share zelf is
@@ -433,7 +433,7 @@ public sealed partial class Metrics : IDisposable
                 }
                 list.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
             }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         }
         return list;
     }
@@ -495,10 +495,10 @@ public sealed partial class Metrics : IDisposable
                     c.NextValue();
                     _vram.Add(c);
                 }
-                catch { }
+                catch (Exception dex) { Diag.Swallow(dex); }
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     private static string? ExtractLuid(string instance)
@@ -518,7 +518,7 @@ public sealed partial class Metrics : IDisposable
             try { CpuPercent = _cpu is null ? 0 : Math.Min(100, _cpu.NextValue()); } catch { CpuPercent = 0; }
 
             try { CpuCores = ReadCores(); }
-            catch { }
+            catch (Exception dex) { Diag.Swallow(dex); }
         }
 
         try
@@ -531,7 +531,7 @@ public sealed partial class Metrics : IDisposable
                 MemUsedBytes = ms.ullTotalPhys - ms.ullAvailPhys;
             }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         try
         {
@@ -561,11 +561,11 @@ public sealed partial class Metrics : IDisposable
             {
                 var luid = ExtractLuid(c.InstanceName);
                 if (luid is null) continue;
-                try { vr[luid] = vr.GetValueOrDefault(luid) + c.NextValue(); } catch { }
+                try { vr[luid] = vr.GetValueOrDefault(luid) + c.NextValue(); } catch (Exception dex) { Diag.Swallow(dex); }
             }
             _vramRates = vr;
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         try
         {
@@ -592,7 +592,7 @@ public sealed partial class Metrics : IDisposable
             _netRates = rates;
             NetDownBytesPerSec = down; NetUpBytesPerSec = up;
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         try
         {
@@ -608,7 +608,7 @@ public sealed partial class Metrics : IDisposable
             _diskRates = rates;
             DiskReadBytesPerSec = rd; DiskWriteBytesPerSec = wr;
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         try
         {
@@ -728,7 +728,7 @@ internal static class DxgiNames
             }
             finally { Marshal.ReleaseComObject(factory); }
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         finally { if (pFactory != IntPtr.Zero) Marshal.Release(pFactory); }
         return map;
     }

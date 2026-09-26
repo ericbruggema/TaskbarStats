@@ -72,7 +72,7 @@ public sealed partial class Metrics
                         {
                             if (hw.HardwareType == HardwareType.Storage && _wantDiskTemp && _lhmStorage)
                             {
-                                try { hw.Update(); } catch { }
+                                try { hw.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
                                 foreach (var s in hw.Sensors)
                                     if (s.SensorType == SensorType.Temperature && s.Value is float v && v > 0 && v < 150)
                                         disk = disk is null ? v : Math.Max(disk.Value, v);   // de heetste schijf
@@ -81,7 +81,7 @@ public sealed partial class Metrics
                                 mobo = MoboTemp(hw);
                         }
                     }
-                    catch { }
+                    catch (Exception dex) { Diag.Swallow(dex); }
                 DiskTempC = disk;
                 MoboTempC = mobo;
             }
@@ -95,7 +95,7 @@ public sealed partial class Metrics
         double? best = null;
         void visit(IHardware h)
         {
-            try { h.Update(); } catch { }
+            try { h.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
             foreach (var s in h.Sensors)
             {
                 if (s.SensorType != SensorType.Temperature || s.Value is not float v || v < 1 || v > 150) continue;

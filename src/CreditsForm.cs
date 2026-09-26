@@ -146,7 +146,7 @@ public sealed class CreditsForm : Form
         L(K.Big, Loc.T("— THE END —"));
         L(K.Gap, "");
         var j = Jokes[Random.Shared.Next(Jokes.Length)];
-        L(K.Sub, Loc.T(j));
+        L(K.Sub, Loc.T(j));   // lang-dynamic: j komt uit Jokes (Loc.N)
         L(K.Gap, ""); L(K.Gap, "");
     }
 
@@ -163,7 +163,7 @@ public sealed class CreditsForm : Form
             int days = usage.DaysTracked();
             if (days > 0 && tot.Total > 0)
             {
-                res.Add(days == 1 ? Loc.T("Tracked over 1 day:") : Loc.T("Tracked over {0} days:", days));
+                res.Add(Loc.P("Tracked over {0} day:|Tracked over {0} days:", days));
                 res.Add($"↓ {Sz(tot.Down)}   ↑ {Sz(tot.Up)}");
                 double mb = tot.Down / 1048576.0;
                 var fun = ((DateTime.Now.DayOfYear + days) % 4) switch
@@ -179,7 +179,7 @@ public sealed class CreditsForm : Form
             }
             else res.Add(Loc.T("No network usage tracked yet."));
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
 
         try
         {
@@ -190,7 +190,7 @@ public sealed class CreditsForm : Form
             var win = TimeSpan.FromMilliseconds(Environment.TickCount64);
             res.Add(Loc.T("Windows has been up for {0} without a restart", Dur(win)));
         }
-        catch { }
+        catch (Exception dex) { Diag.Swallow(dex); }
         return res;
     }
 

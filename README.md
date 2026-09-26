@@ -21,6 +21,16 @@ A 70-second tour of the widget, the settings, the dashboard and the fullscreen s
 | Loop (8 s) | The live widget on a taskbar, made to repeat | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/c-loop-en.mp4) · [gif](docs/tour/intro/c-loop-en.gif) |
 | Square (14.5 s, 1080×1080) | The story version for social media | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/d-square-en.mp4) |
 
+**Download, install, run, make it yours** (English, three lengths). The 15-second version as a gif:
+
+![Download, install, run in 15 seconds](docs/tour/install/install-15s-en.gif)
+
+| Version | What it shows | Video |
+|---------|---------------|-------|
+| 15 s | Download, install, run, pick a theme | [mp4](docs/tour/install/install-15s-en.mp4) · [gif](docs/tour/install/install-15s-en.gif) |
+| 30 s | The same, plus the right-click menu, themes with backgrounds and the JSON editor with preview | [mp4](docs/tour/install/install-30s-en.mp4) |
+| 60 s | Everything above, plus a graph length per item and the dashboard and fullscreen layout | [mp4](docs/tour/install/install-60s-en.mp4) |
+
 ## Screenshots
 
 **Taakbalk-widget** — cijfers, meters met per-core-balkjes en batterij, of compact met labels boven:

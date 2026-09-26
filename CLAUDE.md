@@ -9,7 +9,9 @@ praat Nederlands; commentaar in de code is Nederlands. UI-teksten staan in het E
 
 ```
 build.bat                      # sluit de draaiende app, bouwt Release, start opnieuw (vraagt zelf om admin)
-dotnet build -c Release        # alleen bouwen -> bin\Release\net8.0-windows\TaskbarStats.exe
+dotnet build -c Release        # alleen bouwen -> bin\Release\net8.0-windows\TaskbarStats.exe (controleert ook de taalbestanden: fout = build mislukt)
+dotnet test tests\TaskbarStats.Tests -c Debug   # unit tests (Debug: bin\Release is vergrendeld als de app daar draait)
+dotnet run --project tools\LangTool -c Release -- check|sync|rename|new|status   # taalbeheer
 build-installer.bat            # publish (self-contained, single file, gecomprimeerd) + Inno Setup -> installer\Output
 ```
 
@@ -35,7 +37,9 @@ build-installer.bat            # publish (self-contained, single file, gecomprim
 | `ProcessSampler.cs` | top-processen; gebruik `SampleAsync()` |
 | `AppSettings.cs` | JSON-instellingen in `%AppData%\TaskbarStats\settings.json` (`TASKBARSTATS_DATA` overschrijft de map) |
 | `StartupManager.cs` | autostart = geplande taak met hoogste rechten (Run-sleutel werkt niet voor elevated apps) |
-| `Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text", args…)` (de Engelse tekst is de sleutel; `{0}` = `string.Format`; `"text@@ctx"` bij dezelfde tekst met andere betekenis; `Loc.N` markeert teksten in arrays). Talen: ingebedde `lang/<code>.json` plus eigen bestanden in `%AppData%\TaskbarStats\lang`; ontbrekende tekst = Engels; taal automatisch uit Windows bij eerste start. Controle: `tools\check-lang.ps1`. `Loc.Pick(nl,en)` bestaat nog alleen voor de privé-onderdelen |
+| `Loc.cs`, `lang/*.json`, `tools/LangTool` | Vertalingen: `Loc.T("English text", args…)` (de Engelse tekst is de sleutel; `{0}` = `string.Format`; `"text@@ctx"` bij dezelfde tekst met andere betekenis; `Loc.N` markeert teksten in arrays; `Loc.P("{0} day\|{0} days", n)` meervoud met een `_plural`-regel per taal). Talen: ingebedde `lang/<code>.json` plus eigen bestanden in `%AppData%\TaskbarStats\lang`; leeg of ontbrekend = Engels; taal automatisch uit Windows bij eerste start; regiobestanden (`pt-br`) vullen de hoofdtaal aan; meta-sleutels `_name`/`_culture`/`_plural`; testtaal `qps` (`TASKBARSTATS_PSEUDO=1`). `tools/LangTool` (Roslyn) leest de code, draait bij **elke build** (MSBuild-target `CheckLang`, uitschakelen met `-p:SkipLangCheck=true`) en in tests/CI. `Loc.Pick(nl,en)` bestaat nog alleen voor de privé-onderdelen |
+| `Diag.cs`, `AppPaths.cs`, `AppSettings.Backup.cs` | `Diag`: `diag.log` in de datamap, crashvangnet (UI-fout = loggen en doordraaien, fatale fout = één herstart met `--restarted`), `Diag.Swallow(ex)` in plaats van een lege `catch { }`, `Diag.Report` (Over-scherm, knop *Copy diagnostics*). `AppPaths.DataDir`: `TASKBARSTATS_DATA` → portable (`portable.txt` naast de exe → map `data`) → `%AppData%\TaskbarStats`. Backup: export/import/reset van instellingen (`CopyFrom`). Een tweede start van de app opent de instellingen van de eerste (benoemde `EventWaitHandle`; een venstersbericht komt niet aan omdat het widget eigendom van de taakbalk is) |
+| `tests/TaskbarStats.Tests` | xUnit: Loc, instellingen, thema's, updatecheck, verbruik, Diag, LangTool, backup. Draait in CI (`.github/workflows/ci.yml`) |
 
 Alle vensters zijn **layered windows** met per-pixel alpha: tekenen naar een `Bitmap` (GDI+) en `UpdateLayeredWindow`.
 Bij "transparant" is de achtergrond alpha 1 (onzichtbaar maar klikbaar); een `TransparencyKey` liet klikken doorvallen
@@ -89,7 +93,8 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Conventies
 
-- Nederlandse commentaren; elke nieuwe zichtbare tekst als `Loc.T("English text")` en de Nederlandse vertaling in `lang/nl.json` (daarna `tools\check-lang.ps1`). Wijzig je een Engelse tekst, pas dan ook de sleutel in alle taalbestanden aan.
+- Nederlandse commentaren; elke nieuwe zichtbare tekst als `Loc.T("English text")` (alleen vaste teksten; nooit `$"…"` of een variabele erin; `// lang-dynamic` alleen voor uitzonderingen, `// nolang` voor bewust vaste tekst). Daarna `LangTool sync`, de lege waarden in `lang/nl.json` en `lang/de.json` vertalen en `LangTool check`. Een Engelse tekst wijzigen: `LangTool rename "oud" "nieuw"`, nooit met de hand. Een tekst met een aantal (dag/dagen): `Loc.P`.
+- Lege `catch { }` bestaat niet meer: gebruik `catch (Exception dex) { Diag.Swallow(dex); }` (of vang gericht) zodat een fout een spoor in `diag.log` achterlaat.
 - Nieuwe instelling = property in `AppSettings` met default (oude `settings.json` blijft werken), opslaan via `Persist()`/`Relayout()`.
 - Code sluit aan op de omringende stijl; geen onnodige abstracties. Bestanden hebben CRLF (`.gitattributes`).
 - Repo is **openbaar**: geen persoonlijke gegevens, geen schermafbeeldingen met privé-inhoud. Commit-auteur gebruikt het

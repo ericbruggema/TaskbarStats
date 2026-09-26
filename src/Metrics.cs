@@ -513,6 +513,25 @@ public sealed partial class Metrics : IDisposable
 
     public void Update()
     {
+        UpdateCpu();
+        UpdateMemory();
+        UpdateGpu();
+        UpdateCpuClock();
+        UpdateVram();
+        UpdateNetwork();
+        UpdateDisks();
+        UpdateBattery();
+
+        SyncLhm();
+        UpdateTemperatures();
+        UpdateExtras();
+        SnapshotSensors();
+        RefreshInstances();
+    }
+
+    /// <summary>Totale CPU-belasting en per kern.</summary>
+    private void UpdateCpu()
+    {
         lock (_cpuLock)
         {
             try { CpuPercent = _cpu is null ? 0 : Math.Min(100, _cpu.NextValue()); } catch { CpuPercent = 0; }
@@ -520,7 +539,11 @@ public sealed partial class Metrics : IDisposable
             try { CpuCores = ReadCores(); }
             catch (Exception dex) { Diag.Swallow(dex); }
         }
+    }
 
+    /// <summary>Geheugengebruik.</summary>
+    private void UpdateMemory()
+    {
         try
         {
             var ms = new MEMORYSTATUSEX { dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>() };
@@ -532,7 +555,11 @@ public sealed partial class Metrics : IDisposable
             }
         }
         catch (Exception dex) { Diag.Swallow(dex); }
+    }
 
+    /// <summary>GPU-belasting (PDH-wildcard: alle engines in één query), som per adapter.</summary>
+    private void UpdateGpu()
+    {
         try
         {
             var perLuid = new Dictionary<string, double>();
@@ -550,10 +577,18 @@ public sealed partial class Metrics : IDisposable
                 : perLuid.Count == 0 ? 0 : perLuid.Values.Max();
         }
         catch { GpuPercent = 0; }
+    }
 
+    /// <summary>CPU-klokfrequentie (basisfrequentie x prestatie%).</summary>
+    private void UpdateCpuClock()
+    {
         try { CpuMHz = _cpuFreq is null || _cpuPerf is null ? null : _cpuFreq.NextValue() * _cpuPerf.NextValue() / 100.0; }
         catch { CpuMHz = null; }
+    }
 
+    /// <summary>Video-geheugen per adapter.</summary>
+    private void UpdateVram()
+    {
         try
         {
             var vr = new Dictionary<string, double>();
@@ -566,7 +601,11 @@ public sealed partial class Metrics : IDisposable
             _vramRates = vr;
         }
         catch (Exception dex) { Diag.Swallow(dex); }
+    }
 
+    /// <summary>Netwerksnelheid per adapter en totaal.</summary>
+    private void UpdateNetwork()
+    {
         try
         {
             var rates = new Dictionary<string, (double, double)>();
@@ -593,7 +632,11 @@ public sealed partial class Metrics : IDisposable
             NetDownBytesPerSec = down; NetUpBytesPerSec = up;
         }
         catch (Exception dex) { Diag.Swallow(dex); }
+    }
 
+    /// <summary>Schijfsnelheid per schijf en totaal.</summary>
+    private void UpdateDisks()
+    {
         try
         {
             var rates = new Dictionary<string, (double, double)>();
@@ -609,7 +652,11 @@ public sealed partial class Metrics : IDisposable
             DiskReadBytesPerSec = rd; DiskWriteBytesPerSec = wr;
         }
         catch (Exception dex) { Diag.Swallow(dex); }
+    }
 
+    /// <summary>Batterijstatus.</summary>
+    private void UpdateBattery()
+    {
         try
         {
             var ps = System.Windows.Forms.SystemInformation.PowerStatus;
@@ -620,13 +667,11 @@ public sealed partial class Metrics : IDisposable
             BatteryRemainingSec = ps.BatteryLifeRemaining;
         }
         catch { BatteryPresent = false; }
+    }
 
-        SyncLhm();
-        UpdateTemperatures();
-        UpdateExtras();
-        SnapshotSensors();
-
-        // Instances (adapters, schijven, VRAM) komen en gaan; af en toe opnieuw opbouwen.
+    /// <summary>Instances (adapters, schijven, VRAM) komen en gaan; af en toe opnieuw opbouwen.</summary>
+    private void RefreshInstances()
+    {
         if (Environment.TickCount64 - _rebuiltAt > 5000)
         {
             _rebuiltAt = Environment.TickCount64;

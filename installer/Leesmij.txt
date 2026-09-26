@@ -220,4 +220,7 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
+ LinkedIn: https://www.linkedin.com/in/eric-bruggema-28a81a186/
+ Facebook: https://www.facebook.com/eric.bruggema
+
  Versie / Version 1.6.0

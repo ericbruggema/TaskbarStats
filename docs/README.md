@@ -20,3 +20,5 @@ Download, install and run take a few seconds in each video; the rest is the prog
 | [Hero loop (gif)](tour/promo/hero-loop-en.gif) | The animation at the top of the README | 9 s |
 
 The videos are drawn from real screenshots of the app with made-up values (no screen recording, nothing personal in them) and show features of the upcoming version, such as processes, FPS and theme backgrounds.
+
+Contact: [LinkedIn](https://www.linkedin.com/in/eric-bruggema-28a81a186/) · [Facebook](https://www.facebook.com/eric.bruggema) · [GitHub issues](https://github.com/ericbruggema/TaskbarStats/issues)

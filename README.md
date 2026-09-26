@@ -380,3 +380,7 @@ are kept — so please leave the credits in place. Thanks!
 
 The program uses LibreHardwareMonitorLib (MPL-2.0), HidSharp (Apache-2.0) and .NET (MIT);
 these fall under their own licenses.
+
+## Contact
+
+Questions, ideas or just want to say hi? Find me on [LinkedIn](https://www.linkedin.com/in/eric-bruggema-28a81a186/) or [Facebook](https://www.facebook.com/eric.bruggema), or open an [issue](https://github.com/ericbruggema/TaskbarStats/issues) here.

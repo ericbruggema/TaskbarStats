@@ -1,35 +1,21 @@
 # TaskbarStats
 
-![TaskbarStats live in the taskbar](docs/tour/intro/c-loop-en.gif)
+![TaskbarStats live in the taskbar, and FPS on top of a game](docs/tour/promo/hero-loop-en.gif)
 
 Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
 overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een fullscreen "cockpit".
 
-## Tour and videos
+## Demo videos
 
-![Tour of TaskbarStats](docs/tour/taskbarstats-tour-en.gif)
+Four English demos of 45 to 60 seconds each. Download, install and run takes a few seconds in every one of them, so most of the time goes to the program itself:
 
-A 70-second tour of the widget, the settings, the dashboard and the fullscreen screen. Prefer a video? Download the [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/taskbarstats-tour-en.mp4).
-
-**Short intros** (English, 8 to 15 seconds), all downloadable from the [1.4.0 release](https://github.com/ericbruggema/TaskbarStats/releases/tag/v1.4.0):
-
-| Version | What it is | Download |
-|---------|------------|----------|
-| Story (14.5 s) | Live widget, styles, dashboard and fullscreen | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/a-story-en.mp4) · [gif](docs/tour/intro/a-story-en.gif) |
-| Montage (13.4 s) | Fast cuts through the main features | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/b-montage-en.mp4) |
-| Loop (8 s) | The live widget on a taskbar, made to repeat | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/c-loop-en.mp4) · [gif](docs/tour/intro/c-loop-en.gif) |
-| Square (14.5 s, 1080×1080) | The story version for social media | [mp4](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.4.0/d-square-en.mp4) |
-
-**Download, install, run, make it yours** (English, three lengths). The 15-second version as a gif:
-
-![Download, install, run in 15 seconds](docs/tour/install/install-15s-en.gif)
-
-| Version | What it shows | Video |
-|---------|---------------|-------|
-| 15 s | Download, install, run, pick a theme | [mp4](docs/tour/install/install-15s-en.mp4) · [gif](docs/tour/install/install-15s-en.gif) |
-| 30 s | The same, plus the right-click menu, themes with backgrounds and the JSON editor with preview | [mp4](docs/tour/install/install-30s-en.mp4) |
-| 60 s | Everything above, plus a graph length per item and the dashboard and fullscreen layout | [mp4](docs/tour/install/install-60s-en.mp4) |
+| Video | For | What it shows |
+|-------|-----|---------------|
+| [Quick start (47 s)](docs/tour/promo/quick-start-en.mp4) | Everyone | Download, install, run, right-click menu, themes with backgrounds, JSON editor with preview, processes and FPS, dashboard and fullscreen |
+| [For number lovers (57 s)](docs/tour/promo/nerds-en.mp4) | Statistics nerds | Every graph with its own length, four display styles, processes (all, apps, background), tooltip details, dashboard, fullscreen cockpit, specifications, JSON everything |
+| [For gamers (51 s)](docs/tour/promo/gamers-en.mp4) | Gamers | FPS in the taskbar or floating on top of your game, 1% low, tiny overlay mode, click-through (Ctrl+Alt+W), GPU and CPU temperatures, ping, themes |
+| [The complete tour (59 s)](docs/tour/promo/tour-en.mp4) | Everyone | The whole program, feature by feature |
 
 ## Screenshots
 

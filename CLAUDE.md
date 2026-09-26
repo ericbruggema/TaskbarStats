@@ -95,6 +95,8 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 - PowerShell 5: `$(native command 2>&1 | Out-String) -match 'naam'` matcht ook de foutmelding (die de opdracht met de naam bevat); controleer de exitcode.
 - Voorkom dat testprocessen blijven hangen; `Get-Process TaskbarStats` en alleen processen uit de tempmap stoppen, nooit de echte.
 
+- **Demo-video's** (`docs/tour/promo`, altijd Engels, 45-60 s): getekend met PIL uit echte schermafbeeldingen met verzonnen waarden (geen schermopname): widgetframes via een testkopie met `Metrics.SetDemo(t)` (thema/opties per configuratie, ping gevuld via reflectie), instellingen/menu's uit een testkopie, dashboard/fullscreen uit het kit-harnas met anonieme computernaam (`DEMO-PC`) en en-US. Bouw en scènes stonden in de scratchpad (`promo_make.py`, `install_make.py`, `rt17.ps1`); opnieuw maken = die aanpak volgen.
+
 ## Conventies
 
 - Alles wat naar het klembord of naar een bestand voor de gebruiker gaat (kopiëren, export) vermeldt het programma + link: `AppInfo.Url`/`AppInfo.Signature` (JSON: veld `_generator`, `ToExportJson`/`ThemeStore.Export`; CSV: laatste regel `# Exported by …`). Nieuwe kopieer-/exportacties doen dat ook.

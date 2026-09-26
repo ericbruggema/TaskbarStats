@@ -76,7 +76,7 @@ Am **14. Februar** startet das Programm vorübergehend mit dem Design „Liebe�
 
 Die mitgelieferten Designs, hier auf dem Desktop-Dashboard:
 
-![Alle meegeleverde thema's](docs/screenshots/themes.png)
+![Alle meegeleverde thema's](docs/screenshots/themes-fps.png)
 
 **Desktop-Dashboard** (halbtransparent, skalierbar, Vordergrund oder Hintergrund, Durchklicken):
 

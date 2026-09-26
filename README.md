@@ -76,7 +76,7 @@ On **14 February** the program temporarily starts with the Love theme (in memory
 
 The bundled themes, shown here on the desktop dashboard:
 
-![All bundled themes](docs/screenshots/themes.png)
+![All bundled themes](docs/screenshots/themes-fps.png)
 
 **Desktop dashboard** (semi-transparent, scalable, foreground or background, click-through):
 

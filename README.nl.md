@@ -76,7 +76,7 @@ Op **14 februari** start het programma tijdelijk met het Love-thema (alleen in h
 
 De meegeleverde thema's, hier op het bureaublad-dashboard:
 
-![Alle meegeleverde thema's](docs/screenshots/themes.png)
+![Alle meegeleverde thema's](docs/screenshots/themes-fps.png)
 
 **Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):
 

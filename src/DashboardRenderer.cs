@@ -85,6 +85,32 @@ internal sealed class DashboardRenderer : IDisposable
         return bmp;
     }
 
+    /// <summary>
+    /// Indeling voor de miniatuur in de instellingen: dezelfde masonry-plaatsing als <see cref="BuildPlan"/>, met gemiddelde tegelhoogtes
+    /// (één GPU, twee adapters, twee schijven) omdat er dan nog geen meting is. Geeft de logische grootte en per zichtbare tegel de plek.
+    /// </summary>
+    internal static (SizeF size, List<(string id, RectangleF r)> tiles) PreviewLayout(AppSettings cfg)
+    {
+        float Height(string id) => id switch
+        {
+            "cpu" => 190, "gpu" => 150, "mem" => 160, "net" => 34 + 66 + 3 * 17 + (cfg.MonthlyLimitGb > 0 ? 26 : 0) + 2 * 32 + 16,
+            "disk" => 34 + 2 * 34 + 22 + 56, "batt" => 112, "proc" => 34 + 5 * 18 + 22, _ => 104,
+        };
+        int cols = Math.Clamp(cfg.DashColumns, 1, 4);
+        var colY = Enumerable.Repeat((float)Pad, cols).ToArray();
+        var res = new List<(string, RectangleF)>();
+        foreach (var id in Tiles.Order(cfg.DashOrder))
+        {
+            if (!Tiles.DashOn(cfg, id)) continue;
+            int ci = Array.IndexOf(colY, colY.Min());
+            float h = Height(id);
+            res.Add((id, new RectangleF(Pad + ci * (CW + Spacing), colY[ci], CW, h)));
+            colY[ci] += h + Spacing;
+        }
+        float w = Pad * 2 + cols * CW + (cols - 1) * Spacing;
+        return (new SizeF(w, res.Count == 0 ? 80 : colY.Max() - Spacing + Pad), res);
+    }
+
     /// <summary>Bepaalt welke tegels er zijn, plaatst ze (masonry: elke tegel in de kortste kolom) en berekent de maat.</summary>
     private Plan BuildPlan(MetricsSnapshot m, List<DriveSpace> drives, int dpi)
     {

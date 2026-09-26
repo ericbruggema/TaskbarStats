@@ -581,11 +581,19 @@ public sealed partial class WidgetForm : Form
         _full.Activate();
     }
 
+    // Fullscreen: net als het bureaublad-dashboard een submenu (openen, instellingen, tour).
     private ToolStripMenuItem BuildFullMenu()
     {
-        var open = new ToolStripMenuItem(Loc.T("Fullscreen dashboard (Ctrl+Alt+F)")) { Tag = "close" };
+        var m = new ToolStripMenuItem(Loc.T("Fullscreen dashboard"));
+        var open = new ToolStripMenuItem(Loc.T("Open / close (Ctrl+Alt+F)")) { Tag = "close" };
         open.Click += (_, _) => ToggleFullscreen();
-        return open;
+        m.DropDownItems.Add(open);
+        m.DropDownItems.Add(BuildTourMenu());
+        m.DropDownItems.Add(new ToolStripSeparator());
+        var set = new ToolStripMenuItem(Loc.T("Settings…")) { Tag = "close" };
+        set.Click += (_, _) => ShowSettings(3);
+        m.DropDownItems.Add(set);
+        return m;
     }
 
     // Fullscreen-tour: hoe lang elke pagina blijft staan (start in het fullscreen-scherm zelf).
@@ -639,7 +647,7 @@ public sealed partial class WidgetForm : Form
     /// <summary>Tweede start van de app: laat zien dat hij draait door de instellingen te openen.</summary>
     private void OnShowRequested()
     {
-        try { if (IsHandleCreated && !IsDisposed) BeginInvoke(new Action(ShowSettings)); } catch (Exception dex) { Diag.Swallow(dex); }
+        try { if (IsHandleCreated && !IsDisposed) BeginInvoke(new Action(() => ShowSettings())); } catch (Exception dex) { Diag.Swallow(dex); }
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
@@ -672,6 +680,10 @@ public sealed partial class WidgetForm : Form
                  v => { _cfg.DashClickThrough = v; Persist(); });
         AddCheck(m, Loc.T("Lock position"), _cfg.DashLocked,
                  v => { _cfg.DashLocked = v; Persist(); });
+        m.DropDownItems.Add(new ToolStripSeparator());
+        var set = new ToolStripMenuItem(Loc.T("Settings…")) { Tag = "close" };
+        set.Click += (_, _) => ShowSettings(2);
+        m.DropDownItems.Add(set);
         return m;
     }
 
@@ -708,10 +720,11 @@ public sealed partial class WidgetForm : Form
         _notifyHide.Start();
     }
 
-    private void ShowSettings()
+    // tab: 2 = Dashboard, 3 = Fullscreen (volgorde van de tabbladen in SettingsForm); -1 = het laatst gekozen tabblad
+    private void ShowSettings(int tab = -1)
     {
         if (_cfg.EndSeasonal()) ApplyAll();   // wie de instellingen opent, wil zijn eigen uiterlijk bewerken
-        if (_settings is { IsDisposed: false }) { _settings.WindowState = FormWindowState.Normal; _settings.Activate(); return; }
+        if (_settings is { IsDisposed: false }) { _settings.WindowState = FormWindowState.Normal; if (tab >= 0) _settings.SelectTab(tab); _settings.Activate(); return; }
         _settings = new SettingsForm(_cfg, new SettingsHost
         {
             Apply = ApplyAll,
@@ -721,6 +734,7 @@ public sealed partial class WidgetForm : Form
             Drives = () => _drives.ToList(),
         });
         _settings.FormClosed += (_, _) => _settings = null;
+        if (tab >= 0) _settings.SelectTab(tab);
         _settings.Show();
     }
 
@@ -1057,10 +1071,8 @@ public sealed partial class WidgetForm : Form
         menu.Items.Add(themes);
 
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(BuildUsageMenu());
         menu.Items.Add(BuildDashMenu());
         menu.Items.Add(BuildFullMenu());
-        menu.Items.Add(BuildTourMenu());
 
         var stickItem = new ToolStripMenuItem(Loc.T("Stick to notification area")) { Tag = "close", Checked = _cfg.StickToTray };
         stickItem.Click += (_, _) => SetStickToTray(!_cfg.StickToTray);
@@ -1068,6 +1080,7 @@ public sealed partial class WidgetForm : Form
         AddClickThroughMenuItem(menu);
 
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(BuildUsageMenu());
         var copy = new ToolStripMenuItem(Loc.T("Copy info to clipboard")) { Tag = "close" };
         copy.Click += (_, _) => CopyInfo();
         menu.Items.Add(copy);
@@ -1076,7 +1089,8 @@ public sealed partial class WidgetForm : Form
         copySys.Click += (_, _) => HardwareInfo.CopyToClipboard(_metrics, this, ok => _tip.Show(ok ? Loc.T("✔ Copied to clipboard") : Loc.T("System information is not available yet"), this, 0, -Height, 1500));
         menu.Items.Add(copySys);
 
-        var readme = new ToolStripMenuItem(Loc.T("Readme and credits")) { Tag = "close" };
+        menu.Items.Add(new ToolStripSeparator());
+        var readme = new ToolStripMenuItem(Loc.T("Credits")) { Tag = "close" };
         readme.Click += (_, _) =>
         {
             if (_credits is null || _credits.IsDisposed) _credits = new CreditsForm(_cfg, _usage, _metrics);

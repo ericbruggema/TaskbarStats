@@ -54,6 +54,9 @@ public sealed partial class SettingsForm : Form
 
     private string Snap() => JsonSerializer.Serialize(_c);
 
+    /// <summary>Kiest een hoofdtabblad (0 Widget, 1 Kleuren, 2 Dashboard, 3 Fullscreen, 4 Thema's, 5 Algemeen).</summary>
+    public void SelectTab(int index) => _tabs.SelectedIndex = Math.Clamp(index, 0, _tabs.TabPages.Count - 1);
+
     // ---------- opbouw ----------
     private void Build(int select)
     {
@@ -368,7 +371,7 @@ public sealed partial class SettingsForm : Form
         tab.Controls.Add(sub);
         var advMeasure = new List<Control>();   // rijen voor het subtabblad Geavanceerd
         var advGraph = new List<Control>();
-        WidgetComponentsPage(SubPage(sub, Loc.T("Components")));
+        WidgetComponentsPage(SubPage(sub, Loc.T("Components and layout")));
         WidgetSourcesPage(SubPage(sub, Loc.T("Sources")), advMeasure);
         WidgetStylePage(SubPage(sub, Loc.T("Display@@style")), advGraph);
         AddValueSettings(SubPage(sub, Loc.T("Values")));
@@ -572,7 +575,7 @@ public sealed partial class SettingsForm : Form
         return tab;
     }
 
-    // ---------- tabblad Dashboard ----------
+    // ---------- tabblad Dashboard en Fullscreen: dezelfde opbouw (Venster, Onderdelen en indeling, Achtergrond) ----------
     private TabPage DashTab()
     {
         Page(Loc.T("Dashboard"), out var tab);
@@ -589,33 +592,36 @@ public sealed partial class SettingsForm : Form
             (Loc.T("Background"), false),
             (Loc.T("In front"), true),
         }, () => _c.DashFront, v => _c.DashFront = v, 100));
+        p.Controls.Add(Head(Loc.T("Opacity@@window")));
+        p.Controls.Add(Slider(20, 100, 10, () => _c.DashOpacity, v => _c.DashOpacity = v, "%"));
+        p.Controls.Add(Head(Loc.T("Scale")));
+        p.Controls.Add(Slider(50, 300, 25, () => _c.DashScale, v => _c.DashScale = v, "%"));
         var reset = Btn(Loc.T("Reset dashboard position"), 170);
         reset.Margin = new Padding(0, 12, 0, 0);
         reset.Click += (_, _) => _h.ResetDash();
         p.Controls.Add(reset);
 
-        p = SubPage(sub, Loc.T("Appearance"));
-        p.Controls.Add(Head(Loc.T("Opacity@@window")));
-        p.Controls.Add(Slider(20, 100, 10, () => _c.DashOpacity, v => _c.DashOpacity = v, "%"));
-        p.Controls.Add(Head(Loc.T("Scale")));
-        p.Controls.Add(Slider(50, 300, 25, () => _c.DashScale, v => _c.DashScale = v, "%"));
-        p.Controls.Add(Head(Loc.T("Columns")));
-        p.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
-        BgSection(p, () => _c.DashBgImage, v => _c.DashBgImage = v, () => _c.DashBgMode, v => _c.DashBgMode = v, () => _c.DashBgOpacity, v => _c.DashBgOpacity = v);
+        p = SubPage(sub, Loc.T("Components and layout"));
+        var columns = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0) };
+        columns.Controls.Add(Head(Loc.T("Columns")));
+        columns.Controls.Add(Seg(new (string, int)[] { ("1", 1), ("2", 2), ("3", 3), ("4", 4) }, () => _c.DashColumns, v => _c.DashColumns = v, 48));
+        p.Controls.Add(LayoutPage(LayoutPreview(() =>
+            {
+                var (size, tiles) = DashboardRenderer.PreviewLayout(_c);
+                return (size, tiles.Select(t => (new[] { t.id }, t.r)).ToList());
+            }), columns,
+            () => _c.DashOrder, v => _c.DashOrder = v, id => Tiles.DashOn(_c, id), (id, on) => Tiles.SetDashOn(_c, id, on)));
 
-        p = SubPage(sub, Loc.T("Components"));
-        p.Controls.Add(Head(Loc.T("Components and order")));
-        p.Controls.Add(Note(Loc.T("Tick to show or hide; move with the buttons."), 300));
-        p.Controls.Add(TileEditor(() => _c.DashOrder, v => _c.DashOrder = v, id => Tiles.DashOn(_c, id), (id, on) => Tiles.SetDashOn(_c, id, on)));
+        p = SubPage(sub, Loc.T("Background"));
+        BgSection(p, () => _c.DashBgImage, v => _c.DashBgImage = v, () => _c.DashBgMode, v => _c.DashBgMode = v, () => _c.DashBgOpacity, v => _c.DashBgOpacity = v);
         return tab;
     }
 
-    // ---------- tabblad Fullscreen ----------
     private TabPage FullTab()
     {
         Page(Loc.T("Fullscreen"), out var tab);
         var sub = Subs(tab, () => _fullSub, v => _fullSub = v);
-        var p = SubPage(sub, Loc.T("Screen and tour"));
+        var p = SubPage(sub, Loc.T("Window"));
 
         p.Controls.Add(Head(Loc.T("Fullscreen dashboard (Ctrl+Alt+F)")));
         p.Controls.Add(Note(Loc.T("Open the screen with Ctrl+Alt+F to see the effect; it adapts to the number of components."), 520));
@@ -634,46 +640,63 @@ public sealed partial class SettingsForm : Form
                            () => _c.TourSeconds, v => _c.TourSeconds = v, 44));
 
         p = SubPage(sub, Loc.T("Components and layout"));
-        var cols = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1 };
-        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        var left = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 0, 24, 0) };
-        var right = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        p.Controls.Add(LayoutPage(LayoutPreview(() =>
+            {
+                var visible = Tiles.Order(_c.FullOrder).Where(id => Tiles.FullOn(_c, id));
+                return (new SizeF(1920, 1080), Tiles.FullCells(visible, 1920, 1080, 76, 16).Select(t => (t.Item1.ToArray(), t.Item2)).ToList());
+            }), null,
+            () => _c.FullOrder, v => _c.FullOrder = v, id => Tiles.FullOn(_c, id), (id, on) => Tiles.SetFullOn(_c, id, on)));
 
-        // Miniatuur van de indeling, zodat je de volgorde meteen ziet zonder het scherm te openen.
-        left.Controls.Add(Head(Loc.T("Layout preview")));
-        var prev = new DoubleBufferedPanel { Width = 288, Height = 162, Margin = new Padding(0, 0, 0, 4) };
+        p = SubPage(sub, Loc.T("Background"));
+        BgSection(p, () => _c.FullBgImage, v => _c.FullBgImage = v, () => _c.FullBgMode, v => _c.FullBgMode = v, () => _c.FullBgOpacity, v => _c.FullBgOpacity = v);
+        return tab;
+    }
+
+    /// <summary>Miniatuur van de indeling (dashboard of fullscreen), zodat je de volgorde meteen ziet zonder het venster te openen.</summary>
+    private Control LayoutPreview(Func<(SizeF size, List<(string[] ids, RectangleF r)> cells)> layout)
+    {
+        var prev = new DoubleBufferedPanel { Width = 288, Height = 200, Margin = new Padding(0, 0, 0, 8) };
         prev.Paint += (_, e) =>
         {
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.Clear(Color.FromArgb(18, 18, 20));
-            float k = prev.Width / 1920f;
-            var visible = Tiles.Order(_c.FullOrder).Where(id => Tiles.FullOn(_c, id));
-            foreach (var (ids, r) in Tiles.FullCells(visible, 1920, 1080, 76, 16))
+            var (size, cells) = layout();
+            float k = Math.Min((prev.Width - 8f) / size.Width, (prev.Height - 8f) / size.Height);
+            float ox = (prev.Width - size.Width * k) / 2, oy = (prev.Height - size.Height * k) / 2;
+            using var f = new Font("Segoe UI", 7.5f);
+            using var tb = new SolidBrush(Color.White);
+            using var fill = new SolidBrush(Color.FromArgb(48, 52, 62));
+            using var pen = new Pen(Color.FromArgb(0, 132, 255), 1);
+            foreach (var (ids, r) in cells)
             {
-                var rr = new RectangleF(r.X * k, r.Y * k, r.Width * k, r.Height * k);
-                using (var br = new SolidBrush(Color.FromArgb(48, 52, 62))) g.FillRectangle(br, rr);
-                using (var pen = new Pen(Color.FromArgb(0, 132, 255), 1)) g.DrawRectangle(pen, rr.X, rr.Y, rr.Width, rr.Height);
-                using var f = new Font("Segoe UI", 7.5f);
-                using var tb = new SolidBrush(Color.White);
+                var rr = new RectangleF(ox + r.X * k, oy + r.Y * k, r.Width * k, r.Height * k);
+                g.FillRectangle(fill, rr);
+                g.DrawRectangle(pen, rr.X, rr.Y, rr.Width, rr.Height);
                 g.DrawString(string.Join(" + ", ids.Select(Tiles.Name)), f, tb, new RectangleF(rr.X + 3, rr.Y + 2, rr.Width - 4, rr.Height - 4));
             }
         };
         Dep(prev.Invalidate);
-        left.Controls.Add(prev);
+        return prev;
+    }
 
+    /// <summary>Pagina "Onderdelen en indeling": links de miniatuur (plus eventueel extra instellingen), rechts aan/uit en volgorde van de onderdelen.</summary>
+    private Control LayoutPage(Control preview, Control? extra, Func<List<string>?> getOrder, Action<List<string>?> setOrder, Func<string, bool> on, Action<string, bool> setOn)
+    {
+        var cols = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1 };
+        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        cols.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var left = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 0, 24, 0) };
+        var right = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        left.Controls.Add(Head(Loc.T("Layout preview")));
+        left.Controls.Add(preview);
+        if (extra is not null) left.Controls.Add(extra);
         right.Controls.Add(Head(Loc.T("Components and order")));
         right.Controls.Add(Note(Loc.T("Tick to show or hide; move with the buttons."), 300));
-        right.Controls.Add(TileEditor(() => _c.FullOrder, v => _c.FullOrder = v, id => Tiles.FullOn(_c, id), (id, on) => Tiles.SetFullOn(_c, id, on)));
-
+        right.Controls.Add(TileEditor(getOrder, setOrder, on, setOn));
         cols.Controls.Add(left, 0, 0);
         cols.Controls.Add(right, 1, 0);
-        p.Controls.Add(cols);
-
-        p = SubPage(sub, Loc.T("Background"));
-        BgSection(p, () => _c.FullBgImage, v => _c.FullBgImage = v, () => _c.FullBgMode, v => _c.FullBgMode = v, () => _c.FullBgOpacity, v => _c.FullBgOpacity = v);
-        return tab;
+        return cols;
     }
 
     /// <summary>Lijst met vinkjes (aan/uit) en knoppen omhoog/omlaag voor de volgorde van de hoofdonderdelen.</summary>

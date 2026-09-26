@@ -138,7 +138,7 @@ De installer:
 - registreert een uninstaller (ook in Instellingen → Apps) die de taak verwijdert en vraagt of
   je instellingen en verbruikslog (`%AppData%\TaskbarStats`) ook weg mogen.
 
-De app zelf heeft ook "Leesmij en credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje.
+De app zelf heeft ook "Credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje.
 
 ![Leesmij en credits](docs/screenshots/credits.png)
 
@@ -167,7 +167,7 @@ bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "V
 - **Thema**: snelkeuze om met één klik een thema toe te passen.
 - **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
 - **Vastplakken aan systeemvak** (het widget blijft tegen het systeemvak staan en volgt het).
-- **Bureaublad-dashboard** (tonen, klik-door, vergrendelen) en **Fullscreen dashboard**, plus *Kopieer info*, *Leesmij en credits*, *Over* (met een knop voor het welkomstscherm) en **Afsluiten**.
+- **Bureaublad-dashboard** en **Fullscreen-dashboard**, elk een submenu (dashboard: tonen, klik-door, vergrendelen, instellingen; fullscreen: openen/sluiten, tour, instellingen), dan *Verbruik*, *Kopieer info*, *Systeeminformatie kopiëren*, *Credits*, *Over* (met een knop voor het welkomstscherm) en **Afsluiten**.
 - **Tooltip**: houd de muis minstens 2 s (instelbaar) boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
 - **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
 
@@ -243,6 +243,8 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
 geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder
 die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen, batterij) en een korte uitleg.
+
+**Dashboard en Fullscreen hebben dezelfde opbouw** met drie subtabs: *Venster*, *Onderdelen en indeling* (met een miniatuur van de indeling; het dashboard heeft daar ook het aantal kolommen) en *Achtergrond*. Het tabblad Widget noemt zijn eerste subtab ook *Onderdelen en indeling*.
 
 **Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
 

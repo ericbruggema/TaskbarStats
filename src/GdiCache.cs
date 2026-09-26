@@ -20,9 +20,13 @@ internal static class GdiCache
     private static readonly Dictionary<(string family, float size, FontStyle style, GraphicsUnit unit), Font> _fonts = new();
     private static int _uiThread;
 
+    /// <summary>Alleen de tests zetten dit uit (ze draaien na elkaar, maar op wisselende threads).</summary>
+    internal static bool ThreadCheck = true;
+
     [Conditional("DEBUG")]
     private static void CheckThread()
     {
+        if (!ThreadCheck) return;
         int id = Environment.CurrentManagedThreadId;
         if (_uiThread == 0) _uiThread = id;
         Debug.Assert(_uiThread == id, "GdiCache is alleen voor de UI-thread");

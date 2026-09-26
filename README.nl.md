@@ -46,6 +46,8 @@ Bekijk het in actie: [For gamers (51 s, Engels)](https://github.com/ericbruggema
 
 ## Screenshots
 
+*De screenshots tonen de Engelse interface (de waarden zijn verzonnen); een paar oudere tonen nog de Nederlandse. De app draait ook in het Nederlands en Duits.*
+
 **Taakbalk-widget** — cijfers, meters, balken of grafieken, met FPS en aantal processen naast CPU, GPU en geheugen:
 
 ![Widget met cijfers](docs/screenshots/widget-digital.png)

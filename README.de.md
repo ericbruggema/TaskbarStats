@@ -46,7 +46,7 @@ Live ansehen: [For gamers (51 s, Englisch)](https://github.com/ericbruggema/Task
 
 ## Screenshots
 
-*Die Screenshots zeigen die niederländische Oberfläche; das Programm gibt es auch auf Englisch und Deutsch.*
+*Die Screenshots zeigen die englische Oberfläche (die Werte sind erfunden); einige ältere zeigen noch die niederländische. Das Programm gibt es auch auf Niederländisch und Deutsch.*
 
 **Taskleisten-Widget** — Zahlen, Anzeigen, Balken oder Diagramme, mit FPS und Prozessanzahl neben CPU, GPU und Speicher:
 

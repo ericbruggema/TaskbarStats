@@ -46,7 +46,7 @@ Watch it in action: [For gamers (51 s)](https://github.com/ericbruggema/TaskbarS
 
 ## Screenshots
 
-*Screenshots show the Dutch interface; the app also runs in English and German.*
+*Screenshots show the English interface (values are made up); a few older ones still show the Dutch interface. The app also runs in Dutch and German.*
 
 **Taskbar widget** — numbers, gauges, bars or graphs, with FPS and process count next to CPU, GPU and memory:
 

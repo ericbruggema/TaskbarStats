@@ -80,19 +80,19 @@ public sealed partial class WidgetForm
         if (now - _extraAlertAt < 2000) return;
         _extraAlertAt = now;
 
-        if (_cfg.AlertMemPercent > 0 && _metrics.MemPercent >= _cfg.AlertMemPercent)
+        if (_cfg.AlertMemPercent > 0 && _snap.MemPercent >= _cfg.AlertMemPercent)
             Alert("mem>", 30 * 60_000L, Loc.T("High memory use"),
-                  Loc.T("Memory is {0:0}% full (threshold {1}%)", _metrics.MemPercent, _cfg.AlertMemPercent));
+                  Loc.T("Memory is {0:0}% full (threshold {1}%)", _snap.MemPercent, _cfg.AlertMemPercent));
 
-        if (_cfg.AlertCpuTempC > 0 && _metrics.CpuTempC is double ct && ct >= _cfg.AlertCpuTempC)
+        if (_cfg.AlertCpuTempC > 0 && _snap.CpuTempC is double ct && ct >= _cfg.AlertCpuTempC)
             Alert("cputemp", 15 * 60_000L, Loc.T("High CPU temperature"),
                   Loc.T("The processor is at {0:0} °C (threshold {1} °C)", ct, _cfg.AlertCpuTempC));
 
-        if (_cfg.AlertGpuTempC > 0 && _metrics.GpuTempC is double gt && gt >= _cfg.AlertGpuTempC)
+        if (_cfg.AlertGpuTempC > 0 && _snap.GpuTempC is double gt && gt >= _cfg.AlertGpuTempC)
             Alert("gputemp", 15 * 60_000L, Loc.T("High GPU temperature"),
                   Loc.T("The graphics card is at {0:0} °C (threshold {1} °C)", gt, _cfg.AlertGpuTempC));
 
-        if (_cfg.AlertDiskTempC > 0 && _metrics.DiskTempC is double dt && dt >= _cfg.AlertDiskTempC)
+        if (_cfg.AlertDiskTempC > 0 && _snap.DiskTempC is double dt && dt >= _cfg.AlertDiskTempC)
             Alert("disktemp", 15 * 60_000L, Loc.T("High drive temperature"),
                   Loc.T("The drive is at {0:0} °C (threshold {1} °C)", dt, _cfg.AlertDiskTempC));
 

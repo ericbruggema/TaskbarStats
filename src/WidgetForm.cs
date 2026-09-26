@@ -210,15 +210,19 @@ public sealed partial class WidgetForm : Form
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong);
 
+    /// <summary>De meting waarmee deze tik/dit tekenrondje werkt: één complete momentopname van de sampler-thread (alleen op de UI-thread gezet).</summary>
+    private MetricsSnapshot _snap = MetricsSnapshot.Empty;
+
     private void Tick()
     {
+        _snap = _metrics.Current;
         // Metingen (PerformanceCounters, ~20 ms) en verbruik bijhouden (~7 ms) draaien op de sampler-thread; de UI-thread
         // tekent hier alleen met de meest recente waarden, zodat slepen en het menu soepel blijven.
         _idle = !Visible && _dash is not { Visible: true } && _full is null;
         _metrics.Ping.Idle = _idle;
         if (_idle) { CheckAlerts(); return; }
         FollowTray();
-        _history.Sample(_metrics);
+        _history.Sample(_snap);
         SampleGraph();
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
         RefreshDrives(false);
@@ -318,7 +322,7 @@ public sealed partial class WidgetForm : Form
 
     private string BuildTooltip(bool forceProcs = false)
     {
-        var m = _metrics;
+        var m = _snap = _metrics.Current;
         var sb = new StringBuilder();
         string mhz = m.CpuMHz is double f ? $"  @ {f / 1000:0.00} GHz" : "";
         sb.AppendLine($"CPU  {m.CpuPercent:0}%{mhz}");
@@ -346,7 +350,7 @@ public sealed partial class WidgetForm : Form
         AppendExtraTooltip(sb);
         if (_cfg.ShowPing)
         {
-            var ps = m.Ping.Stats();
+            var ps = _metrics.Ping.Stats();
             sb.AppendLine($"Ping  {ps.Host}  {ps.LastText}");
             if (ps.Count > 1) sb.AppendLine($"   {ps.Details}");
         }
@@ -406,13 +410,13 @@ public sealed partial class WidgetForm : Form
             }
             else _critSince.Remove(name);
         }
-        if (_cfg.ShowCpu) crit("CPU", _metrics.CpuPercent);
-        if (_cfg.ShowGpu) crit("GPU", _metrics.GpuPercent);
-        if (_cfg.ShowMem) crit(Loc.T("Memory"), _metrics.MemPercent);
+        if (_cfg.ShowCpu) crit("CPU", _snap.CpuPercent);
+        if (_cfg.ShowGpu) crit("GPU", _snap.GpuPercent);
+        if (_cfg.ShowMem) crit(Loc.T("Memory"), _snap.MemPercent);
 
-        if (_metrics.BatteryPresent && !_metrics.BatteryOnAc)
+        if (_snap.BatteryPresent && !_snap.BatteryOnAc)
         {
-            double bp = _metrics.BatteryPercent;
+            double bp = _snap.BatteryPercent;
             string bt = Loc.T("Battery low");
             if (bp <= 10)
                 Alert("bat10", 20 * 60_000L, bt, Loc.T("{0:0}% left — plug in the charger", bp));
@@ -820,6 +824,7 @@ public sealed partial class WidgetForm : Form
     private void Render()
     {
         if (!IsHandleCreated || !Visible || _hidden) return;
+        _snap = _metrics.Current;
         float dpi = DeviceDpi;
 
         // Eerst meten (automatische breedte, vaste hoogte), dan pas op de juiste maat tekenen.
@@ -879,16 +884,16 @@ public sealed partial class WidgetForm : Form
                 case "cpu":
                     if (_cfg.ShowCpu)
                     {
-                        x += _cfg.CpuPerCore ? DrawCores(g, x, "CPU", _metrics.CpuCores) : DrawMetric(g, x, "CPU", _metrics.CpuPercent, _cfg.CpuStyle);
-                        if (_cfg.TempMerge && _cfg.ShowCpuTemp && _metrics.CpuTempC is double mct) x += DrawTempTag(g, x, mct, textCol);
+                        x += _cfg.CpuPerCore ? DrawCores(g, x, "CPU", _snap.CpuCores) : DrawMetric(g, x, "CPU", _snap.CpuPercent, _cfg.CpuStyle);
+                        if (_cfg.TempMerge && _cfg.ShowCpuTemp && _snap.CpuTempC is double mct) x += DrawTempTag(g, x, mct, textCol);
                         x += gap;
                     }
                     break;
                 case "gpu":
                     if (_cfg.ShowGpu)
                     {
-                        x += DrawMetric(g, x, "GPU", _metrics.GpuPercent, _cfg.GpuStyle);
-                        if (_cfg.TempMerge && _cfg.ShowGpuTemp && _metrics.GpuTempC is double mgt) x += DrawTempTag(g, x, mgt, textCol);
+                        x += DrawMetric(g, x, "GPU", _snap.GpuPercent, _cfg.GpuStyle);
+                        if (_cfg.TempMerge && _cfg.ShowGpuTemp && _snap.GpuTempC is double mgt) x += DrawTempTag(g, x, mgt, textCol);
                         x += gap;
                     }
                     break;
@@ -896,18 +901,18 @@ public sealed partial class WidgetForm : Form
                     if (_cfg.ShowMem) x += DrawMem(g, x) + gap;
                     break;
                 case "batt":
-                    if (_cfg.ShowBattery && _metrics.BatteryPresent) x += DrawBattery(g, x) + gap;
+                    if (_cfg.ShowBattery && _snap.BatteryPresent) x += DrawBattery(g, x) + gap;
                     break;
                 case "space":
                     foreach (var (label, value, pct) in DiskSpaceCells())
                         x += DrawTextCell(g, x, label, value, PctTemplate, ThresholdColor(pct, textCol)) + gap;
                     break;
                 case "cputemp":
-                    if (_cfg.ShowCpuTemp && !(_cfg.TempMerge && _cfg.ShowCpu) && _metrics.CpuTempC is double ct)
+                    if (_cfg.ShowCpuTemp && !(_cfg.TempMerge && _cfg.ShowCpu) && _snap.CpuTempC is double ct)
                         x += DrawTemp(g, x, "CPU", ct, _cfg.CpuTempStyle, textCol) + gap;
                     break;
                 case "gputemp":
-                    if (_cfg.ShowGpuTemp && !(_cfg.TempMerge && _cfg.ShowGpu) && _metrics.GpuTempC is double gt)
+                    if (_cfg.ShowGpuTemp && !(_cfg.TempMerge && _cfg.ShowGpu) && _snap.GpuTempC is double gt)
                         x += DrawTemp(g, x, "GPU", gt, _cfg.GpuTempStyle, textCol) + gap;
                     break;
                 case "cpufreq": case "diskbusy": case "disktemp": case "mobotemp":

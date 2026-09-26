@@ -62,8 +62,8 @@ public sealed partial class WidgetForm
         if (_cfg.NetStyle == TextGraphStyle.Graph) return DrawNetGraph(g, x);
         bool bits = _cfg.NetUnit == RateUnitKind.Bits;
         var b = GdiCache.Brush(EffectiveText());
-        string up = _cfg.ShowNetUp ? "↑ " + WidgetRate(_metrics.NetUpBytesPerSec, bits) : "";
-        string dn = _cfg.ShowNetDown ? "↓ " + WidgetRate(_metrics.NetDownBytesPerSec, bits) : "";
+        string up = _cfg.ShowNetUp ? "↑ " + WidgetRate(_snap.NetUpBytesPerSec, bits) : "";
+        string dn = _cfg.ShowNetDown ? "↓ " + WidgetRate(_snap.NetDownBytesPerSec, bits) : "";
         string top = _cfg.SwapNet ? dn : up, bottom = _cfg.SwapNet ? up : dn;
         float w = Reserve(g, "↑ " + RateTemplate(bits), up, dn);   // vaste reservering
         float lh = _fontSmall.GetHeight(g);
@@ -76,8 +76,8 @@ public sealed partial class WidgetForm
     private int DrawDisk(Graphics g, int x)
     {
         var b = GdiCache.Brush(EffectiveText());
-        string rd = "R " + WidgetRate(_metrics.DiskReadBytesPerSec, false);
-        string wr = "W " + WidgetRate(_metrics.DiskWriteBytesPerSec, false);
+        string rd = "R " + WidgetRate(_snap.DiskReadBytesPerSec, false);
+        string wr = "W " + WidgetRate(_snap.DiskWriteBytesPerSec, false);
         float w = Reserve(g, "R " + RateTemplate(false), rd, wr);   // vaste reservering
         float lh = _fontSmall.GetHeight(g);
         float y = (Height - lh * 2) / 2;
@@ -112,14 +112,14 @@ public sealed partial class WidgetForm
         var textCol = EffectiveText();
         switch (id)
         {
-            case "cpufreq" when _cfg.ShowCpuFreq && _metrics.CpuMHz is double mhz && mhz > 0:
+            case "cpufreq" when _cfg.ShowCpuFreq && _snap.CpuMHz is double mhz && mhz > 0:
                 string unit = _cfg.HideUnit ? "" : " GHz";
                 return DrawTextCell(g, x, "CLK", $"{mhz / 1000:0.0}{unit}", "0.0" + unit, textCol);
-            case "diskbusy" when _cfg.ShowDiskBusy && _metrics.DiskBusyPercent is double busy:
+            case "diskbusy" when _cfg.ShowDiskBusy && _snap.DiskBusyPercent is double busy:
                 return DrawMetric(g, x, "DISK", busy, _cfg.DiskBusyStyle);
-            case "disktemp" when _cfg.ShowDiskTemp && _metrics.DiskTempC is double dt:
+            case "disktemp" when _cfg.ShowDiskTemp && _snap.DiskTempC is double dt:
                 return DrawTemp(g, x, "DISK", dt, DisplayStyle.Digital, textCol);
-            case "mobotemp" when _cfg.ShowMoboTemp && _metrics.MoboTempC is double mt:
+            case "mobotemp" when _cfg.ShowMoboTemp && _snap.MoboTempC is double mt:
                 return DrawTemp(g, x, "MB", mt, DisplayStyle.Digital, textCol);
         }
         return 0;
@@ -129,8 +129,8 @@ public sealed partial class WidgetForm
 
     private void AppendExtraTooltip(StringBuilder sb)
     {
-        if (_cfg.ShowDiskBusy && _metrics.DiskBusyPercent is double busy) sb.AppendLine($"{Loc.T("Disk active")}  {busy:0}%");
-        if (_cfg.ShowDiskTemp && _metrics.DiskTempC is double dt) sb.AppendLine($"{Loc.T("Disk")}  {dt:0}°C");
-        if (_cfg.ShowMoboTemp && _metrics.MoboTempC is double mt) sb.AppendLine($"{Loc.T("Motherboard")}  {mt:0}°C");
+        if (_cfg.ShowDiskBusy && _snap.DiskBusyPercent is double busy) sb.AppendLine($"{Loc.T("Disk active")}  {busy:0}%");
+        if (_cfg.ShowDiskTemp && _snap.DiskTempC is double dt) sb.AppendLine($"{Loc.T("Disk")}  {dt:0}°C");
+        if (_cfg.ShowMoboTemp && _snap.MoboTempC is double mt) sb.AppendLine($"{Loc.T("Motherboard")}  {mt:0}°C");
     }
 }

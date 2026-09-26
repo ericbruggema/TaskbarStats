@@ -211,8 +211,12 @@ public sealed partial class FullscreenForm : Form
     }
 
     // ---------- Tekenen ----------
+    /// <summary>De meting van het huidige beeld: één complete momentopname (alleen op de UI-thread gezet), zodat alle tegels dezelfde meting tonen.</summary>
+    private MetricsSnapshot _snap = MetricsSnapshot.Empty;
+
     protected override void OnPaint(PaintEventArgs e)
     {
+        _snap = _c.Metrics.Current;
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
@@ -407,7 +411,7 @@ public sealed partial class FullscreenForm : Form
     /// <summary>Adapters met verkeer nu, in het gekozen venster of vandaag (meest actief eerst).</summary>
     private List<string> ActiveAdapters(int max)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         bool Active(string n)
         {
             m.NetPerAdapter.TryGetValue(n, out var r0);
@@ -421,7 +425,7 @@ public sealed partial class FullscreenForm : Form
     }
 
     private List<KeyValuePair<string, double>> Gpus()
-        => _c.Metrics.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
+        => _snap.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
 
     // ---------- Sensoren (LibreHardwareMonitor) ----------
     private sealed record SRow(string Name, string Value, SensorType Type, double Raw);
@@ -489,7 +493,7 @@ public sealed partial class FullscreenForm : Form
 
     private string? SensorHint()
     {
-        if (_c.Metrics.Sensors.Count > 0) return null;
+        if (_snap.Sensors.Count > 0) return null;
         return Environment.TickCount64 - _openedAt < 10000
             ? Loc.T("Loading sensors…")
             : IsAdmin()
@@ -504,14 +508,14 @@ public sealed partial class FullscreenForm : Form
 
     private string? CpuPower()
     {
-        var p = _c.Metrics.Sensors.Where(s => s.HwType == HardwareType.Cpu && s.Type == SensorType.Power && s.Value.HasValue).ToList();
+        var p = _snap.Sensors.Where(s => s.HwType == HardwareType.Cpu && s.Type == SensorType.Power && s.Value.HasValue).ToList();
         var pick = p.FirstOrDefault(s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase)) ?? p.FirstOrDefault();
         return pick is null ? null : Fmt(pick.Type, pick.Value!.Value);
     }
 
     private List<SensorInfo> GpuSensors(string gpuName)
     {
-        var all = _c.Metrics.Sensors.Where(s => IsGpuHw(s.HwType) && s.Value.HasValue).ToList();
+        var all = _snap.Sensors.Where(s => IsGpuHw(s.HwType) && s.Value.HasValue).ToList();
         var hws = all.Select(s => s.Hardware).Distinct().ToList();
         string? hw = hws.FirstOrDefault(h => h.Contains(gpuName, StringComparison.OrdinalIgnoreCase) || gpuName.Contains(h, StringComparison.OrdinalIgnoreCase))
                      ?? (hws.Count == 1 ? hws[0] : null);
@@ -539,7 +543,7 @@ public sealed partial class FullscreenForm : Form
     private List<(string name, string text)> StorageLines()
     {
         var res = new List<(string, string)>();
-        foreach (var grp in _c.Metrics.Sensors.Where(s => s.HwType == HardwareType.Storage && s.Value.HasValue).GroupBy(s => s.Hardware))
+        foreach (var grp in _snap.Sensors.Where(s => s.HwType == HardwareType.Storage && s.Value.HasValue).GroupBy(s => s.Hardware))
         {
             var parts = new List<string>();
             var t = grp.FirstOrDefault(s => s.Type == SensorType.Temperature);
@@ -650,7 +654,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileCpu(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         string sub = $"{m.CpuCores.Length} {Loc.T("cores")}" + (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "") + (CpuPower() is string pw ? $"  ·  {pw}" : "");
         Card(g, "cpu", r, "CPU", sub);
         T(g, Trunc(CpuName(), 60), _fs, Dim, r.X + 16, r.Y + 36);
@@ -681,7 +685,7 @@ public sealed partial class FullscreenForm : Form
     private void TileGpu(Graphics g, RectangleF r)
     {
         var gpus = Gpus();
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, "gpu", r, "GPU", m.GpuTempC is double t ? $"{t:0}°C" : null);
         if (gpus.Count == 0) { T(g, Loc.T("No GPU data"), _f, Dim, r.X + 16, r.Y + 50); return; }
         float sh = (r.Height - 52) / gpus.Count;
@@ -709,7 +713,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileMem(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, "mem", r, Loc.T("Memory"), $"{SizeStr(m.MemTotalBytes)}");
         Gauge(g, r.X + 82, r.Y + 122, 50, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
         T(g, $"{SizeStr(m.MemUsedBytes)}", _fbig, TextCol, r.X + 150, r.Y + 84);
@@ -722,7 +726,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileNet(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, "net", r, Loc.T("Network"));
         T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, r.X + 16, r.Y + 44);
         T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fh, Green, r.X + 16, r.Y + 90);
@@ -763,7 +767,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileDisk(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         var drives = _c.Drives();
         Card(g, "disk", r, Loc.T("Disks"));
         float y = r.Y + 44;
@@ -798,7 +802,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileBattery(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, "bat", r, Loc.T("Battery"));
         if (!m.BatteryPresent) { T(g, Loc.T("No battery (desktop PC)"), _f, Dim, r.X + 16, r.Y + 56); return; }
         DrawBatteryBig(g, r.X + 34, r.Y + 50, 46, 100, m);
@@ -806,14 +810,14 @@ public sealed partial class FullscreenForm : Form
         T(g, BatteryState(m), _f, Dim, r.X + 112, r.Y + 116);
     }
 
-    private static string BatteryState(Metrics m)
+    private static string BatteryState(MetricsSnapshot m)
     {
         string state = m.BatteryCharging ? Loc.T("Charging") : m.BatteryOnAc ? Loc.T("Plugged in") : Loc.T("On battery");
         return state + (!m.BatteryOnAc && m.BatteryRemainingSec > 0
             ? $"  ·  {m.BatteryRemainingSec / 3600}{Loc.T("h")} {m.BatteryRemainingSec % 3600 / 60:00}m {Loc.T("left")}" : "");
     }
 
-    private void DrawBatteryBig(Graphics g, float x, float y, float w, float h, Metrics m)
+    private void DrawBatteryBig(Graphics g, float x, float y, float w, float h, MetricsSnapshot m)
     {
         double pct = m.BatteryPercent;
         Color fill = m.BatteryCharging || m.BatteryOnAc ? Green
@@ -834,7 +838,7 @@ public sealed partial class FullscreenForm : Form
 
     private void TileSystem(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, "sys", r, Loc.T("System"));
         T(g, DateTime.Now.ToString("HH:mm"), _fhuge, TextCol, r.X + 16, r.Y + 40);
         T(g, DateTime.Now.ToString("dddd d MMMM"), _f, Dim, r.X + 205, r.Y + 62);
@@ -944,7 +948,7 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailCpu(Graphics g, RectangleF R)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, null, R, "CPU — " + Loc.T("details"), Trunc(CpuName(), 70));
         float gw = 1240;
         var cores = m.CpuCores;
@@ -982,7 +986,7 @@ public sealed partial class FullscreenForm : Form
         if (m.CpuTempC is double t) { KeyValue(g, rx, y, rw, Loc.T("Temperature"), $"{t:0}°C"); y += 24; }
         y += 12;
         T(g, Loc.T("Sensors"), _fs, Dim, rx, y);
-        var cpuRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Cpu && x.Type != SensorType.Load));
+        var cpuRows = Rows(_snap.Sensors.Where(x => x.HwType == HardwareType.Cpu && x.Type != SensorType.Load));
         float usedH;
         if (cpuRows.Count == 0) { T(g, SensorHint() ?? (IsAdmin() ? Loc.T("Temperature, power and clocks of this processor are not supported by the sensor library.") : Loc.T("No CPU sensors available (administrator rights needed).")), _fs, Dim, rx, y + 22); usedH = 26; }
         else usedH = SensorList(g, rx, y + 22, rw, 9, cpuRows);
@@ -994,7 +998,7 @@ public sealed partial class FullscreenForm : Form
     private void DetailGpu(Graphics g, RectangleF R)
     {
         var gpus = Gpus();
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, null, R, "GPU — " + Loc.T("details"), m.GpuTempC is double tt ? $"{tt:0}°C" : null);
         if (gpus.Count == 0) { T(g, Loc.T("No GPU data"), _f, Dim, R.X + 16, R.Y + 56); return; }
         float sh = (R.Height - 50) / gpus.Count;
@@ -1036,7 +1040,7 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailMem(Graphics g, RectangleF R)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, null, R, Loc.T("Memory") + " — details", SizeStr(m.MemTotalBytes));
         float gw = 1240;
         Graph(g, new RectangleF(R.X + 16, R.Y + 50, gw, 420), new[] { (_c.History.Mem, Green) }, 100, Pct);
@@ -1065,14 +1069,14 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailNet(Graphics g, RectangleF R)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, null, R, Loc.T("Network — details"));
         float gw = 1240;
         T(g, $"↓ {Rate(m.NetDownBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
         T(g, $"↑ {Rate(m.NetUpBytesPerSec)}", _fbig, Green, R.X + 330, R.Y + 44);
         if (Cfg.ShowPing)
         {
-            var ps = m.Ping.Stats();
+            var ps = _c.Metrics.Ping.Stats();
             var pc = ps.Last is null ? TextCol : ps.Last < 0 || ps.Last >= 250 ? Col(Cfg.CritColor, Color.Red) : ps.Last >= 100 ? Col(Cfg.WarnColor, Color.Orange) : TextCol;
             T(g, $"Ping {ps.LastText}", _fbig, pc, R.X + 660, R.Y + 44);
             var dp = ps.Details.Split("  ·  ");
@@ -1165,7 +1169,7 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailDisk(Graphics g, RectangleF R)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         var drives = _c.Drives();
         Card(g, null, R, Loc.T("Disks") + " — details");
         float gw = 1240;
@@ -1210,7 +1214,7 @@ public sealed partial class FullscreenForm : Form
             TR(g, text, _f, Dim, rx + rw, ry);
             ry += 26;
         }
-        var stRows = Rows(_c.Metrics.Sensors.Where(x => x.HwType == HardwareType.Storage && x.Type != SensorType.Load));
+        var stRows = Rows(_snap.Sensors.Where(x => x.HwType == HardwareType.Storage && x.Type != SensorType.Load));
         if (stRows.Count > 0)
         {
             ry += 10;
@@ -1221,7 +1225,7 @@ public sealed partial class FullscreenForm : Form
 
     private void DetailSys(Graphics g, RectangleF R)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, null, R, Loc.T("Battery and system — details"));
         float half = (R.Width - 48) / 2;
 
@@ -1278,7 +1282,7 @@ public sealed partial class FullscreenForm : Form
         // Hoofdbord, ventilatoren, geheugen, batterij en overige sensoren (LibreHardwareMonitor)
         float sy2 = R.Y + 470;
         T(g, Loc.T("Motherboard, fans and other sensors"), _fs, Dim, sx, sy2);
-        var others = Rows(_c.Metrics.Sensors.Where(x => x.HwType != HardwareType.Cpu && !IsGpuHw(x.HwType) && x.HwType != HardwareType.Storage));
+        var others = Rows(_snap.Sensors.Where(x => x.HwType != HardwareType.Cpu && !IsGpuHw(x.HwType) && x.HwType != HardwareType.Storage));
         if (others.Count == 0) T(g, SensorHint() ?? Loc.T("No additional sensors found."), _fs, Dim, sx, sy2 + 24);
         else
         {

@@ -30,7 +30,7 @@ public sealed class MetricHistory
     public readonly Dictionary<string, (Ring down, Ring up)> NetPer = new();
     private long _at;
 
-    public void Sample(Metrics m)
+    public void Sample(MetricsSnapshot m)
     {
         long now = Environment.TickCount64;
         if (now - _at < 1000 || Cadence.Active) return;
@@ -325,13 +325,17 @@ public sealed partial class DashboardForm : Form
 
     private BgLayer? _bg;
 
+    /// <summary>De meting van het huidige beeld: één complete momentopname (alleen op de UI-thread gezet), zodat alle tegels dezelfde meting tonen.</summary>
+    private MetricsSnapshot _snap = MetricsSnapshot.Empty;
+
     public void Render()
     {
         if (!IsHandleCreated || _suppressed) return;
+        _snap = _c.Metrics.Current;
         _lastRender = Environment.TickCount64;
         GdiCache.Trim();
 
-        var m = _c.Metrics;
+        var m = _snap;
         var gpus = m.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
         var drives = _c.Drives();
         var adapters = m.NetPerAdapter
@@ -505,7 +509,7 @@ public sealed partial class DashboardForm : Form
     // ---------- Tegels ----------
     private void DrawCpu(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         string extra = (m.CpuMHz is double f ? $"  ·  {f / 1000:0.00} GHz" : "") + (m.CpuTempC is double t ? $"  ·  {t:0}°C" : "");
         Card(g, r, "CPU" + extra);
         Gauge(g, r.X + 62, r.Y + 92, 34, m.CpuPercent, Thr(m.CpuPercent), $"{m.CpuPercent:0}%");
@@ -537,7 +541,7 @@ public sealed partial class DashboardForm : Form
             DrawTextRight(g, $"{v:0}%", _fb, Thr(v), r.Right - 14, y0 - 1);
             Bar(g, r.X + 14, y0 + 20, r.Width - 28, v, Thr(v), 7);
             long ded = Metrics.GpuDedicatedBytes(luid);
-            if (ded > 0 && _c.Metrics.VramUsedPerLuid.TryGetValue(luid, out var used))
+            if (ded > 0 && _snap.VramUsedPerLuid.TryGetValue(luid, out var used))
             {
                 DrawText(g, $"VRAM {Metrics.FormatSize(used)} / {Metrics.FormatSize(ded)}", _fs, Dim, r.X + 14, y0 + 31);
                 Bar(g, r.X + 150, y0 + 35, r.Width - 164, 100.0 * used / ded, Color.FromArgb(52, 199, 89), 5);
@@ -548,7 +552,7 @@ public sealed partial class DashboardForm : Form
 
     private void DrawMem(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, r, Loc.T("Memory"));
         Gauge(g, r.X + 62, r.Y + 80, 34, m.MemPercent, Thr(m.MemPercent), $"{m.MemPercent:0}%");
         DrawText(g, $"{Metrics.FormatSize(m.MemUsedBytes)} / {Metrics.FormatSize(m.MemTotalBytes)}", _fb, TextCol, r.X + 118, r.Y + 58);
@@ -558,7 +562,7 @@ public sealed partial class DashboardForm : Form
 
     private void DrawNet(Graphics g, RectangleF r, List<KeyValuePair<string, (double down, double up)>> adapters, bool limit)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, r, Loc.T("Network"));
         DrawText(g, $"↓ {Metrics.FormatRate(m.NetDownBytesPerSec)}", _fb, Accent, r.X + 14, r.Y + 30);
         DrawText(g, $"↑ {Metrics.FormatRate(m.NetUpBytesPerSec)}", _f, Color.FromArgb(52, 199, 89), r.X + 14, r.Y + 52);
@@ -605,7 +609,7 @@ public sealed partial class DashboardForm : Form
 
     private void DrawDisks(Graphics g, RectangleF r, List<DriveSpace> drives)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, r, Loc.T("Disks"));
         float y = r.Y + 30;
         foreach (var d in drives)
@@ -625,7 +629,7 @@ public sealed partial class DashboardForm : Form
 
     private void DrawBattery(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, r, Loc.T("Battery"));
         double pct = m.BatteryPercent;
         bool charging = m.BatteryCharging, ac = m.BatteryOnAc;
@@ -680,7 +684,7 @@ public sealed partial class DashboardForm : Form
 
     private void DrawSystem(Graphics g, RectangleF r)
     {
-        var m = _c.Metrics;
+        var m = _snap;
         Card(g, r, Loc.T("System"));
         var up = TimeSpan.FromMilliseconds(Environment.TickCount64);
         DrawText(g, $"{DateTime.Now:HH:mm}", _fbig, TextCol, r.X + 14, r.Y + 26);

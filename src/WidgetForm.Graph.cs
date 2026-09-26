@@ -21,8 +21,8 @@ public sealed partial class WidgetForm
         long now = Environment.TickCount64;
         if (now - _graphAt < 1000 || Cadence.Active) return;
         _graphAt = now;
-        if (_metrics.CpuTempC is double c) _hCpuT.Add(c);
-        if (_metrics.GpuTempC is double t) _hGpuT.Add(t);
+        if (_snap.CpuTempC is double c) _hCpuT.Add(c);
+        if (_snap.GpuTempC is double t) _hGpuT.Add(t);
     }
 
     private Ring? HistFor(string label) => label switch

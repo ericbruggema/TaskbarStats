@@ -527,6 +527,7 @@ public sealed partial class Metrics : IDisposable
         UpdateExtras();
         SnapshotSensors();
         RefreshInstances();
+        PublishSnapshot();   // de vensters lezen deze ene, complete momentopname
     }
 
     /// <summary>Totale CPU-belasting en per kern.</summary>

@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.4.1"
+#define AppVersion "1.5.0"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"

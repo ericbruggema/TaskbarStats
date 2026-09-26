@@ -17,6 +17,8 @@ Four English demos of 45 to 60 seconds each. Download, install and run takes a f
 | [For gamers (51 s)](docs/tour/promo/gamers-en.mp4) | Gamers | FPS in the taskbar or floating on top of your game, 1% low, tiny overlay mode, click-through (Ctrl+Alt+W), GPU and CPU temperatures, ping, themes |
 | [The complete tour (59 s)](docs/tour/promo/tour-en.mp4) | Everyone | The whole program, feature by feature |
 
+More documentation is listed in the [docs index](docs/README.md).
+
 ## Screenshots
 
 **Taakbalk-widget** — cijfers, meters met per-core-balkjes en batterij, of compact met labels boven:

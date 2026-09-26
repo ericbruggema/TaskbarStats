@@ -19,7 +19,7 @@ public static class Tiles
     };
 
     /// <summary>Onderdelen van het taakbalk-widget in de standaardvolgorde (net = upload/download, space = schijfruimte).</summary>
-    public static readonly string[] WidgetAll = { "net", "ping", "disk", "cpu", "gpu", "mem", "batt", "space", "cputemp", "gputemp", "cpufreq", "diskbusy", "disktemp", "mobotemp" };
+    public static readonly string[] WidgetAll = { "net", "ping", "disk", "cpu", "gpu", "mem", "batt", "space", "cputemp", "gputemp", "cpufreq", "diskbusy", "disktemp", "mobotemp", "procs", "fps" };
 
     public static string WidgetName(string id) => id switch
     {
@@ -37,6 +37,8 @@ public static class Tiles
         "diskbusy" => Loc.T("Disk active (%)"),
         "disktemp" => Loc.T("Disk temperature"),
         "mobotemp" => Loc.T("Motherboard temperature"),
+        "procs" => Loc.T("Running processes"),
+        "fps" => Loc.T("FPS (experimental)"),
         _ => id,
     };
 

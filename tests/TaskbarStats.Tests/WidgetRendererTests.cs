@@ -354,4 +354,35 @@ public class WidgetRendererTests : IDisposable
         });
         Assert.True(Ink(bmp, new Rectangle(0, 0, 40, 40)) > 0 || bmp.GetPixel(20, 20).A > 0);
     }
+
+    [Fact]
+    public void Processen_en_fps_zijn_widgetcellen_met_hun_opties()
+    {
+        var snap = new MetricsSnapshot
+        {
+            RawCpu = 30, ProcessTotal = 312, ProcessApps = 18, ThreadTotal = 4380,
+            Fps = new FpsReading(1, "game", 143, 96),
+        };
+        WidgetRenderContext WithSnap() { var c = Ctx(); c.Snap = snap; return c; }
+        int Width(Action<AppSettings> f) { using var b = Draw(Cfg(f), WithSnap()); return b.Width; }
+
+        int none = Width(_ => { });
+        int total = Width(c => { c.ShowProcs = true; c.ProcMode = ProcMode.Total; });
+        int apps = Width(c => { c.ShowProcs = true; c.ProcMode = ProcMode.Apps; });
+        int both = Width(c => { c.ShowProcs = true; c.ProcMode = ProcMode.Both; });
+        int fps = Width(c => c.ShowFps = true);
+        Assert.True(total > none && apps > none && fps > none);   // de cel komt erbij
+        Assert.True(both > apps);                                  // "apps/achtergrond" is breder dan alleen apps
+
+        // zonder waarde (FPS uit, of geen frames) verschijnt er niets
+        var noFps = WithSnap(); noFps.Snap = new MetricsSnapshot { RawCpu = 30, ProcessTotal = 312, ProcessApps = 18 };
+        using (var b = Draw(Cfg(c => c.ShowFps = true), noFps)) Assert.Equal(none, b.Width);
+        Assert.Equal(294, snap.ProcessBackground);
+    }
+
+    [Fact]
+    public void Apps_tellen_geeft_geen_fout()
+    {
+        Assert.InRange(Metrics.CountApps(), 0, 5000);
+    }
 }

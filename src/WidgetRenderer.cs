@@ -175,7 +175,7 @@ internal sealed partial class WidgetRenderer : IDisposable
                     if (_cfg.ShowGpuTemp && !(_cfg.TempMerge && _cfg.ShowGpu) && _snap.GpuTempC is double gt)
                         x += DrawTemp(g, x, "GPU", gt, _cfg.GpuTempStyle, textCol) + gap;
                     break;
-                case "cpufreq": case "diskbusy": case "disktemp": case "mobotemp":
+                case "cpufreq": case "diskbusy": case "disktemp": case "mobotemp": case "procs": case "fps":
                     { int ew = DrawExtraItem(g, x, id); if (ew > 0) x += ew + gap; }
                     break;
             }

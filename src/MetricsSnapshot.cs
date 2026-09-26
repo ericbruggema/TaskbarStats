@@ -49,6 +49,15 @@ public sealed class MetricsSnapshot
     public double PeakMem { get; init; }
     public double PeakDown { get; init; }
 
+    /// <summary>Aantal processen: alle, apps (met venster) en threads.</summary>
+    public int ProcessTotal { get; init; }
+    public int ProcessApps { get; init; }
+    public int ThreadTotal { get; init; }
+    /// <summary>Achtergrondprocessen = alle processen min de apps.</summary>
+    public int ProcessBackground => Math.Max(0, ProcessTotal - ProcessApps);
+    /// <summary>Framerate van het voorgrondprogramma (experimenteel; null zolang uit of zonder frames).</summary>
+    public FpsReading? Fps { get; init; }
+
     /// <summary>Snelheid per netwerkadapter (down, up) in bytes/s.</summary>
     public IReadOnlyDictionary<string, (double down, double up)> NetPerAdapter { get; init; } = new Dictionary<string, (double, double)>();
     /// <summary>Gebruik per GPU (sleutel = LUID-string).</summary>
@@ -87,6 +96,8 @@ public sealed partial class Metrics
             MemTotalBytes = total, MemUsedBytes = (ulong)(total * (mem / 100)),
             DiskReadBytesPerSec = Wave(t, 1.0, 1, 0, 300e6), DiskWriteBytesPerSec = Wave(t, 1.4, 4, 0, 120e6),
             PeakCpu = 100, PeakMem = 97, PeakDown = 45e6,
+            ProcessTotal = 312, ProcessApps = 18, ThreadTotal = 4380,
+            Fps = new FpsReading(0, "game", Wave(t, 0.9, 0.3, 48, 144), Wave(t, 0.9, 0.3, 30, 96)),
         };
     }
 
@@ -107,6 +118,8 @@ public sealed partial class Metrics
             BatteryRemainingSec = BatteryRemainingSec, CpuMHz = CpuMHz,
             DiskBusyPercent = DiskBusyPercent, DiskTempC = DiskTempC, MoboTempC = MoboTempC,
             PeakCpu = PeakCpu, PeakMem = PeakMem, PeakDown = PeakDown,
+            ProcessTotal = ProcessTotal, ProcessApps = ProcessApps, ThreadTotal = ThreadTotal,
+            Fps = Fps.Enabled ? Fps.Read() : null,
             NetPerAdapter = _netRates, GpuPerLuid = _gpuRates, VramUsedPerLuid = _vramRates, DiskPerDisk = _diskRates,
             Sensors = _sensors,
         };

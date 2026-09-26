@@ -102,7 +102,7 @@ internal sealed partial class WidgetRenderer
 
     // ---------- Extra onderdelen ----------
 
-    private static readonly string[] ExtraIds = { "cpufreq", "diskbusy", "disktemp", "mobotemp" };
+    private static readonly string[] ExtraIds = { "cpufreq", "diskbusy", "disktemp", "mobotemp", "procs", "fps" };
 
     /// <summary>Tekent een extra onderdeel en geeft de breedte terug (0 = niets getekend: uit of geen waarde).</summary>
     private int DrawExtraItem(Graphics g, int x, string id)
@@ -119,6 +119,16 @@ internal sealed partial class WidgetRenderer
                 return DrawTemp(g, x, "DISK", dt, DisplayStyle.Digital, textCol);
             case "mobotemp" when _cfg.ShowMoboTemp && _snap.MoboTempC is double mt:
                 return DrawTemp(g, x, "MB", mt, DisplayStyle.Digital, textCol);
+            case "procs" when _cfg.ShowProcs && _snap.ProcessTotal > 0:
+                return _cfg.ProcMode switch
+                {
+                    ProcMode.Apps => DrawTextCell(g, x, "APPS", _snap.ProcessApps.ToString(), "000", textCol),
+                    ProcMode.Background => DrawTextCell(g, x, "BG", _snap.ProcessBackground.ToString(), "000", textCol),
+                    ProcMode.Both => DrawTextCell(g, x, "APPS/BG", _snap.ProcessApps + "/" + _snap.ProcessBackground, "00/000", textCol),
+                    _ => DrawTextCell(g, x, "PROC", _snap.ProcessTotal.ToString(), "000", textCol),
+                };
+            case "fps" when _cfg.ShowFps && _snap.Fps is { } f:
+                return DrawTextCell(g, x, "FPS", f.Fps.ToString("0"), "000", textCol);
         }
         return 0;
     }

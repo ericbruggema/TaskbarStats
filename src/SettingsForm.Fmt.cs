@@ -9,6 +9,8 @@ public sealed partial class SettingsForm
         "diskbusy" => _c.ShowDiskBusy,
         "disktemp" => _c.ShowDiskTemp,
         "mobotemp" => _c.ShowMoboTemp,
+        "procs" => _c.ShowProcs,
+        "fps" => _c.ShowFps,
         _ => true,
     };
 
@@ -17,7 +19,9 @@ public sealed partial class SettingsForm
         Check(Loc.T("CPU clock speed"), _c.ShowCpuFreq, v => _c.ShowCpuFreq = v, ColW),
         Check(Loc.T("Disk active (%)"), _c.ShowDiskBusy, v => _c.ShowDiskBusy = v, ColW),
         Check(Loc.T("Disk temperature"), _c.ShowDiskTemp, v => _c.ShowDiskTemp = v, ColW),
-        Check(Loc.T("Motherboard temperature"), _c.ShowMoboTemp, v => _c.ShowMoboTemp = v, ColW));
+        Check(Loc.T("Motherboard temperature"), _c.ShowMoboTemp, v => _c.ShowMoboTemp = v, ColW),
+        Check(Loc.T("Running processes"), _c.ShowProcs, v => _c.ShowProcs = v, ColW),
+        Check(Loc.T("FPS (experimental)"), _c.ShowFps, v => _c.ShowFps = v, ColW));
 
     /// <summary>Sectie "Waarden": eenheden, decimalen en wat de cellen tonen. Alleen het widget; dashboard, fullscreen en tooltip blijven zoals ze zijn.</summary>
     private void AddValueSettings(Control p)
@@ -47,6 +51,14 @@ public sealed partial class SettingsForm
         var busyStyle = Seg(new (string, DisplayStyle)[] { (Loc.T("Digital"), DisplayStyle.Digital), (Loc.T("Gauge"), DisplayStyle.Gauge), (Loc.T("Bar"), DisplayStyle.Bar) },
                             () => _c.DiskBusyStyle, v => _c.DiskBusyStyle = v);
         p.Controls.Add(Row(Loc.T("Disk active: style"), busyStyle));
+
+        var procMode = Seg(new (string, ProcMode)[]
+        {
+            (Loc.T("All"), ProcMode.Total), (Loc.T("Apps"), ProcMode.Apps), (Loc.T("Background"), ProcMode.Background), (Loc.T("Apps / background"), ProcMode.Both),
+        }, () => _c.ProcMode, v => _c.ProcMode = v, 100);
+        p.Controls.Add(Row(Loc.T("Processes: show"), procMode));
+        p.Controls.Add(Note(Loc.T("Apps are processes with a visible window (like Apps in Task Manager); the rest are background processes.")));
+        p.Controls.Add(Note(Loc.T("FPS is experimental: it measures the frame rate of the app in front by listening to Windows graphics events (like PresentMon). It needs administrator rights, uses a little CPU while on and only shows a value while an app is drawing frames (games, video players, browsers).")));
 
         var shortV = Check(Loc.T("Short values (fewer decimals)"), _c.ShortValues, v => _c.ShortValues = v, ColW * 2);
         var hideUnit = Check(Loc.T("Hide the unit (MB/s, GB, GHz)"), _c.HideUnit, v => _c.HideUnit = v, ColW * 2);

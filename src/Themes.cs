@@ -77,7 +77,7 @@ public sealed partial class ThemeData
             Name = name,
             ShowCpu = c.ShowCpu, ShowGpu = c.ShowGpu, ShowMem = c.ShowMem, ShowNetUp = c.ShowNetUp, ShowNetDown = c.ShowNetDown,
             ShowBattery = c.ShowBattery, ShowDisk = c.ShowDisk, ShowCpuTemp = c.ShowCpuTemp, ShowGpuTemp = c.ShowGpuTemp,
-            ShowCpuFreq = c.ShowCpuFreq, ShowDiskBusy = c.ShowDiskBusy, DiskBusyStyle = c.DiskBusyStyle, ShowDiskTemp = c.ShowDiskTemp, ShowMoboTemp = c.ShowMoboTemp,
+            ShowCpuFreq = c.ShowCpuFreq, ShowDiskBusy = c.ShowDiskBusy, DiskBusyStyle = c.DiskBusyStyle, ShowDiskTemp = c.ShowDiskTemp, ShowMoboTemp = c.ShowMoboTemp, ShowProcs = c.ShowProcs, ProcMode = c.ProcMode, ShowFps = c.ShowFps,
             CpuStyle = c.CpuStyle, GpuStyle = c.GpuStyle, MemStyle = c.MemStyle, CpuPerCore = c.CpuPerCore,
             CpuTempStyle = c.CpuTempStyle, GpuTempStyle = c.GpuTempStyle, TempMerge = c.TempMerge,
             GraphSeconds = c.GraphSeconds, GraphLength = c.GraphLength, GraphWidthPx = c.GraphWidthPx, GraphSizes = c.GraphSizes.ToDictionary(k => k.Key, k => new GraphSize { Len = k.Value.Len, Px = k.Value.Px }), NetStyle = c.NetStyle, PingStyle = c.PingStyle,
@@ -100,7 +100,7 @@ public sealed partial class ThemeData
     {
         c.ShowCpu = ShowCpu; c.ShowGpu = ShowGpu; c.ShowMem = ShowMem; c.ShowNetUp = ShowNetUp; c.ShowNetDown = ShowNetDown;
         c.ShowBattery = ShowBattery; c.ShowDisk = ShowDisk; c.ShowCpuTemp = ShowCpuTemp; c.ShowGpuTemp = ShowGpuTemp;
-        c.ShowCpuFreq = ShowCpuFreq; c.ShowDiskBusy = ShowDiskBusy; c.DiskBusyStyle = DiskBusyStyle; c.ShowDiskTemp = ShowDiskTemp; c.ShowMoboTemp = ShowMoboTemp;
+        c.ShowCpuFreq = ShowCpuFreq; c.ShowDiskBusy = ShowDiskBusy; c.DiskBusyStyle = DiskBusyStyle; c.ShowDiskTemp = ShowDiskTemp; c.ShowMoboTemp = ShowMoboTemp; c.ShowProcs = ShowProcs; c.ProcMode = ProcMode; c.ShowFps = ShowFps;
         c.CpuStyle = CpuStyle; c.GpuStyle = GpuStyle; c.MemStyle = MemStyle; c.CpuPerCore = CpuPerCore;
         c.CpuTempStyle = CpuTempStyle; c.GpuTempStyle = GpuTempStyle; c.TempMerge = TempMerge;
         c.GraphSeconds = GraphSeconds <= 30 ? 30 : GraphSeconds >= 120 ? 120 : 60; c.GraphLength = GraphLength; c.GraphWidthPx = Math.Clamp(GraphWidthPx, 16, 160);

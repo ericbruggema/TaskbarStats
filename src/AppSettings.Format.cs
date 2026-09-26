@@ -27,7 +27,13 @@ public sealed partial class AppSettings
     public DisplayStyle DiskBusyStyle { get; set; } = DisplayStyle.Digital;
     public bool ShowDiskTemp { get; set; } = false;       // heetste schijf (LibreHardwareMonitor)
     public bool ShowMoboTemp { get; set; } = false;       // hoofdbord (LibreHardwareMonitor)
+    public bool ShowProcs { get; set; } = false;          // aantal draaiende processen
+    public ProcMode ProcMode { get; set; } = ProcMode.Total;
+    public bool ShowFps { get; set; } = false;            // EXPERIMENTEEL: framerate van het voorgrondprogramma
 }
+
+/// <summary>Welk aantal processen het widget toont.</summary>
+public enum ProcMode { Total, Apps, Background, Both }
 
 /// <summary>De extra onderdelen horen bij een thema (zoals ShowCpuTemp); de waardeopmaak niet (dat is een persoonlijke voorkeur).</summary>
 public sealed partial class ThemeData
@@ -37,4 +43,7 @@ public sealed partial class ThemeData
     public DisplayStyle DiskBusyStyle { get; set; }
     public bool ShowDiskTemp { get; set; }
     public bool ShowMoboTemp { get; set; }
+    public bool ShowProcs { get; set; }
+    public ProcMode ProcMode { get; set; }
+    public bool ShowFps { get; set; }
 }

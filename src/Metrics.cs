@@ -525,6 +525,7 @@ public sealed partial class Metrics : IDisposable
         SyncLhm();
         UpdateTemperatures();
         UpdateExtras();
+        UpdateProcesses();
         SnapshotSensors();
         RefreshInstances();
         PublishSnapshot();   // de vensters lezen deze ene, complete momentopname
@@ -712,6 +713,8 @@ public sealed partial class Metrics : IDisposable
     public void Dispose()
     {
         Ping.Dispose();
+        Fps.Dispose();
+        _procCount?.Dispose(); _threadCount?.Dispose();
         _cpu?.Dispose();
         _cpuFreq?.Dispose();
         _cpuPerf?.Dispose();

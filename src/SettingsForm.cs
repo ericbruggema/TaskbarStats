@@ -248,7 +248,7 @@ public sealed partial class SettingsForm : Form
         "cputemp" => _c.ShowCpuTemp,
         "gputemp" => _c.ShowGpuTemp,
         "ping" => _c.ShowPing,
-        "cpufreq" or "diskbusy" or "disktemp" or "mobotemp" => FmtItemOn(id),
+        "cpufreq" or "diskbusy" or "disktemp" or "mobotemp" or "procs" or "fps" => FmtItemOn(id),
         _ => true,
     };
 

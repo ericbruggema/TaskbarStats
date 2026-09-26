@@ -94,7 +94,7 @@ internal sealed class DashboardRenderer : IDisposable
         float Height(string id) => id switch
         {
             "cpu" => 190, "gpu" => 150, "mem" => 160, "net" => 34 + 66 + 3 * 17 + (cfg.MonthlyLimitGb > 0 ? 26 : 0) + 2 * 32 + 16,
-            "disk" => 34 + 2 * 34 + 22 + 56, "batt" => 112, "proc" => 34 + 5 * 18 + 22, _ => 104,
+            "disk" => 34 + 2 * 34 + 22 + 56, "batt" => 112, "proc" => 34 + 5 * 18 + 22, _ => 122,
         };
         int cols = Math.Clamp(cfg.DashColumns, 1, 4);
         var colY = Enumerable.Repeat((float)Pad, cols).ToArray();
@@ -133,7 +133,7 @@ internal sealed class DashboardRenderer : IDisposable
                 case "disk": tiles.Add(new(34 + drives.Count * 34 + 22 + 56, (g, r) => DrawDisks(g, r, drives))); break;
                 case "batt": if (m.BatteryPresent) tiles.Add(new(112, DrawBattery)); break;
                 case "proc": tiles.Add(new(34 + 5 * 18 + 22, DrawProcs)); break;
-                case "sys": tiles.Add(new(104, DrawSystem)); break;
+                case "sys": tiles.Add(new(122, DrawSystem)); break;
             }
         }
 
@@ -427,6 +427,7 @@ internal sealed class DashboardRenderer : IDisposable
         DrawText(g, $"Uptime  {(int)up.TotalDays} {Loc.T("d")} {up.Hours} {Loc.T("h")} {up.Minutes} m", _f, TextCol, r.X + 14, r.Y + 62);
         string temps = (m.CpuTempC is double c ? $"CPU {c:0}°C" : "") + (m.GpuTempC is double t ? $"   GPU {t:0}°C" : "");
         if (temps != "") DrawText(g, temps, _f, Dim, r.X + 14, r.Y + 80);
+        if (m.ProcessTotal > 0) DrawText(g, $"{Loc.T("Processes")}  {m.ProcessTotal}  ({Loc.T("apps")} {m.ProcessApps}, {Loc.T("background")} {m.ProcessBackground})", _f, Dim, r.X + 14, r.Y + 98);
     }
 
     public void Dispose()

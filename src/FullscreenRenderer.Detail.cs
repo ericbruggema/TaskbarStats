@@ -330,6 +330,13 @@ public sealed partial class FullscreenRenderer
         kv("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription);
         kv(Loc.T("Booted"), (Now() - up).ToString("yyyy-MM-dd HH:mm"));
         kv("Uptime", $"{(int)up.TotalDays} {Loc.T("d")} {up.Hours} {Loc.T("h")} {up.Minutes} m");
+        if (m.ProcessTotal > 0)
+        {
+            kv(Loc.T("Processes"), $"{m.ProcessTotal}");
+            kv(Loc.T("Apps"), $"{m.ProcessApps}");
+            kv(Loc.T("Background processes"), $"{m.ProcessBackground}");
+            kv(Loc.T("Threads"), $"{m.ThreadTotal}");
+        }
         kv("CPU", Trunc(CpuName(), 46));
         kv(Loc.T("Cores"), $"{m.CpuCores.Length} ({Environment.ProcessorCount} threads)");
         kv(Loc.T("Memory@@ram"), SizeStr(m.MemTotalBytes));

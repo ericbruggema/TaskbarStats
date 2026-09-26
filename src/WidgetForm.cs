@@ -397,7 +397,7 @@ public sealed partial class WidgetForm : Form
     // ---------- Meldingen ----------
     private void CheckAlerts()
     {
-        if (!_cfg.Notifications || _hidden || Cadence.Active) return;
+        if (!_cfg.Notifications || _hidden || Cadence.Active || Metrics.DemoActive) return;   // tijdens een themavoorbeeld zijn de waarden verzonnen
         long now = Environment.TickCount64;
 
         void crit(string name, double v)

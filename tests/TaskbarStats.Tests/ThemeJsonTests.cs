@@ -58,4 +58,25 @@ public class ThemeJsonTests : IDisposable
         Assert.Contains("== CPU ==\r\nNaam: Test 9000\r\nlos\r\n", t);
         Assert.Contains("== Geheugen ==\r\nTotaal: \r\n", t);   // een falende waarde breekt het kopiëren niet
     }
+
+    [Fact]
+    public void Voorbeeldwaarden_bewegen_en_verdwijnen_weer()
+    {
+        var m = new Metrics();
+        try
+        {
+            Assert.False(Metrics.DemoActive);
+            Metrics.SetDemo(0);
+            var a = m.Current;
+            Metrics.SetDemo(3);
+            var b = m.Current;
+            Assert.True(Metrics.DemoActive);
+            Assert.NotEqual(a.RawCpu, b.RawCpu);
+            Assert.InRange(b.RawCpu, 0, 100); Assert.InRange(b.RawMem, 0, 100);
+            Assert.Equal(8, b.RawCores.Length);
+        }
+        finally { Metrics.ClearDemo(); }
+        Assert.False(Metrics.DemoActive);
+        Assert.Same(MetricsSnapshot.Empty, m.Current);   // weer de echte (nog lege) meting
+    }
 }

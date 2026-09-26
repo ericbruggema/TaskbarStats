@@ -805,9 +805,27 @@ public sealed partial class SettingsForm : Form
         Button? previewBtn = null;
         var previewTimer = new System.Windows.Forms.Timer { Interval = 1000 };
 
+        int previewPhase = -1;
+        // Tijdens het voorbeeld: verzonnen waarden die bewegen, en elke 2 s een andere weergave (thema zelf, cijfers, meter, balk, grafiek).
+        void demoStep(int elapsed)
+        {
+            Metrics.SetDemo(elapsed * 0.9 + 0.5);
+            int phase = Math.Min(4, elapsed / 2);
+            if (phase == previewPhase) return;
+            previewPhase = phase;
+            if (phase > 0)
+            {
+                var st = (DisplayStyle)(phase - 1);
+                _c.CpuStyle = _c.GpuStyle = _c.MemStyle = _c.CpuTempStyle = _c.GpuTempStyle = st;
+                _c.NetStyle = _c.PingStyle = st == DisplayStyle.Graph ? TextGraphStyle.Graph : TextGraphStyle.Digital;
+            }
+            _apply();
+        }
+
         void stopPreview()
         {
             previewTimer.Stop();
+            Metrics.ClearDemo();
             if (before is null) return;
             before.ApplyTo(_c);
             before = null;
@@ -817,6 +835,7 @@ public sealed partial class SettingsForm : Form
         previewTimer.Tick += (_, _) =>
         {
             if (--previewLeft <= 0) { stopPreview(); return; }
+            demoStep(10 - previewLeft);
             if (previewBtn is { IsDisposed: false }) previewBtn.Text = Loc.T("Stop preview ({0} s)", previewLeft);
         };
         FormClosing += (_, _) => stopPreview();
@@ -833,6 +852,8 @@ public sealed partial class SettingsForm : Form
             t.ApplyTo(_c);
             _apply();
             previewLeft = 10;
+            previewPhase = -1;
+            demoStep(0);
             if (previewBtn is not null) previewBtn.Text = Loc.T("Stop preview ({0} s)", previewLeft);
             previewTimer.Start();
         }

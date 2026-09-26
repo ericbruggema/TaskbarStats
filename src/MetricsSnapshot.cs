@@ -66,7 +66,34 @@ public sealed partial class Metrics
     private volatile MetricsSnapshot _current = MetricsSnapshot.Empty;
 
     /// <summary>De laatste complete meting. Lees dit één keer per teken- of tooltiprondje en gebruik die verwijzing verder.</summary>
-    public MetricsSnapshot Current => _current;
+    public MetricsSnapshot Current => _demo ?? _current;
+
+    // Voorbeeldwaarden (themavoorbeeld in de instellingen): zolang die er zijn, tonen alle vensters die in plaats van de echte meting.
+    private static volatile MetricsSnapshot? _demo;
+
+    /// <summary>Zet verzonnen, bewegende waarden (t in seconden) zodat een themavoorbeeld laag, midden, waarschuwing en kritiek laat zien.</summary>
+    internal static void SetDemo(double t)
+    {
+        static double Wave(double t, double speed, double phase, double lo, double hi) => lo + (hi - lo) * (0.5 + 0.5 * Math.Sin(t * speed + phase));
+        double cpu = Wave(t, 1.1, 0, 4, 100), gpu = Wave(t, 0.8, 1.7, 2, 100), mem = Wave(t, 0.5, 3.1, 30, 97);
+        var cores = new double[8];
+        for (int i = 0; i < cores.Length; i++) cores[i] = Wave(t, 0.9 + i * 0.23, i * 0.9, 0, 100);
+        const ulong total = 32UL << 30;
+        _demo = new MetricsSnapshot
+        {
+            RawCpu = cpu, RawGpu = gpu, RawMem = mem, RawCores = cores,
+            RawCpuTemp = Wave(t, 0.7, 0.4, 38, 96), RawGpuTemp = Wave(t, 0.6, 2.2, 36, 94),
+            RawDown = Wave(t, 1.3, 0.5, 0, 45e6), RawUp = Wave(t, 1.7, 2.5, 0, 6e6),
+            MemTotalBytes = total, MemUsedBytes = (ulong)(total * (mem / 100)),
+            DiskReadBytesPerSec = Wave(t, 1.0, 1, 0, 300e6), DiskWriteBytesPerSec = Wave(t, 1.4, 4, 0, 120e6),
+            PeakCpu = 100, PeakMem = 97, PeakDown = 45e6,
+        };
+    }
+
+    /// <summary>Zet de echte meting weer terug.</summary>
+    internal static void ClearDemo() => _demo = null;
+
+    internal static bool DemoActive => _demo is not null;
 
     /// <summary>Maakt van de huidige waarden een nieuwe momentopname (sampler-thread, aan het einde van <see cref="Update"/>).</summary>
     internal void PublishSnapshot()

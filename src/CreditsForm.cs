@@ -39,7 +39,7 @@ public sealed class CreditsForm : Form
     public CreditsForm(AppSettings cfg, UsageTracker usage, Metrics metrics)
     {
         AppIcon.Apply(this);
-        Text = Loc.T("Readme and credits");
+        Text = Loc.T("Credits");
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false; MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;

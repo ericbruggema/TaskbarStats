@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Xml.Linq;
 
 namespace TaskbarStats;
 
@@ -77,6 +78,103 @@ internal static class Diag
         }
     }
 
+    // ------------------------------------------------------------------------------------------------ sessies en crashes
+
+    private static string SessionPath => Path.Combine(Dir, "session.lock");
+    private static string PendingPath => Path.Combine(Dir, "crash.pending");
+
+    /// <summary>Samenvatting van een crash van de vorige sessie (null = de vorige keer is de app normaal afgesloten, of we weten het niet).</summary>
+    public static string? PreviousCrash { get; private set; }
+
+    /// <summary>De vorige sessie is niet netjes afgesloten (crash, Taakbeheer "Taak beëindigen", stroomuitval).</summary>
+    public static bool PreviousUnclean { get; private set; }
+
+    /// <summary>
+    /// Aan te roepen in Main. Een sessiebestand blijft alleen staan als de app niet normaal is afgesloten. Een crash herkennen we aan de
+    /// vlag die de foutafhandelaar schreef, of (bij een harde crash waar geen code meer draait) aan een "Application Error" in het
+    /// Windows-gebeurtenislogboek. Afsluiten met Taakbeheer of stroomuitval wordt alleen gelogd, niet als crash gemeld.
+    /// </summary>
+    public static void BeginSession()
+    {
+        PreviousCrash = null; PreviousUnclean = false;
+        try
+        {
+            Directory.CreateDirectory(Dir);
+            DateTime? started = null;
+            if (File.Exists(SessionPath))
+            {
+                PreviousUnclean = true;
+                var first = File.ReadLines(SessionPath).FirstOrDefault();
+                if (DateTime.TryParse(first, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) started = dt.ToUniversalTime();
+            }
+            string? crash = null;
+            if (File.Exists(PendingPath))
+            {
+                var t = File.ReadAllText(PendingPath).Trim();
+                crash = Scrub(t.Length > 600 ? t[..600] + "…" : t);
+                try { File.Delete(PendingPath); } catch { }
+            }
+            if (PreviousUnclean && crash is null && started is not null) crash = QueryCrashEvent(started.Value);
+            if (crash is not null) { PreviousCrash = crash; Write("ERROR", "session", "Vorige sessie is gecrasht: " + crash); }
+            else if (PreviousUnclean) Write("WARN", "session", "Vorige sessie is niet normaal afgesloten (Taakbeheer, stroomuitval of afmelden?); geen crash gevonden.");
+            File.WriteAllText(SessionPath, DateTime.UtcNow.ToString("o") + Environment.NewLine + Version + Environment.NewLine);
+        }
+        catch (Exception ex) { Write("WARN", "session", "Sessiebewaking mislukt: " + ex.Message); }
+        Write("INFO", "session", "Start " + Version + (Environment.GetCommandLineArgs().Contains("--restarted") ? " (na een herstart)" : ""));
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => EndSession();
+    }
+
+    internal static void EndSession()
+    {
+        try { File.Delete(SessionPath); Write("INFO", "session", "Normaal afgesloten"); } catch { }
+    }
+
+    /// <summary>Onthoudt voor de volgende start dat deze sessie is gecrasht (fatale fout).</summary>
+    private static void MarkCrash(string details)
+    {
+        try { Directory.CreateDirectory(Dir); File.WriteAllText(PendingPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + details); } catch { }
+    }
+
+    /// <summary>Zoekt in het Windows-gebeurtenislogboek (Toepassing) naar een crash van deze app sinds <paramref name="sinceUtc"/>.</summary>
+    internal static string? QueryCrashEvent(DateTime sinceUtc)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("wevtutil") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
+            foreach (var a in new[] { "qe", "Application",
+                "/q:*[System[(EventID=1000 or EventID=1023 or EventID=1026) and TimeCreated[@SystemTime>='" + sinceUtc.ToString("yyyy-MM-ddTHH:mm:ss.000Z") + "']]]",
+                "/c:10", "/rd:true", "/f:xml" }) psi.ArgumentList.Add(a);
+            using var p = Process.Start(psi);
+            if (p is null) return null;
+            string xml = p.StandardOutput.ReadToEnd();
+            if (!p.WaitForExit(8000)) { try { p.Kill(); } catch { } return null; }
+            if (string.IsNullOrWhiteSpace(xml)) return null;
+            var doc = XDocument.Parse("<r>" + xml + "</r>");
+            foreach (var ev in doc.Root!.Elements())
+            {
+                var data = ev.Descendants().Where(e => e.Name.LocalName == "Data").Select(e => e.Value).ToList();
+                if (!data.Any(d => d.Contains("TaskbarStats.exe", StringComparison.OrdinalIgnoreCase))) continue;
+                string id = ev.Descendants().FirstOrDefault(e => e.Name.LocalName == "EventID")?.Value ?? "?";
+                string txt = string.Join("; ", data.Select(d => d.Replace("\r", " ").Replace("\n", " ").Trim()).Where(d => d.Length > 0));
+                return Scrub("Windows-gebeurtenis " + id + ": " + (txt.Length > 400 ? txt[..400] + "…" : txt));
+            }
+        }
+        catch (Exception ex) { Write("WARN", "session", "Gebeurtenislogboek niet te lezen: " + ex.Message); }
+        return null;
+    }
+
+    private static string Version
+    {
+        get
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            return asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? asm.GetName().Version?.ToString() ?? "?";
+        }
+    }
+
+    /// <summary>Alleen voor tests: vergeet de toestand van deze sessie.</summary>
+    internal static void ResetForTests() { PreviousCrash = null; PreviousUnclean = false; lock (Gate) { Seen.Clear(); Recent.Clear(); } }
+
     // ------------------------------------------------------------------------------------------------ vangnet
 
     /// <summary>Aan te roepen in Main, vóór het eerste venster: fouten in een timer/teken-code stoppen de app niet meer stil.</summary>
@@ -87,7 +185,9 @@ internal static class Diag
         TaskScheduler.UnobservedTaskException += (_, e) => { Error("Task", e.Exception); e.SetObserved(); };
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
-            if (e.ExceptionObject is Exception ex) Error("FATAL", ex); else Write("FATAL", "?", e.ExceptionObject?.ToString() ?? "");
+            string text = e.ExceptionObject?.ToString() ?? "?";
+            if (e.ExceptionObject is Exception ex) Error("FATAL", ex); else Write("FATAL", "?", text);
+            MarkCrash(text);
             TryRestart();
         };
     }
@@ -114,9 +214,9 @@ internal static class Diag
     public static string Report(string language)
     {
         var sb = new StringBuilder();
-        var asm = Assembly.GetExecutingAssembly();
-        string ver = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? asm.GetName().Version?.ToString() ?? "?";
-        sb.AppendLine("TaskbarStats " + ver);
+        sb.AppendLine("TaskbarStats " + Version);
+        if (PreviousCrash is not null) sb.AppendLine("Previous session crashed: " + PreviousCrash);
+        else if (PreviousUnclean) sb.AppendLine("Previous session did not close normally (no crash found).");
         sb.AppendLine("Windows: " + Environment.OSVersion.Version + " (" + RuntimeInformation.OSArchitecture + "), " + RuntimeInformation.FrameworkDescription);
         sb.AppendLine("Language: " + language + ", UI culture " + System.Globalization.CultureInfo.CurrentUICulture.Name + ", regional " + System.Globalization.CultureInfo.CurrentCulture.Name);
         try { sb.AppendLine("Screens: " + string.Join(", ", Screen.AllScreens.Select(s => $"{s.Bounds.Width}x{s.Bounds.Height}{(s.Primary ? "*" : "")}"))); } catch { }

@@ -42,6 +42,7 @@ internal static class Program
         new Thread(() => { while (showEvent.WaitOne()) ShowRequested?.Invoke(); }) { IsBackground = true, Name = "show-request" }.Start();
 
         Diag.Init();
+        Diag.BeginSession();   // meldt (in het log en aan het widget) als de vorige sessie is gecrasht
         ApplicationConfiguration.Initialize();
         var settings = AppSettings.Load();
         Application.Run(new WidgetForm(settings));

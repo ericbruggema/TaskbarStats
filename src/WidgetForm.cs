@@ -141,6 +141,7 @@ public sealed partial class WidgetForm : Form
         _menuTimer.Tick += (_, _) => CheckMenuHover();
 
         _notifyHide.Tick += (_, _) => { _notifyHide.Stop(); _notify.Visible = false; };
+        _notify.BalloonTipClicked += (_, _) => { if (_crashNotice) { _crashNotice = false; BeginInvoke(new Action(ShowAbout)); } };
 
         MouseEnter += (_, _) => { _hover = true; _hoverAt = Environment.TickCount64; _procAt = _hoverAt; _procs.SampleAsync(); };
         MouseLeave += (_, _) => { _hover = false; HideTip(); _procs.Reset(); };
@@ -177,6 +178,7 @@ public sealed partial class WidgetForm : Form
         if (!_cfg.WelcomeShown) BeginInvoke(new Action(ShowWelcome));
         SyncDashboard();
         ActionsOnShown();
+        ShowCrashNotice();
     }
 
     private WelcomeForm? _welcome;
@@ -444,6 +446,7 @@ public sealed partial class WidgetForm : Form
         long now = Environment.TickCount64;
         if (_alertAt.TryGetValue(key, out long at) && now - at < cooldownMs) return;
         _alertAt[key] = now;
+        _crashNotice = false;
         _notify.BalloonTipTitle = title;
         _notify.BalloonTipText = text;
         _notify.BalloonTipIcon = ToolTipIcon.Warning;
@@ -668,6 +671,28 @@ public sealed partial class WidgetForm : Form
         (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition();
         Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value);
         Persist();
+    }
+
+    private void ShowAbout()
+    {
+        using var f = new AboutForm(() => BeginInvoke(new Action(ShowWelcome)));
+        f.ShowDialog(this);
+    }
+
+    private bool _crashNotice;   // de huidige ballonmelding is de crashmelding (klik opent Over)
+
+    /// <summary>Was de vorige sessie gecrasht? Meld dat, met een klik naar het Over-scherm (knop Kopieer diagnose).</summary>
+    private void ShowCrashNotice()
+    {
+        if (Diag.PreviousCrash is null) return;
+        _crashNotice = true;
+        _notify.BalloonTipTitle = Loc.T("TaskbarStats crashed last time");
+        _notify.BalloonTipText = Loc.T("It closed unexpectedly. The details were saved in diag.log. Click here to open About; \"Copy diagnostics\" there helps when you report the problem.");
+        _notify.BalloonTipIcon = ToolTipIcon.Error;
+        _notify.Visible = true;
+        _notify.ShowBalloonTip(15000);
+        _notifyHide.Stop();
+        _notifyHide.Start();
     }
 
     private void ShowSettings()
@@ -1409,7 +1434,7 @@ public sealed partial class WidgetForm : Form
         menu.Items.Add(readme);
 
         var about = new ToolStripMenuItem(Loc.T("About TaskbarStats…")) { Tag = "close" };
-        about.Click += (_, _) => { using var f = new AboutForm(() => BeginInvoke(new Action(ShowWelcome))); f.ShowDialog(this); };
+        about.Click += (_, _) => ShowAbout();
         menu.Items.Add(about);
 
         menu.Items.Add(new ToolStripSeparator());

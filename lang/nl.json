@@ -64,6 +64,7 @@
   "Booted": "Opgestart",
   "Border": "Rand",
   "Border color": "Randkleur",
+  "Built-in: ": "Meegeleverd: ",
   "Busiest day: {0:MMMM d} ({1})": "Drukste dag: {0:d MMMM} ({1})",
   "Bytes (MB/s)": "Bytes (MB/s)",
   "CPU": "CPU",

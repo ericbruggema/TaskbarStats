@@ -805,6 +805,7 @@ public sealed partial class SettingsForm : Form
         Button? previewBtn = null;
         var previewTimer = new System.Windows.Forms.Timer { Interval = 1000 };
 
+        (string?, BgMode, int, string?, BgMode, int, string?, BgMode, int) bgBefore = default;   // eigen achtergrondafbeeldingen (staan niet in een thema) zetten we zelf terug
         int previewPhase = -1;
         // Tijdens het voorbeeld: verzonnen waarden die bewegen, en elke 2 s een andere weergave (thema zelf, cijfers, meter, balk, grafiek).
         void demoStep(int elapsed)
@@ -828,6 +829,7 @@ public sealed partial class SettingsForm : Form
             Metrics.ClearDemo();
             if (before is null) return;
             before.ApplyTo(_c);
+            (_c.WidgetBgImage, _c.WidgetBgMode, _c.WidgetBgOpacity, _c.DashBgImage, _c.DashBgMode, _c.DashBgOpacity, _c.FullBgImage, _c.FullBgMode, _c.FullBgOpacity) = bgBefore;
             before = null;
             _apply();
             if (previewBtn is { IsDisposed: false }) previewBtn.Text = Loc.T("Preview (10 s)");
@@ -849,6 +851,7 @@ public sealed partial class SettingsForm : Form
             try { t = ThemeStore.Parse(json.Text); }
             catch (Exception jex) { MessageBox.Show(this, Loc.T("Not valid JSON: ") + jex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
             before = ThemeData.Capture(_c, "");
+            bgBefore = (_c.WidgetBgImage, _c.WidgetBgMode, _c.WidgetBgOpacity, _c.DashBgImage, _c.DashBgMode, _c.DashBgOpacity, _c.FullBgImage, _c.FullBgMode, _c.FullBgOpacity);
             t.ApplyTo(_c);
             _apply();
             previewLeft = 10;

@@ -62,6 +62,10 @@ public sealed partial class ThemeData
     public List<string>? FullOrder { get; set; }
     public List<string>? FullHidden { get; set; }
 
+    /// <summary>Meegeleverde achtergrond (naam uit <see cref="BgPatterns.Names"/>) voor widget, dashboard en fullscreen; leeg = geen. Eigen bestanden horen niet in een thema.</summary>
+    public string? Background { get; set; }
+    public int BackgroundOpacity { get; set; } = 60;
+
     public static ThemeData Capture(AppSettings c, string name)
     {
         var hidden = Tiles.All.Where(id => !Tiles.DashOn(c, id)).ToList();
@@ -84,6 +88,8 @@ public sealed partial class ThemeData
             DashHidden = hidden.Count > 0 ? hidden : null,
             FullOrder = c.FullOrder is null ? null : new List<string>(c.FullOrder),
             FullHidden = c.FullHidden is null ? null : new List<string>(c.FullHidden),
+            Background = BgPatterns.IsBuiltIn(c.DashBgImage) ? BgPatterns.NameOf(c.DashBgImage!) : null,
+            BackgroundOpacity = BgPatterns.IsBuiltIn(c.DashBgImage) ? c.DashBgOpacity : 60,
         };
     }
 
@@ -115,6 +121,22 @@ public sealed partial class ThemeData
         c.FullOrder = FullOrder is null ? null : Tiles.Order(FullOrder);
         var fh = FullHidden?.Where(Tiles.All.Contains).ToList();
         c.FullHidden = fh is { Count: > 0 } ? fh : null;
+
+        // Achtergrond: een meegeleverd patroon vervangt wat er stond; zonder patroon verdwijnt alleen een eerder patroon (eigen afbeeldingen blijven).
+        string bg = (Background ?? "").Trim().ToLowerInvariant();
+        if (BgPatterns.Names.Contains(bg))
+        {
+            int op = Math.Clamp(BackgroundOpacity, 5, 100);
+            c.WidgetBgImage = c.DashBgImage = c.FullBgImage = BgPatterns.Path(bg);
+            c.WidgetBgMode = c.DashBgMode = c.FullBgMode = BgMode.Fill;
+            c.WidgetBgOpacity = c.DashBgOpacity = c.FullBgOpacity = op;
+        }
+        else
+        {
+            if (BgPatterns.IsBuiltIn(c.WidgetBgImage)) c.WidgetBgImage = null;
+            if (BgPatterns.IsBuiltIn(c.DashBgImage)) c.DashBgImage = null;
+            if (BgPatterns.IsBuiltIn(c.FullBgImage)) c.FullBgImage = null;
+        }
     }
 }
 
@@ -160,49 +182,49 @@ public static class ThemeStore
         },
         new ThemeData
         {
-            Name = "Love", TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
+            Name = "Love", Background = "hearts", BackgroundOpacity = 70, TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
             CritColor = "#FF1744", BorderColor = "#FF69B4", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
             FontFamily = "Segoe UI Semibold",
         },
         new ThemeData
         {
             // De vier CGA-kleuren van de eerste pc's: zwart, cyaan, magenta, wit (plus geel en rood voor waarschuwingen)
-            Name = "CGA", TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#55FFFF", WarnColor = "#FFFF55",
+            Name = "CGA", Background = "scanlines", BackgroundOpacity = 100, TextColor = "#FFFFFF", BackgroundColor = "#000000", AccentColor = "#55FFFF", WarnColor = "#FFFF55",
             CritColor = "#FF5555", BorderColor = "#FF55FF", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
             FontFamily = "Lucida Console", DashOpacity = 100,
         },
         new ThemeData
         {
-            Name = "Matrix", TextColor = "#00FF41", BackgroundColor = "#000A00", AccentColor = "#00CC33", WarnColor = "#B6FF00",
+            Name = "Matrix", Background = "matrix", BackgroundOpacity = 45, TextColor = "#00FF41", BackgroundColor = "#000A00", AccentColor = "#00CC33", WarnColor = "#B6FF00",
             CritColor = "#FF0033", BorderColor = "#00FF41", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
             FontFamily = "Consolas", Compact = true, LabelsAbove = true, DashOpacity = 95,
         },
         new ThemeData
         {
-            Name = "Amber", TextColor = "#FFB000", BackgroundColor = "#0A0500", AccentColor = "#FF8C00", WarnColor = "#FFD060",
+            Name = "Amber", Background = "scanlines", BackgroundOpacity = 100, TextColor = "#FFB000", BackgroundColor = "#0A0500", AccentColor = "#FF8C00", WarnColor = "#FFD060",
             CritColor = "#FF4500", BorderColor = "#FF8C00", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
             FontFamily = "Consolas", DashOpacity = 100,
         },
         new ThemeData
         {
             // De groentinten van de eerste Game Boy (donkere variant); hoe lichter, hoe drukker
-            Name = "Game Boy", TextColor = "#9BBC0F", BackgroundColor = "#0F380F", AccentColor = "#8BAC0F", WarnColor = "#CADC9F",
+            Name = "Game Boy", Background = "scanlines", BackgroundOpacity = 100, TextColor = "#9BBC0F", BackgroundColor = "#0F380F", AccentColor = "#8BAC0F", WarnColor = "#CADC9F",
             CritColor = "#E0F8D0", BorderColor = "#306230", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar, MemStyle = DisplayStyle.Bar,
             FontFamily = "Lucida Console", DashOpacity = 100,
         },
         new ThemeData
         {
-            Name = "Dracula", TextColor = "#F8F8F2", BackgroundColor = "#282A36", AccentColor = "#BD93F9", WarnColor = "#FFB86C",
+            Name = "Dracula", Background = "stars", BackgroundOpacity = 80, TextColor = "#F8F8F2", BackgroundColor = "#282A36", AccentColor = "#BD93F9", WarnColor = "#FFB86C",
             CritColor = "#FF5555", BorderColor = "#6272A4",
         },
         new ThemeData
         {
-            Name = "Ocean", TextColor = "#E6F7FF", BackgroundColor = "#06202B", AccentColor = "#00B4D8", WarnColor = "#FFD166",
+            Name = "Ocean", Background = "waves", BackgroundOpacity = 80, TextColor = "#E6F7FF", BackgroundColor = "#06202B", AccentColor = "#00B4D8", WarnColor = "#FFD166",
             CritColor = "#EF476F", BorderColor = "#0077B6", FontFamily = "Segoe UI Semibold",
         },
         new ThemeData
         {
-            Name = "Sunset", TextColor = "#FFF1E0", BackgroundColor = "#1A0B2E", AccentColor = "#FF7E5F", WarnColor = "#FEB47B",
+            Name = "Sunset", Background = "sunset", BackgroundOpacity = 70, TextColor = "#FFF1E0", BackgroundColor = "#1A0B2E", AccentColor = "#FF7E5F", WarnColor = "#FEB47B",
             CritColor = "#FF3CAC", BorderColor = "#FEB47B", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
         },
         new ThemeData
@@ -223,7 +245,7 @@ public static class ThemeStore
         },
         new ThemeData
         {
-            Name = "Neon", TextColor = "#E6FBFF", BackgroundColor = "#05060A", AccentColor = "#00E5FF", WarnColor = "#FFD60A",
+            Name = "Neon", Background = "grid", BackgroundOpacity = 55, TextColor = "#E6FBFF", BackgroundColor = "#05060A", AccentColor = "#00E5FF", WarnColor = "#FFD60A",
             CritColor = "#FF2D95", BorderColor = "#FF2D95", CpuStyle = DisplayStyle.Bar, GpuStyle = DisplayStyle.Bar,
             MemStyle = DisplayStyle.Bar, FontFamily = "Consolas", DashOpacity = 95,
         },

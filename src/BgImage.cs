@@ -104,6 +104,11 @@ public sealed class BgLayer : IDisposable
 
     private static Bitmap? Load(string path, int maxSrc)
     {
+        if (BgPatterns.IsBuiltIn(path))   // meegeleverde achtergrond: in code getekend
+        {
+            int bw = Math.Clamp(maxSrc, 320, 1280);
+            return BgPatterns.Render(BgPatterns.NameOf(path), bw, bw * 9 / 16);
+        }
         var fi = new FileInfo(path);
         if (!fi.Exists || fi.Length == 0 || fi.Length > 64L * 1024 * 1024) return null;
         byte[] data;

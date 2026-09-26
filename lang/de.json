@@ -64,6 +64,7 @@
   "Booted": "Gestartet",
   "Border": "Rahmen",
   "Border color": "Rahmenfarbe",
+  "Built-in: ": "Mitgeliefert: ",
   "Busiest day: {0:MMMM d} ({1})": "Aktivster Tag: {0:d. MMMM} ({1})",
   "Bytes (MB/s)": "Bytes (MB/s)",
   "CPU": "CPU",

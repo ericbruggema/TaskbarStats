@@ -36,7 +36,7 @@ public sealed partial class SettingsForm
         {
             var p = getPath();
             bool has = !string.IsNullOrWhiteSpace(p);
-            name.Text = has ? Path.GetFileName(p) : Loc.T("(no image)");
+            name.Text = has ? (BgPatterns.IsBuiltIn(p) ? Loc.T("Built-in: ") + BgPatterns.NameOf(p!) : Path.GetFileName(p)) : Loc.T("(no image)");
             clear.Enabled = has;
             if (p == shown) return;
             shown = p ?? "";
@@ -86,6 +86,7 @@ public sealed partial class SettingsForm
     {
         try
         {
+            if (BgPatterns.IsBuiltIn(path)) return BgPatterns.Render(BgPatterns.NameOf(path), 160, 90);
             var data = File.ReadAllBytes(path);
             using var ms = new MemoryStream(data);
             using var img = Image.FromStream(ms, false, false);

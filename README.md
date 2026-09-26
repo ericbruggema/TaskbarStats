@@ -41,6 +41,10 @@ A 70-second tour of the widget, the settings, the dashboard and the fullscreen s
 ![Instellingen: algemeen](docs/screenshots/settings-general.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
+Sommige thema's hebben een eigen **achtergrond**, in code getekend (dus geen bestanden): Matrix (vallende tekens), Neon (raster), Sunset (zon), Ocean (golven), Love (hartjes), Dracula (sterren), Amber, CGA en Game Boy (beeldbuislijntjes). Het thema zet die op widget, dashboard en fullscreen tegelijk; een thema zonder achtergrond haalt zo'n patroon weer weg (je eigen afbeelding blijft staan). In de JSON van een thema staan `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines` of `hearts`) en `BackgroundOpacity` (5-100).
+
+![Widgets met de achtergronden van de thema's](docs/screenshots/themes-achtergronden.png)
+
 De meegeleverde thema's, hier op het bureaublad-dashboard:
 
 ![Alle meegeleverde thema's](docs/screenshots/themes.png)

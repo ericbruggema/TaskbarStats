@@ -366,10 +366,28 @@ public sealed partial class SettingsForm : Form
         var sub = new TabControl { Dock = DockStyle.Fill };
         tab.Controls.Clear();
         tab.Controls.Add(sub);
-        p = SubPage(sub, Loc.T("Components"));
         var advMeasure = new List<Control>();   // rijen voor het subtabblad Geavanceerd
         var advGraph = new List<Control>();
+        WidgetComponentsPage(SubPage(sub, Loc.T("Components")));
+        WidgetSourcesPage(SubPage(sub, Loc.T("Sources")), advMeasure);
+        WidgetStylePage(SubPage(sub, Loc.T("Display@@style")), advGraph);
+        AddValueSettings(SubPage(sub, Loc.T("Values")));
+        WidgetAppearancePage(SubPage(sub, Loc.T("Appearance")), advMeasure);
+        // Geavanceerd: opties voor wie het precies wil instellen; de standaardwaarden zijn meestal goed.
+        var adv = SubPage(sub, Loc.T("Advanced"));
+        adv.Controls.Add(Note(Loc.T("Options for fine-tuning. The defaults are usually fine.")));
+        adv.Controls.Add(Head(Loc.T("Graph")));
+        foreach (var c in advGraph) adv.Controls.Add(c);
+        adv.Controls.Add(Head(Loc.T("Measuring")));
+        foreach (var c in advMeasure) adv.Controls.Add(c);
+        sub.SelectedIndex = Math.Clamp(_widgetSub, 0, sub.TabPages.Count - 1);
+        sub.SelectedIndexChanged += (_, _) => { if (!_building) _widgetSub = sub.SelectedIndex; };
+        return tab;
+    }
 
+    /// <summary>Widget → Onderdelen: welke items het widget toont en in welke volgorde.</summary>
+    private void WidgetComponentsPage(FlowLayoutPanel p)
+    {
         p.Controls.Add(Head(Loc.T("Components")));
         p.Controls.Add(Grid(
             Check(Loc.T("CPU"), _c.ShowCpu, v => _c.ShowCpu = v, ColW),
@@ -386,8 +404,11 @@ public sealed partial class SettingsForm : Form
 
         p.Controls.Add(Head(Loc.T("Order in the widget (left to right)")));
         p.Controls.Add(WidgetOrderEditor());
+    }
 
-        p = SubPage(sub, Loc.T("Sources"));
+    /// <summary>Widget → Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes bij Onderdelen).</summary>
+    private void WidgetSourcesPage(FlowLayoutPanel p, List<Control> advMeasure)
+    {
         // Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes hierboven).
         p.Controls.Add(Head(Loc.T("Sources")));
         var gpuItems = new List<(string, string)> { (Loc.T("Automatic (busiest)"), "") };
@@ -443,8 +464,11 @@ public sealed partial class SettingsForm : Form
             Changed();
         };
         p.Controls.Add(Row(Loc.T("Ping target"), pingHost));
+    }
 
-        p = SubPage(sub, Loc.T("Display@@style"));
+    /// <summary>Widget → Weergave: stijl per onderdeel (digitaal/meter/balk/grafiek), batterij, labels, compact.</summary>
+    private void WidgetStylePage(FlowLayoutPanel p, List<Control> advGraph)
+    {
         p.Controls.Add(Head(Loc.T("Display@@style")));
         var styles = new (string, DisplayStyle)[] { (Loc.T("Digital"), DisplayStyle.Digital), (Loc.T("Gauge"), DisplayStyle.Gauge), (Loc.T("Bar"), DisplayStyle.Bar), (Loc.T("Graph"), DisplayStyle.Graph) };
         var cpuStyle = Seg(styles, () => _c.CpuStyle, v => _c.CpuStyle = v);
@@ -481,10 +505,17 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Grid(labels, compact, Check(Loc.T("Transparent background"), _c.TransparentBackground, v => _c.TransparentBackground = v, ColW)));
         p.Controls.Add(Why(() => _c.Compact ? Loc.T("Compact always puts the labels above the value.") : null));
 
-        p = SubPage(sub, Loc.T("Values"));
-        AddValueSettings(p);
+        // Wat geen effect heeft, uitschakelen.
+        Dep(() =>
+        {
+            cpuNote.Visible = _c.ShowCpu && _c.CpuPerCore;
+            labels.Enabled = !_c.Compact;
+        });
+    }
 
-        p = SubPage(sub, Loc.T("Appearance"));
+    /// <summary>Widget → Uiterlijk: hoogte, lettertype, vernieuwingsinterval en achtergrondafbeelding.</summary>
+    private void WidgetAppearancePage(FlowLayoutPanel p, List<Control> advMeasure)
+    {
         p.Controls.Add(Head(Loc.T("Size and font")));
         var heights = new List<(string, int)> { (Loc.T("Auto"), 0) };
         foreach (int h in new[] { 32, 36, 40, 44, 48, 56, 64 }) heights.Add(($"{h}", h));
@@ -510,23 +541,6 @@ public sealed partial class SettingsForm : Form
         var intervals = new (string, int)[] { ("0,1 s", 100), ("0,2 s", 200), ("0,25 s", 250), ("0,5 s", 500), ("1 s", 1000), ("2 s", 2000) };
         advMeasure.Add(Row(Loc.T("Update interval"), Seg(intervals, () => _c.RefreshMs, v => _c.RefreshMs = v, 56)));
         BgSection(p, () => _c.WidgetBgImage, v => _c.WidgetBgImage = v, () => _c.WidgetBgMode, v => _c.WidgetBgMode = v, () => _c.WidgetBgOpacity, v => _c.WidgetBgOpacity = v);
-
-        // Wat geen effect heeft, uitschakelen.
-        Dep(() =>
-        {
-            cpuNote.Visible = _c.ShowCpu && _c.CpuPerCore;
-            labels.Enabled = !_c.Compact;
-        });
-        // Geavanceerd: opties voor wie het precies wil instellen; de standaardwaarden zijn meestal goed.
-        var adv = SubPage(sub, Loc.T("Advanced"));
-        adv.Controls.Add(Note(Loc.T("Options for fine-tuning. The defaults are usually fine.")));
-        adv.Controls.Add(Head(Loc.T("Graph")));
-        foreach (var c in advGraph) adv.Controls.Add(c);
-        adv.Controls.Add(Head(Loc.T("Measuring")));
-        foreach (var c in advMeasure) adv.Controls.Add(c);
-        sub.SelectedIndex = Math.Clamp(_widgetSub, 0, sub.TabPages.Count - 1);
-        sub.SelectedIndexChanged += (_, _) => { if (!_building) _widgetSub = sub.SelectedIndex; };
-        return tab;
     }
 
     // ---------- tabblad Kleuren ----------

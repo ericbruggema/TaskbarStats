@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.5.0"
+#define AppVersion "1.6.0"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -17,7 +17,7 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#Publisher}
-AppComments=CPU / GPU / geheugen / netwerk / schijf-monitor voor de taakbalk
+AppComments=CPU / GPU / memory / network / disk / FPS monitor for the taskbar
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
@@ -40,9 +40,27 @@ InfoBeforeFile=Leesmij.txt
 Name: "dutch"; MessagesFile: "compiler:Languages\Dutch.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[CustomMessages]
+dutch.TaskStartup=Automatisch met Windows meestarten (zonder UAC-melding)
+english.TaskStartup=Start automatically with Windows (no UAC prompt)
+dutch.TaskDesktop=Snelkoppeling op het bureaublad
+english.TaskDesktop=Desktop shortcut
+dutch.TaskGroup=Extra:
+english.TaskGroup=Extra:
+dutch.IconReadme=Leesmij (uitleg en credits)
+english.IconReadme=Readme (explanation and credits)
+dutch.IconUninstall=verwijderen
+english.IconUninstall=Uninstall
+dutch.RunReadme=Leesmij (uitleg en credits) openen
+english.RunReadme=Open the readme (explanation and credits)
+dutch.RunStart=nu starten
+english.RunStart=Start now
+dutch.UninstallData=Ook je instellingen en het netwerkverbruik-log verwijderen?
+english.UninstallData=Also delete your settings and the network usage log?
+
 [Tasks]
-Name: "startup"; Description: "Automatisch met Windows meestarten (zonder UAC-melding)"; GroupDescription: "Extra:"
-Name: "desktopicon"; Description: "Snelkoppeling op het bureaublad"; GroupDescription: "Extra:"; Flags: unchecked
+Name: "startup"; Description: "{cm:TaskStartup}"; GroupDescription: "{cm:TaskGroup}"
+Name: "desktopicon"; Description: "{cm:TaskDesktop}"; GroupDescription: "{cm:TaskGroup}"; Flags: unchecked
 
 [Files]
 Source: "{#PublishDir}\{#ExeName}"; DestDir: "{app}"; Flags: ignoreversion
@@ -51,8 +69,8 @@ Source: "Leesmij.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 [Icons]
 ; Startmenu
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"
-Name: "{group}\Leesmij (uitleg en credits)"; Filename: "{app}\Leesmij.txt"
-Name: "{group}\{#AppName} verwijderen"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:IconReadme}"; Filename: "{app}\Leesmij.txt"
+Name: "{group}\{#AppName} {cm:IconUninstall}"; Filename: "{uninstallexe}"
 ; Bureaublad (optioneel)
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopicon
 
@@ -60,8 +78,8 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopic
 ; Autostart-taak aanmaken of juist weghalen, afhankelijk van de keuze
 Filename: "{app}\{#ExeName}"; Parameters: "--autostart-on"; Flags: runhidden waituntilterminated; Tasks: startup
 Filename: "{app}\{#ExeName}"; Parameters: "--autostart-off"; Flags: runhidden waituntilterminated; Tasks: not startup
-Filename: "{app}\Leesmij.txt"; Description: "Leesmij (uitleg en credits) openen"; Flags: postinstall shellexec skipifsilent unchecked
-Filename: "{app}\{#ExeName}"; Description: "{#AppName} nu starten"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Leesmij.txt"; Description: "{cm:RunReadme}"; Flags: postinstall shellexec skipifsilent unchecked
+Filename: "{app}\{#ExeName}"; Description: "{#AppName} {cm:RunStart}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; App afsluiten en de autostart-taak weghalen voordat de bestanden verdwijnen.
@@ -91,7 +109,7 @@ begin
   begin
     DataDir := ExpandConstant('{userappdata}\{#AppName}');
     if DirExists(DataDir) and (not UninstallSilent) then
-      if MsgBox('Ook je instellingen en het netwerkverbruik-log verwijderen?' + #13#10 + DataDir,
+      if MsgBox(CustomMessage('UninstallData') + #13#10 + DataDir,
                 mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
         DelTree(DataDir, True, True, True);
   end;

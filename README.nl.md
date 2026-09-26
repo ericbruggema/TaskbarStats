@@ -1,0 +1,355 @@
+# TaskbarStats
+
+**Talen / Languages:** [English](README.md) · **Nederlands** · [Deutsch](README.de.md)
+
+![TaskbarStats live in the taskbar, and FPS on top of a game](docs/tour/promo/hero-loop-en.gif)
+
+Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
+systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die
+overeenkomen met Task Manager. Daarnaast een groot bureaublad-dashboard en een fullscreen "cockpit".
+
+## Demo videos
+
+Four English demos of 45 to 60 seconds each. Download, install and run takes a few seconds in every one of them, so most of the time goes to the program itself:
+
+| Video | For | What it shows |
+|-------|-----|---------------|
+| [Quick start (47 s)](docs/tour/promo/quick-start-en.mp4) | Everyone | Download, install, run, right-click menu, themes with backgrounds, JSON editor with preview, processes and FPS, dashboard and fullscreen |
+| [For number lovers (57 s)](docs/tour/promo/nerds-en.mp4) | Statistics nerds | Every graph with its own length, four display styles, processes (all, apps, background), tooltip details, dashboard, fullscreen cockpit, specifications, JSON everything |
+| [For gamers (51 s)](docs/tour/promo/gamers-en.mp4) | Gamers | FPS in the taskbar or floating on top of your game, 1% low, tiny overlay mode, click-through (Ctrl+Alt+W), GPU and CPU temperatures, ping, themes |
+| [The complete tour (59 s)](docs/tour/promo/tour-en.mp4) | Everyone | The whole program, feature by feature |
+
+More documentation is listed in the [docs index](docs/README.md).
+
+## Screenshots
+
+**Taakbalk-widget** — cijfers, meters met per-core-balkjes en batterij, of compact met labels boven:
+
+![Widget met cijfers](docs/screenshots/widget-digital.png)
+![Widget met meters](docs/screenshots/widget-gauges.png)
+![Compacte widget](docs/screenshots/widget-compact.png)
+
+**Rechtermuisknop-menu** (kort, en blijft open terwijl je meerdere dingen kiest) en het **instellingenvenster** met tabbladen
+(uiterlijk, kleuren, dashboard, fullscreen, thema's) waarvan elke wijziging direct zichtbaar is:
+
+![Menu](docs/screenshots/menu.png)
+![Instellingen: widget](docs/screenshots/settings-widget.png)
+![Instellingen: widget, subtabblad Weergave](docs/screenshots/settings-widget-weergave.png)
+![Instellingen: widget, subtabblad Waarden (processen, FPS, schijf-labels)](docs/screenshots/settings-widget-waarden.png)
+![Instellingen: widget, subtabblad Geavanceerd](docs/screenshots/settings-widget-geavanceerd.png)
+![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
+![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
+![Instellingen: algemeen](docs/screenshots/settings-general.png)
+![Instellingen: thema's](docs/screenshots/settings-themes.png)
+
+Sommige thema's hebben een eigen **achtergrond**, in code getekend (dus geen bestanden): Matrix (vallende tekens), Neon (raster), Sunset (zon), Forest (dennenbos met vuurvliegjes), Ocean (golven), Love (hartjes, groot en klein), Dracula (sterren), Amber, CGA en Game Boy (beeldbuislijntjes). Het thema zet die op widget, dashboard en fullscreen tegelijk; een thema zonder achtergrond haalt zo'n patroon weer weg (je eigen afbeelding blijft staan). In de JSON van een thema staan `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines`, `hearts` of `forest`) en `BackgroundOpacity` (5-100).
+
+Op **14 februari** start het programma tijdelijk met het Love-thema (alleen in het geheugen: `settings.json` houdt je eigen uiterlijk, en zodra je Instellingen opent of zelf een thema kiest is het weer van jou). Uitzetten kan bij Instellingen → *Thema's* (*Toon het Love-thema op 14 februari*).
+
+![Widgets met de achtergronden van de thema's](docs/screenshots/themes-achtergronden.png)
+
+De meegeleverde thema's, hier op het bureaublad-dashboard:
+
+![Alle meegeleverde thema's](docs/screenshots/themes.png)
+
+**Bureaublad-dashboard** (halfdoorzichtig, schaalbaar, voor- of achtergrond, klik-door):
+
+![Bureaublad-dashboard](docs/screenshots/dashboard.png)
+
+**Fullscreen dashboard** (Ctrl+Alt+F) — overzicht, en klik op een tegel voor details:
+
+![Fullscreen overzicht](docs/screenshots/fullscreen-overview.png)
+![Fullscreen CPU-details](docs/screenshots/fullscreen-cpu.png)
+![Fullscreen netwerk-details](docs/screenshots/fullscreen-net.png)
+![Fullscreen GPU-details met sensoren](docs/screenshots/fullscreen-gpu.png)
+![Fullscreen schijf-details met temperatuur en gezondheid](docs/screenshots/fullscreen-disk.png)
+![Fullscreen met eigen volgorde en een onderdeel uit (Neon-thema)](docs/screenshots/fullscreen-layout.png)
+
+*(Computernaam en programmanamen in de screenshots zijn geanonimiseerd.)*
+
+## Waarom de waarden hier wél kloppen
+
+| Onderdeel | Bron | Waarom correct |
+|-----------|------|----------------|
+| CPU | `Processor Information\% Processor Time` (totaal en per core) | Zelfde waarde als Taakbeheer. Optioneel (Instellingen → Widget → *CPU-meting*) `% Processor Utility`, dat de boostklok meeschaalt en op een boostende CPU bijna 2× zo hoog is. |
+| Geheugen | `GlobalMemoryStatusEx.dwMemoryLoad` | Exact het percentage dat Task Manager toont. |
+| GPU | Som van alle `GPU Engine\Utilization Percentage` per GPU (LUID) | Telt 3D + copy + video-engines samen, precies zoals Task Manager. De tellers worden elke 5 s opnieuw opgebouwd omdat engine-instances met processen komen en gaan. |
+| Netwerk | `Network Interface\Bytes Received/Sent per sec` | Per adapter of alle adapters samen. |
+| Temperatuur | LibreHardwareMonitorLib, met ACPI-thermal zone als CPU-terugval | CPU/GPU-temperatuur; vereist administrator. Heeft LibreHardwareMonitor geen CPU-sensor (bv. bij nieuwe Ryzen-chips), dan wordt de systeem-thermal zone van Windows gebruikt. |
+| Ping | `System.Net.NetworkInformation.Ping` | Latency, jitter en pakketverlies naar een instelbaar doel. |
+| Specificaties | WMI (`System.Management`), registry, Win32 | Hardware-inventaris voor de specificatiepagina. |
+
+GPU staat standaard op **automatisch**: het volgt de drukste GPU (handig bij een iGPU +
+dGPU). Je kunt ook een vaste GPU kiezen in de instellingen (tab Widget → Bronnen).
+
+## Bouwen
+
+Vereist: Windows en de .NET 8 SDK (https://dotnet.microsoft.com/download).
+
+Het makkelijkst: dubbelklik **`build.bat`**. Het script
+
+1. vraagt zo nodig zelf om administrator-rechten (nodig om de draaiende app af te sluiten),
+2. sluit `TaskbarStats.exe` af als die draait,
+3. bouwt een Release-build,
+4. start de app daarna weer.
+
+Handmatig kan ook:
+
+```
+dotnet build -c Release
+```
+
+De `.exe` staat daarna in `bin\Release\net8.0-windows\TaskbarStats.exe`.
+Voor één zelfstandig bestand zonder .NET-installatie:
+
+```
+dotnet publish -c Release -r win-x64 --self-contained true ^
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true ^
+  -p:EnableCompressionInSingleFile=true
+```
+
+## Testen zonder je instellingen aan te raken
+
+Twee omgevingsvariabelen laten een testkopie naast de echte app draaien:
+
+| Variabele | Effect |
+|-----------|--------|
+| `TASKBARSTATS_DATA` | Eigen map voor `settings.json` en `usage.json` (in plaats van `%AppData%\TaskbarStats`). |
+| `TASKBARSTATS_INSTANCE` | Achtervoegsel voor de single-instance-mutex, zodat er een tweede instantie kan starten. |
+| `TASKBARSTATS_PSEUDO` | `1` toont de testtaal *Pseudo (test)* in de talenlijst (controle op niet-vertaalde of te lange teksten). |
+
+De app vraagt administrator-rechten (`app.manifest`); voor geautomatiseerde tests zet je in een tijdelijke kopie
+`requireAdministrator` op `asInvoker`. Zie ook `CLAUDE.md`.
+
+## Installer (Inno Setup)
+
+Eenmalig Inno Setup installeren: `winget install JRSoftware.InnoSetup`
+(of https://jrsoftware.org/isdl.php). Daarna dubbelklik je **`build-installer.bat`**: dat
+publiceert de app en compileert `installer\TaskbarStats.iss` tot
+`installer\Output\TaskbarStats-Setup-<versie>.exe`.
+
+De installer:
+
+- toont eerst het Leesmij (uitleg + credits, `installer\Leesmij.txt`) en installeert het mee;
+- maakt een Startmenu-groep met **TaskbarStats**, **Leesmij (uitleg en credits)** en
+  **TaskbarStats verwijderen**; optioneel ook een bureaubladsnelkoppeling;
+- zet op verzoek autostart aan via een geplande taak met hoogste rechten (geen UAC-melding
+  bij het inloggen; de app vraagt admin-rechten en start niet vanuit de Run-sleutel);
+- sluit een draaiende versie af bij installeren/verwijderen;
+- registreert een uninstaller (ook in Instellingen → Apps) die de taak verwijdert en vraagt of
+  je instellingen en verbruikslog (`%AppData%\TaskbarStats`) ook weg mogen.
+
+De app zelf heeft ook "Credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje.
+
+![Leesmij en credits](docs/screenshots/credits.png)
+
+Aanpassen van naam, credits of tekst: `installer\Leesmij.txt`, `CreditsForm.cs` en `#define Publisher` in het `.iss`-bestand.
+
+## Gebruik
+
+Start `TaskbarStats.exe`. Het widget verschijnt als zwevend, altijd-bovenliggend venster
+direct links van het systeemvak. Het is eigenaar-venster van de taakbalk, dus het blijft
+erboven staan. Sleep met de **linkermuisknop** om het te verplaatsen (de positie wordt
+bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "Vastplakken aan systeemvak": dan blijft het widget tegen het systeemvak staan en volgt het als dat verschuift (verslepen zet dit weer uit).
+
+**Rechtermuisknop** op het widget opent een kort menu:
+
+- **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard;
+  bedieningselementen die door een andere keuze geen effect hebben, worden uitgeschakeld:
+  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke Het tabblad is verdeeld in subtabs: *Onderdelen*, *Bronnen*, *Weergave*, *Waarden*, *Uiterlijk* en *Geavanceerd* (lengte van de grafiek, ook per onderdeel, periode, netwerkgrafiek-schaal, CPU-meting en verversnelheid). Ook *Dashboard*, *Fullscreen* en *Algemeen* hebben subtabs. Instellingen van onderdelen die nu uit staan (bijvoorbeeld GPU) kun je gewoon alvast invullen; ze gelden zodra je het onderdeel aanzet.
+    netwerkadapter of alle, schijfruimte uit/totaal/alle apart/één schijf, netwerkschijven meenemen), weergave per onderdeel (digitaal, meter of balk;
+    CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
+    De **volgorde van de onderdelen in het widget** (netwerk, schijf-I/O, CPU, GPU, geheugen, batterij, schijfruimte, temperaturen) stel je in met de pijlknoppen; uitgeschakelde onderdelen staan er met "(uit)" bij. De volgorde zit ook in thema's.
+  - *Kleuren*: tekst, achtergrond, meter/balk, waarschuwing, kritiek, rand en drempels (bv. 85% / 95%).
+  - *Dashboard*: tonen, voor-/achtergrond, klik-door, vergrendelen, doorzichtigheid, schaal, kolommen, en **volgorde en aan/uit per hoofdonderdeel**.
+  - *Fullscreen*: welk scherm, en volgorde en aan/uit per hoofdonderdeel, met een voorbeeld van de indeling.
+  - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
+  - *Algemeen*: taal (Nederlands, English of een eigen taalbestand), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
+- **Thema**: snelkeuze om met één klik een thema toe te passen.
+- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
+- **Vastplakken aan systeemvak** (het widget blijft tegen het systeemvak staan en volgt het).
+- **Bureaublad-dashboard** en **Fullscreen-dashboard**, elk een submenu (dashboard: tonen, klik-door, vergrendelen, instellingen; fullscreen: openen/sluiten, tour, instellingen), dan *Verbruik*, *Kopieer info*, *Systeeminformatie kopiëren*, *Credits*, *Over* (met een knop voor het welkomstscherm) en **Afsluiten**.
+- **Tooltip**: houd de muis minstens 2 s (instelbaar) boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).
+- **Batterij** (laptops): staande batterij met niveau, kleur en bliksem/stekker; percentage in, naast of uit.
+
+Verder: dubbelklik opent Taakbeheer, de middelste muisknop kopieert de tooltip-informatie
+naar het klembord, en bij de eerste start verschijnt een welkomstscherm.
+
+Het menu blijft open als je een optie aanklikt, zodat je meerdere dingen achter elkaar kunt
+instellen. Het sluit als je buiten het menu klikt, Esc drukt, of de muis ongeveer een
+seconde niet meer boven het menu (of een submenu) is.
+
+Er draait maar één instantie tegelijk.
+
+## Bureaublad-dashboard en fullscreen
+
+**Bureaublad-dashboard** (instellingen → *Dashboard*, of menu *Bureaublad-dashboard*; standaard uit): een groot, halfdoorzichtig venster met tegels
+(CPU met per-core-balkjes, GPU per kaart met VRAM, geheugen, netwerk met een minigrafiekje per adapter, schijven,
+batterij, zwaarste programma's, systeem) en grafiekjes van de laatste 5 minuten. Alles is los aan/uit te zetten;
+verder instelbaar: voorgrond of achtergrond, schaal 50–300%, doorzichtigheid, 1–4 kolommen, vergrendelen en **klik-door**
+(kliks gaan erdoorheen; **Ctrl+Alt+D** of dubbelklik op het pictogram bij de klok zet dat aan/uit, want dan werkt
+rechtsklikken niet meer). Het blijft staan als je "Bureaublad weergeven" gebruikt.
+
+**Fullscreen dashboard** (**Ctrl+Alt+F**, of menu *Fullscreen dashboard*): één dicht overzicht van alles op een heel scherm
+(kiesbaar welk). Klik op een tegel voor de diepgaande weergave (grafiek tot 1 uur, min/gemiddeld/max, per kern, per GPU
+met VRAM, per adapter, per schijf, top-programma's, systeeminfo); **Esc** gaat terug en sluit vanuit het overzicht.
+Toets **1/2/3** kiest de grafiek: 1 min / 5 min / 1 uur.
+
+**Specificaties** (knop bovenin of toets **I**): één pagina met alle hardware en systeeminfo — computer, hoofdbord en BIOS, Windows,
+processor (kernen/threads, klokken, cache, instructiesets), videokaarten (driver, VRAM, uitvoer), geheugenmodules (type, snelheid,
+fabrikant), schijven (type, gezondheid, firmware) en volumes, beeldschermen (formaat, verversing), netwerkadapters, batterij (slijtage,
+laadcycli), beveiliging (Secure Boot, TPM), geluid, invoerapparaten, Bluetooth en USB-apparaten. Scrollen met het muiswiel.
+
+![Fullscreen specificaties](docs/screenshots/fullscreen-specs.png)
+
+**Automatische tour**: klik 3× op een lege plek in het fullscreen-scherm (of druk op de spatiebalk) en het scherm loopt alle pagina's af
+(overzicht, elk detail, specificaties). De tijd per pagina (standaard 10 s) stel je in via het menu (*Fullscreen-tour*) of in
+Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
+
+**Ping**: zet *Ping (latency)* aan bij Instellingen → *Widget*; het widget toont dan bijvoorbeeld `PING 12 ms` (oranje vanaf 100 ms, rood vanaf 250 ms of bij geen antwoord). Het doel (standaard 1.1.1.1) is instelbaar. In de tooltip en de netwerk-details van het fullscreen-scherm staan min/gemiddeld/max, jitter en pakketverlies over de laatste ~2 minuten.
+
+![Widget met ping en temperaturen](docs/screenshots/widget-ping.png)
+
+**Temperatuur-weergave**: CPU- en GPU-temperatuur kun je (Instellingen → *Widget* → *Weergave*) als cijfer, meter of balk tonen, of — smaller — klein achter de CPU-/GPU-cel zetten (*Temperatuur klein achter de CPU-/GPU-cel*), bijvoorbeeld `CPU 33%  55°`. Ook dit zit in thema's.
+
+![Temperatuur als cijfer, meter, balk of samengevoegd](docs/screenshots/widget-temperatuur.png)
+
+**Waardeopmaak** (Instellingen → *Widget* → *Waarden*, alleen het widget): netwerksnelheid in bytes (MB/s) of bits (Mb/s), automatische of vaste eenheid (KB/s of MB/s), korte waarden, eenheid of %-teken weglaten, upload en download omwisselen, en het geheugen als percentage, gebruikt (GB) of beschikbaar (GB).
+
+**Schijf lezen/schrijven als pijlen**: bij Instellingen → *Widget* → *Waarden* kies je *Schijf lezen/schrijven tonen als* `R / W` of pijlen (↓ lezen, ↑ schrijven); het geldt voor het widget, de tooltip, het dashboard en het fullscreen-scherm.
+
+**Draaiende processen** en **FPS** (Instellingen → *Widget* → *Onderdelen*): het aantal processen als `PROC 250`, of alleen de *apps* (processen met een zichtbaar venster, zoals Apps in Taakbeheer), alleen de *achtergrondprocessen* of beide (`APPS/BG 5/245`); dat kies je bij *Waarden*. De tooltip toont ook het aantal threads, en de systeemtegel van het dashboard en de fullscreen-pagina *Systeem* tonen de aantallen. **FPS (experimenteel)** meet de framerate van het programma op de voorgrond, zoals PresentMon: een ETW-sessie luistert naar de Present-gebeurtenissen van DirectX (DXGI/D3D9, met DxgKrnl voor onder andere Vulkan) en telt ze per proces (alleen proces-id en tijdstip, geen inhoud). Het staat standaard uit, heeft administratorrechten nodig, kost een beetje processor zolang het aan staat, en toont alleen een waarde zolang een programma beelden tekent (games, videospelers, browsers); de tooltip noemt ook de 1%-low en het programma.
+
+**Extra onderdelen** voor het widget: CPU-klokfrequentie, schijf actief (%), schijftemperatuur en hoofdbordtemperatuur. De laatste twee lezen sensoren via LibreHardwareMonitor (administrator nodig) en verdwijnen vanzelf als er geen waarde is.
+
+**Grafiek als weergavestijl** (lengte zeer kort, kort, middel, lang of zelf in te stellen in pixels; periode 30/60/120 s): CPU, GPU, geheugen, temperaturen, netwerk (download en upload als twee lijnen, schaal automatisch of vast) en ping kunnen als mini-geschiedenisgrafiek in het widget (laatste 30, 60 of 120 seconden). Ontbrekende pings (geen antwoord) onderbreken de lijn met een rode punt.
+
+![Widget met de nieuwe onderdelen, grafieken en opmaak](docs/screenshots/widget-nieuw.png)
+
+![Grafiek in vier lengtes: zeer kort, kort, middel, lang](docs/screenshots/widget-grafieklengte.png)
+
+**Lengte per grafiek**: elke grafiek in het widget kan een eigen lengte hebben, bijvoorbeeld het netwerk breed, de CPU zeer kort en het geheugen op 100 px. Bij Instellingen → *Widget* → *Geavanceerd* → *Grafieklengte per onderdeel* kies je per onderdeel *Standaard* (volgt de algemene lengte), *Zeer kort*, *Kort*, *Middel*, *Lang* of *Aangepast* met een eigen breedte van 16 tot 160 px. De keuze hoort bij het thema en wordt direct bewaard.
+
+![Elke grafiek een eigen lengte: netwerk 140 px, ping standaard, CPU zeer kort, GPU lang, geheugen 100 px, temperaturen kort en standaard](docs/screenshots/widget-grafieklengte-per-onderdeel.png)
+
+**Achtergrondafbeelding**: kies per venster (widget, dashboard en fullscreen; Instellingen, tabbladen *Widget*, *Dashboard* en *Fullscreen*) een png/jpg/bmp met modus *Vullen*, *Uitgerekt*, *Passen*, *Tegelen* of *Gecentreerd* en een dekking van 0–100%. De afbeelding komt onder de tekst en tegels; ontbreekt het bestand, dan geldt de gewone achtergrond. Paden horen niet bij thema's.
+
+![Widget met achtergrondafbeelding](docs/screenshots/widget-achtergrond.png)
+
+**Windows-thema volgen** (widget, Instellingen → *Kleuren*): *Donker/licht* kiest een donkere of lichte achtergrond met automatisch leesbare tekst; *Donker/licht + accent* gebruikt ook de accentkleur van Windows voor meters en balken. Het wisselen van het Windows-thema wordt direct gevolgd.
+
+**Muisacties en klik-door** (Instellingen → *Algemeen*): kies wat een dubbelklik en de middelste muisknop doen (Taakbeheer, dashboard, fullscreen, instellingen, verbruikslog, kopieer info, menu of niets). **Ctrl+Alt+W** (of het pictogram bij de klok) laat klikken door het widget heen vallen.
+
+**Meer meldingen**: drempels voor CPU-, GPU- en schijftemperatuur, geheugengebruik en netwerkverbruik per dag (0 = uit).
+
+**Updatecontrole** (optioneel, standaard uit): hoogstens 1× per 24 uur wordt via GitHub gekeken of er een nieuwere versie is; dat wordt alleen gemeld (menu-item en melding), er wordt nooit iets gedownload of geïnstalleerd.
+
+**Sensoren** (LibreHardwareMonitor, alleen actief zolang het fullscreen-scherm open is): CPU-vermogen, -temperaturen en -klokken,
+GPU-temperatuur/-vermogen/-klok/-ventilator per kaart, schijftemperatuur en -gezondheid (SMART), hoofdbord en ventilatoren,
+geheugen en batterij. Voor CPU, hoofdbord en schijven zijn administrator-rechten nodig (de app vraagt die al); zonder
+die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen, batterij) en een korte uitleg.
+
+**Dashboard en Fullscreen hebben dezelfde opbouw** met drie subtabs: *Venster*, *Onderdelen en indeling* (met een miniatuur van de indeling; het dashboard heeft daar ook het aantal kolommen) en *Achtergrond*. Het tabblad Widget noemt zijn eerste subtab ook *Onderdelen en indeling*.
+
+**Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
+
+**Talen**: de app is beschikbaar in het Nederlands, Engels en Duits; bij een eerste start volgt hij de taal van Windows als die beschikbaar is (ook regiotalen zoals `pt-br`, die `pt` aanvullen). Teksten staan niet in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een leeg veld betekent "nog niet vertaald" en toont Engels. Het hulpprogramma `tools\LangTool` leest de code echt (Roslyn) en **controleert bij elke build** of alles klopt: een fout in een taalbestand laat de build mislukken, ontbrekende vertalingen zijn waarschuwingen.
+
+Een taal toevoegen (bijvoorbeeld Frans):
+
+```
+dotnet run --project tools\LangTool -c Release -- new fr "Français" --culture fr-FR
+```
+
+1. Dat maakt `lang/fr.json` met alle teksten leeg. Vul de waarden rechts in; de sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
+2. Meervoud (`"{0} day|{0} days"`): geef evenveel vormen, gescheiden door `|`, als de regel `_plural` van je taal vraagt (`one-other` is standaard; `zero-or-one-other` voor Frans en Braziliaans Portugees, `one-few-many-other` voor Pools en Russisch, `other` voor Japans en Chinees).
+3. Controleren: `dotnet run --project tools\LangTool -c Release -- check` (fouten: kapotte plaatsaanduidingen, dubbele sleutels, verkeerd aantal meervoudsvormen, spaties aan begin of eind die niet overeenkomen). `status` toont hoeveel procent per taal af is.
+4. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
+5. Wil je zien wat er nog niet vertaald is of te lang uitvalt? Start de app met de omgevingsvariabele `TASKBARSTATS_PSEUDO=1` en kies de taal *Pseudo (test)*: elke tekst verschijnt dan met accenten en 30% langer tussen haken, dus niet-vertaalde of afgeknipte tekst valt meteen op.
+6. Deel je vertaling via een pull request (`lang/fr.json`).
+
+Voor wie de code aanpast: gebruik alleen `Loc.T("vaste tekst")`, `Loc.T("tekst {0}", waarde)` en `Loc.P("{0} dag|{0} dagen", n)`; draai daarna `LangTool sync` (zet nieuwe teksten klaar in alle talen) en vertaal de lege waarden. Een Engelse tekst wijzigen: `LangTool rename "oud" "nieuw"` (past code en alle taalbestanden aan). `LangTool` meldt ook teksten die vast in de code staan.
+
+**Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het. Bij Instellingen → *Thema's* zie je van het gekozen thema de **JSON in een editor**: pas hem met de hand aan en kies *JSON opslaan* (bij een fout in de JSON krijg je een melding met regel en positie). Ook een meegeleverd thema kun je zo aanpassen: het wordt dan als eigen bestand met dezelfde naam op schijf bewaard en gaat voor het meegeleverde (*meegeleverd, aangepast*); *Origineel herstellen* verwijdert dat bestand weer. Met *Voorbeeld (10 s)* zie je het gekozen thema (of de JSON in de editor, ook als je die nog niet hebt opgeslagen) 10 seconden lang op het widget, dashboard en fullscreen; Tijdens het voorbeeld lopen de waarden op en neer (van laag tot waarschuwing en kritiek) en wisselt de weergave elke 2 s: eerst het thema zelf, dan cijfers, meter, balk en grafiek, zodat je in één keer ziet hoe het thema er in alle stijlen uitziet (er komen dan geen meldingen). Daarna komt automatisch alles terug zoals het was (nogmaals klikken stopt eerder).
+
+Alles wat je kopieert of exporteert (info naar het klembord, systeeminformatie, diagnose, exportbestanden van thema's, instellingen en het verbruik-CSV) vermeldt het programma met de link naar deze pagina, zodat de ontvanger weet waar het vandaan komt; in de JSON-bestanden staat dat als veld `_generator` dat bij importeren wordt genegeerd.
+
+**Systeeminformatie kopiëren**: op de specificatiepagina van het fullscreen-scherm (toets I) staat een knop *Alles kopiëren* (of toets C), en in het rechtermuisknopmenu *Systeeminformatie kopiëren*: alle specificaties (computer, besturingssysteem, processor, geheugen, videokaart, schijven, netwerk, …) als platte tekst op het klembord, handig voor een supportvraag of forumpost.
+
+**Netwerkschijven** (gekoppelde stations) neem je mee via instellingen → *Widget* → *Bronnen* → *Netwerkschijven meenemen* (ook in dashboard en fullscreen); ze worden op de
+achtergrond opgevraagd, zodat een onbereikbare share de app niet vertraagt. Omdat de app als administrator draait en Windows dan de stationsletters van
+je gewone sessie niet ziet, leest de app de koppelingen uit het register (`HKCU\Network`) en vraagt de ruimte op via het UNC-pad.
+
+## Instellingen
+
+Opgeslagen in `%AppData%\TaskbarStats\settings.json` (overleeft herbouw en
+herinstallatie). Wijzigingen in de instellingen worden direct bewaard. Ook handmatig aan te
+passen: `FontFamily`, `FontSize`, `WidgetHeight`, `TrayGap`, kleuren en drempels.
+
+**Back-up en portable**: bij Instellingen → *Algemeen* → *Backup* exporteer je alle instellingen naar één JSON-bestand, importeer je ze weer (bijvoorbeeld op een andere pc) of zet je alles terug naar de standaardwaarden (thema's en het verbruikslog blijven). Voor **portable gebruik** (bijvoorbeeld op een USB-stick) maak je een leeg bestand `portable.txt` naast `TaskbarStats.exe`: instellingen, thema's, taalbestanden en logs staan dan in de map `data` daarnaast en er wordt niets in `%AppData%` geschreven.
+
+**Als er iets misgaat**: fouten worden vastgelegd in `diag.log` in de gegevensmap (alleen op je eigen pc, er wordt niets verstuurd). Een fout in een timer of tekenroutine laat de app doordraaien; een fatale fout op een achtergrondthread start de app één keer opnieuw op. In *Over TaskbarStats* kopieert de knop *Kopieer diagnose* versie, Windows, schermen en de laatste logregels (zonder gebruikers- of computernaam) om in een bugmelding te plakken. **Crashmelding**: is de app de vorige keer gecrasht, dan meldt hij dat bij de volgende start met een ballonmelding (klik erop voor het Over-scherm met *Kopieer diagnose*). Een crash wordt herkend aan de vlag van het foutvangnet, of bij een harde crash aan een "Application Error" in het Windows-gebeurtenislogboek (met de foutcode in `diag.log`). Afsluiten via Taakbeheer of stroomuitval wordt alleen in het logboek gezet, niet als crash gemeld. Start je de app een tweede keer, dan opent de draaiende app zijn instellingen.
+
+## Transparante achtergrond
+
+Het venster is een *layered window* met per-pixel alpha. Bij "transparant" wordt de
+achtergrond met alpha 1 getekend: onzichtbaar, maar nog steeds klikbaar. (Een
+`TransparencyKey` liet klikken op de doorzichtige delen door naar het venster eronder,
+waardoor het rechtermuisknop-menu soms niet verscheen.)
+
+## Administrator-rechten
+
+De app vraagt om administrator-rechten (via `app.manifest`). Dat is nodig voor de
+temperatuur-sensoren (LibreHardwareMonitorLib). Heb je die niet nodig, dan mag je in
+`app.manifest` `requestedExecutionLevel` op `asInvoker` zetten; temperatuur werkt dan niet.
+
+## Automatisch starten met Windows
+
+Gebruik "Met Windows meestarten" in de instellingen (tab Algemeen), of de optie in de installer. Dit maakt een
+geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding komt.
+
+## Code-overzicht
+
+| Bestand | Rol |
+|---------|-----|
+| `src/Program.cs` | Startpunt, single-instance mutex, `--autostart-on/off` voor de installer. |
+| `src/WidgetForm.cs` | Het taakbalk-widget: tekenen naar een ARGB-bitmap (`UpdateLayeredWindow`), muis, menu, tooltip, meldingen, sneltoetsen, sampler-thread. |
+| `src/Metrics.cs` | Prestatietellers (PDH-wildcard voor GPU), geheugen, batterij, temperatuur, DXGI-GPU-namen. |
+| `src/DashboardForm.cs` | Bureaublad-dashboard + `MetricHistory`/`Ring` (grafiekgeschiedenis) en `DashContext`. |
+| `src/FullscreenForm.cs` | Fullscreen "cockpit": dicht overzicht, detailweergaven per tegel, specificatiepagina en automatische tour. |
+| `src/HardwareInfo.cs` | Hardware-inventaris (WMI e.d.), eenmalig asynchroon verzameld voor de specificatiepagina. |
+| `src/PingMonitor.cs` | Ping-meting op een eigen thread (laatste, min/gem/max, jitter, verlies). |
+| `src/UsageTracker.cs` | Netwerkverbruik per adapter en per dag (`usage.json`), thread-veilig. |
+| `src/ProcessSampler.cs` | Zwaarste processen (asynchroon bemonsterd). |
+| `src/AppSettings.cs` | Instellingen (JSON). |
+| `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak/de taakbalk. |
+| `src/StartupManager.cs` | Autostart via een geplande taak (hoogste rechten). |
+| `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Instellingenvenster met tabbladen (live toegepast), thema's (meegeleverd + eigen JSON-bestanden), onderdelen-ids/volgorde. |
+| `src/LogForm.cs` | Venster met het verbruikslog. |
+| `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
+| `src/Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text")`, `Loc.P` (meervoud) met per taal een JSON-bestand (zie *Talen*). |
+| `tools/LangTool` | Controleert, synchroniseert en hernoemt de taalteksten (Roslyn); draait bij elke build. |
+| `src/Diag.cs`, `src/AppPaths.cs` | Logbestand, crashvangnet, diagnose-rapport; waar de gegevens staan (`%AppData%`, `TASKBARSTATS_DATA` of portable). |
+| `tests/TaskbarStats.Tests` | Automatische tests (xUnit); `dotnet test tests\TaskbarStats.Tests -c Release`. |
+
+## Prestaties en threads
+
+De UI-thread doet alleen tekenen en menu's; het zware werk zit elders:
+
+- Een **sampler-thread** leest de metingen (`Metrics.Update`) en houdt het verbruik bij (`UsageTracker.Sample`);
+  de UI tekent met de laatste waarden. Gedeelde gegevens zijn thread-veilig (vergrendeld of atomair vervangen).
+- **GPU, netwerk en CPU-cores** gaan via één PDH-query met jokerteken per teller (bv. `\GPU Engine(*)\Utilization Percentage`), niet via
+  losse `PerformanceCounter`-objecten (GPU kostte 150–780 ms per tik; het netwerk ging van ~39 naar ~7 ms).
+- **Zuinig**: bij een verborgen widget zonder dashboard/fullscreen wordt maar om de 5 s gemeten, het verbruik wordt om de 5 s bijgewerkt, de werkset wordt regelmatig teruggegeven aan Windows en de runtime draait zonder extra GC-thread. Gemeten in rust: ~2% van één kern en ~60 MB werkset (was ~2–5% en ~93 MB).
+- Het widget staat niet elke 200 ms opnieuw bovenop (`SetWindowPos` op een venster van de taakbalk kan 100+ ms blokkeren);
+  dat gebeurt alleen als er echt een ander zichtbaar topmost-venster overheen staat.
+- Programma's bemonsteren (`ProcessSampler.SampleAsync`) en netwerkschijven (`DriveInfo`) draaien op de achtergrond.
+
+## Licentie en credits
+
+MIT-licentie (zie [LICENSE](LICENSE)): je mag TaskbarStats vrij gebruiken, aanpassen en delen,
+ook voor eigen projecten. De enige voorwaarde is dat de copyrightregel en de licentietekst
+behouden blijven — laat dus graag de credits staan. Bedankt!
+
+Het programma gebruikt LibreHardwareMonitorLib (MPL-2.0), HidSharp (Apache-2.0) en .NET (MIT);
+die vallen onder hun eigen licenties.

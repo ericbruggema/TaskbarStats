@@ -51,6 +51,53 @@ public static class HardwareInfo
         t.Start();
     }
 
+    /// <summary>Alle specificaties als platte tekst (kop met versie en tijdstip, dan per blok een titel en "sleutel: waarde"-regels).</summary>
+    public static string ToText(IReadOnlyList<SpecBlock> blocks, DateTime? now = null)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("TaskbarStats ").Append(AboutForm.Version).Append(" - ").Append((now ?? DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append("\r\n");
+        foreach (var b in blocks)
+        {
+            sb.Append("\r\n== ").Append(b.Title).Append(" ==\r\n");
+            foreach (var r in b.Rows)
+            {
+                string v;
+                try { v = r.Value(); } catch (Exception dex) { Diag.Swallow(dex); v = ""; }
+                sb.Append(string.IsNullOrEmpty(r.Key) ? v : r.Key + ": " + v).Append("\r\n");
+            }
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Zet alle specificaties op het klembord. De gegevens komen uit de cache of worden (zonder de UI-thread te blokkeren) verzameld;
+    /// <paramref name="done"/> (op de UI-thread) meldt of het gelukt is.
+    /// </summary>
+    public static void CopyToClipboard(Metrics metrics, Control ui, Action<bool>? done = null)
+    {
+        Task.Run(() =>
+        {
+            IReadOnlyList<SpecBlock> blocks = _blocks;
+            if (blocks.Count == 0)
+            {
+                try { var list = Collect(metrics); if (list.Count > 0) { _blocks = list; _loadedAt = Environment.TickCount64; blocks = list; } }
+                catch (Exception dex) { Diag.Swallow(dex); }
+            }
+            string text = blocks.Count == 0 ? "" : ToText(blocks);
+            try
+            {
+                ui.BeginInvoke(new Action(() =>
+                {
+                    bool ok = false;
+                    if (text.Length > 0)
+                        try { Clipboard.SetText(text); ok = true; } catch (Exception dex) { Diag.Swallow(dex); /* klembord kan tijdelijk bezet zijn */ }
+                    done?.Invoke(ok);
+                }));
+            }
+            catch (Exception dex) { Diag.Swallow(dex); /* venster is al gesloten */ }
+        });
+    }
+
     // ---------- WMI-hulpjes ----------
     private const string Cim = @"root\CIMV2";
 

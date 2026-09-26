@@ -750,17 +750,23 @@ public sealed partial class SettingsForm : Form
         var right = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, Margin = new Padding(0, 4, 0, 0) };
         grid.Controls.Add(right, 1, 1);
 
-        var entries = new List<(ThemeData t, bool builtIn, string? file)>();
-        var preview = new Panel { Width = 360, Height = 150, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 10, 0, 0) };
-        var previewText = new Label { AutoSize = false, Width = 340, Height = 64, Location = new Point(8, 84) };
-        var swatches = new FlowLayoutPanel { Location = new Point(8, 8), Size = new Size(340, 70), WrapContents = true };
+        var entries = new List<(ThemeData t, bool builtIn, bool edited, string? file)>();
+        var preview = new Panel { Width = 360, Height = 104, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 10, 0, 0) };
+        var previewText = new Label { AutoSize = false, Width = 340, Height = 64, Location = new Point(8, 46) };
+        var swatches = new FlowLayoutPanel { Location = new Point(8, 6), Size = new Size(340, 38), WrapContents = true };
         preview.Controls.Add(swatches);
         preview.Controls.Add(previewText);
+
+        var json = new TextBox
+        {
+            Multiline = true, AcceptsReturn = true, WordWrap = false, ScrollBars = ScrollBars.Both,
+            Font = new Font("Consolas", 9f), Width = 380, Height = 230, Margin = new Padding(0, 4, 0, 0),
+        };
 
         void showPreview()
         {
             swatches.Controls.Clear();
-            if (list.SelectedIndex < 0 || list.SelectedIndex >= entries.Count) { previewText.Text = ""; return; }
+            if (list.SelectedIndex < 0 || list.SelectedIndex >= entries.Count) { previewText.Text = ""; json.Text = ""; return; }
             var t = entries[list.SelectedIndex].t;
             foreach (var (name, hex) in new[]
             {
@@ -775,6 +781,7 @@ public sealed partial class SettingsForm : Form
             }
             string st(DisplayStyle d) => d switch { DisplayStyle.Gauge => Loc.T("Gauge"), DisplayStyle.Bar => Loc.T("Bar"), DisplayStyle.Graph => Loc.T("Graph"), _ => Loc.T("Digital") };
             var hidden = t.DashHidden is { Count: > 0 } h ? string.Join(", ", h.Select(Tiles.Name)) : Loc.T("none");
+            json.Text = ThemeStore.ToJson(t).Replace("\r\n", "\n").Replace("\n", "\r\n");
             previewText.Text = $"{t.FontFamily} {t.FontSize} pt · CPU {st(t.CpuStyle)} · {(t.Compact ? Loc.T("compact") : Loc.T("normal"))}\r\n"
                              + Loc.T("Dashboard: ") + t.DashColumns + Loc.T(" columns, off: ") + hidden;
         }
@@ -782,10 +789,9 @@ public sealed partial class SettingsForm : Form
         void reload(string? select = null)
         {
             entries.Clear();
-            foreach (var t in ThemeStore.BuiltIn()) entries.Add((t, true, null));
-            foreach (var t in ThemeStore.User(_c)) entries.Add((t, false, ThemeStore.FileFor(_c, t.Name)));
+            foreach (var e in ThemeStore.Entries(_c)) entries.Add((e.T, e.BuiltIn, e.Edited, e.File));
             list.Items.Clear();
-            foreach (var e in entries) list.Items.Add((e.builtIn ? ThemeStore.Label(e.t.Name) : e.t.Name) + (e.builtIn ? "   " + Loc.T("(built-in)") : ""));
+            foreach (var e in entries) list.Items.Add((e.builtIn ? ThemeStore.Label(e.t.Name) : e.t.Name) + (e.builtIn ? "   " + (e.edited ? Loc.T("(built-in, edited)") : Loc.T("(built-in)")) : ""));
             int i = select is null ? 0 : Math.Max(0, entries.FindIndex(e => e.t.Name == select));
             if (list.Items.Count > 0) list.SelectedIndex = i;
             showPreview();
@@ -868,8 +874,48 @@ public sealed partial class SettingsForm : Form
         });
         list.DoubleClick += (_, _) => applySelected();
 
+        // JSON-editor: het geselecteerde thema als tekst; opslaan schrijft een eigen bestand (ook voor een meegeleverd thema: dat blijft dan aangepast op schijf staan).
+        var jsonButtons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(380, 0) };
+        var save = Btn(Loc.T("Save JSON"), 116);
+        save.Click += (_, _) =>
+        {
+            if (list.SelectedIndex < 0) return;
+            var cur = entries[list.SelectedIndex];
+            ThemeData t;
+            try { t = ThemeStore.Parse(json.Text); }
+            catch (Exception jex) { MessageBox.Show(this, Loc.T("Not valid JSON: ") + jex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (string.IsNullOrWhiteSpace(t.Name)) t.Name = cur.t.Name;
+            t.Name = t.Name.Trim();
+            bool same = t.Name.Equals(cur.t.Name, StringComparison.OrdinalIgnoreCase);
+            if (!same && ThemeStore.IsBuiltInName(t.Name))
+            {
+                MessageBox.Show(this, Loc.T("That name belongs to a built-in theme. Choose another name."), Text);
+                return;
+            }
+            var file = ThemeStore.FileFor(_c, t.Name);
+            if (!same && File.Exists(file) && MessageBox.Show(this, Loc.T("Overwrite the existing theme?"), Text, MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            ThemeStore.Write(file, t);
+            // een hernoemd eigen thema verhuist naar het nieuwe bestand
+            if (!same && !cur.builtIn && cur.file is { } old && !old.Equals(file, StringComparison.OrdinalIgnoreCase))
+                try { File.Delete(old); } catch (Exception dex) { Diag.Swallow(dex); }
+            reload(t.Name);
+        };
+        jsonButtons.Controls.Add(save);
+        var reset = Btn(Loc.T("Reset to original"), 116);
+        reset.Click += (_, _) =>
+        {
+            if (list.SelectedIndex < 0 || entries[list.SelectedIndex] is not { builtIn: true, edited: true, file: { } f } cur) return;
+            if (MessageBox.Show(this, Loc.T("Restore the original built-in theme? Your changes to it are removed."), Text, MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            try { File.Delete(f); } catch (Exception dex) { Diag.Swallow(dex); }
+            reload(cur.t.Name);
+        };
+        jsonButtons.Controls.Add(reset);
+
         right.Controls.Add(buttons);
         right.Controls.Add(preview);
+        right.Controls.Add(Head(Loc.T("Theme file (JSON)")));
+        right.Controls.Add(jsonButtons);
+        right.Controls.Add(json);
         reload();
         return tab;
     }

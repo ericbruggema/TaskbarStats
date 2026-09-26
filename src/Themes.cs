@@ -257,6 +257,37 @@ public static class ThemeStore
         File.WriteAllText(path, JsonSerializer.Serialize(t, Opts));
     }
 
+    /// <summary>Eén regel in de themalijst: een meegeleverd thema (evt. overschreven door een eigen bestand met dezelfde naam) of een eigen thema.</summary>
+    public sealed record ThemeEntry(ThemeData T, bool BuiltIn, bool Edited, string? File);
+
+    /// <summary>
+    /// Alle thema's zoals de gebruiker ze ziet: de meegeleverde (vervangen door een eigen bestand met dezelfde naam, want aangepaste
+    /// standaardthema's worden op schijf bewaard) gevolgd door de overige eigen thema's.
+    /// </summary>
+    public static List<ThemeEntry> Entries(AppSettings c)
+    {
+        var mine = User(c);
+        var res = new List<ThemeEntry>();
+        foreach (var b in BuiltIn())
+        {
+            var over = mine.FirstOrDefault(m => m.Name.Equals(b.Name, StringComparison.OrdinalIgnoreCase));
+            if (over is not null) { over.Name = b.Name; res.Add(new ThemeEntry(over, true, true, FileFor(c, b.Name))); }
+            else res.Add(new ThemeEntry(b, true, false, null));
+        }
+        foreach (var m in mine)
+            if (!IsBuiltInName(m.Name)) res.Add(new ThemeEntry(m, false, false, FileFor(c, m.Name)));
+        return res;
+    }
+
+    public static bool IsBuiltInName(string name) => BuiltIn().Any(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>De JSON zoals die in de editor komt te staan.</summary>
+    public static string ToJson(ThemeData t) => JsonSerializer.Serialize(t, Opts);
+
+    /// <summary>Leest een thema uit JSON-tekst; een fout komt als <see cref="JsonException"/> (met regel en positie) naar boven.</summary>
+    public static ThemeData Parse(string json)
+        => JsonSerializer.Deserialize<ThemeData>(json, Opts) ?? throw new JsonException("empty");
+
     public static string FileFor(AppSettings c, string name)
     {
         var invalid = Path.GetInvalidFileNameChars();

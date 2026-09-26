@@ -1041,10 +1041,10 @@ public sealed partial class WidgetForm : Form
             it.Click += (_, _) => { t.ApplyTo(_cfg); ApplyAll(); };
             themes.DropDownItems.Add(it);
         }
-        foreach (var t in ThemeStore.BuiltIn()) addTheme(t, true);
-        var mine = ThemeStore.User(_cfg);
-        if (mine.Count > 0) themes.DropDownItems.Add(new ToolStripSeparator());
-        foreach (var t in mine) addTheme(t, false);
+        var all = ThemeStore.Entries(_cfg);
+        foreach (var e in all.Where(e => e.BuiltIn)) addTheme(e.T, true);
+        if (all.Any(e => !e.BuiltIn)) themes.DropDownItems.Add(new ToolStripSeparator());
+        foreach (var e in all.Where(e => !e.BuiltIn)) addTheme(e.T, false);
         menu.Items.Add(themes);
 
         menu.Items.Add(new ToolStripSeparator());
@@ -1062,6 +1062,10 @@ public sealed partial class WidgetForm : Form
         var copy = new ToolStripMenuItem(Loc.T("Copy info to clipboard")) { Tag = "close" };
         copy.Click += (_, _) => CopyInfo();
         menu.Items.Add(copy);
+
+        var copySys = new ToolStripMenuItem(Loc.T("Copy system information")) { Tag = "close" };
+        copySys.Click += (_, _) => HardwareInfo.CopyToClipboard(_metrics, this, ok => _tip.Show(ok ? Loc.T("✔ Copied to clipboard") : Loc.T("System information is not available yet"), this, 0, -Height, 1500));
+        menu.Items.Add(copySys);
 
         var readme = new ToolStripMenuItem(Loc.T("Readme and credits")) { Tag = "close" };
         readme.Click += (_, _) =>

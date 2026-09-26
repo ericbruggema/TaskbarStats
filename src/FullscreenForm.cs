@@ -73,6 +73,7 @@ public sealed partial class FullscreenForm : Form
                 if (_view.Detail is not null) _view.Detail = null; else Close();
                 break;
             case Keys.I: if (_view.Detail is null) OpenSpecs(); break;
+            case Keys.C: if (_view.Detail == "spec") CopySpecs(); break;
             case Keys.D1: _view.Win = 60; break;
             case Keys.D2: _view.Win = 300; break;
             case Keys.D3: _view.Win = 3600; break;
@@ -122,6 +123,9 @@ public sealed partial class FullscreenForm : Form
             _view.SpecScroll = _view.SpecMax * Math.Clamp((Environment.TickCount64 - _view.TourAt - 800) / Math.Max(1f, tourMs - 2000f), 0f, 1f);
     }
 
+    private void CopySpecs()
+        => HardwareInfo.CopyToClipboard(_c.Metrics, this, ok => { _view.CopiedAt = ok ? Environment.TickCount64 : 0; Invalidate(); });
+
     private void OpenSpecs()
     {
         _view.Detail = "spec";
@@ -165,6 +169,7 @@ public sealed partial class FullscreenForm : Form
         if (e.Button != MouseButtons.Left || hover is null) return;
         if (hover.StartsWith('w')) { _view.Win = int.Parse(hover[1..]); }
         else if (hover == "back") _view.Detail = null;
+        else if (hover == "copyspecs") CopySpecs();
         else if (hover == "spec" && _view.Detail is null) OpenSpecs();
         else if (_view.Detail is null) _view.Detail = hover == "bat" ? "sys" : hover;
         Invalidate();

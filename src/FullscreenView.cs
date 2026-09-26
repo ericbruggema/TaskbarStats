@@ -10,6 +10,8 @@ public sealed record SpecData(IReadOnlyList<SpecBlock> Blocks, bool Loading, str
 /// </summary>
 public sealed class FullscreenView
 {
+    /// <summary>Tijdstip (Ticks) waarop de specificaties naar het klembord zijn gekopieerd; 0 = nog niet (voor de bevestiging op de knop).</summary>
+    public long CopiedAt { get; set; }
     /// <summary>null = overzicht, anders "cpu", "gpu", "mem", "net", "disk", "sys", "proc" of "spec".</summary>
     public string? Detail { get; set; }
     /// <summary>Sleutel van het klikbare vlak onder de muis (voor de markering).</summary>

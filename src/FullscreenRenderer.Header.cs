@@ -25,6 +25,15 @@ public sealed partial class FullscreenRenderer
             using (var path = Rounded(back, 10))
                 g.FillPath(GdiCache.Brush(Color.FromArgb(hot ? 50 : 26, 255, 255, 255)), path);
             T(g, "←  " + Loc.T("Back (Esc)"), _fb, TextCol, M + 16, 23);
+            if (_v.Detail == "spec")
+            {
+                var copy = new RectangleF(M + 246, 12, 300, 40);
+                _hits.Add(("copyspecs", copy));
+                bool done = _v.CopiedAt != 0 && Ticks() - _v.CopiedAt < 2500;
+                using (var path = Rounded(copy, 10))
+                    g.FillPath(GdiCache.Brush(done ? Color.FromArgb(180, Accent) : Color.FromArgb(_v.Hover == "copyspecs" ? 50 : 26, 255, 255, 255)), path);
+                TC(g, done ? Loc.T("✔ Copied to clipboard") : Loc.T("Copy all  (C)"), _fb, TextCol, copy.X + copy.Width / 2, copy.Y + copy.Height / 2);
+            }
         }
 
         TC(g, Now().ToString("HH:mm:ss"), _fbig, TextCol, CW / 2 - 60, 34);

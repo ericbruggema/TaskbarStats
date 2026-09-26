@@ -28,7 +28,8 @@ BEDIENING
                   verbruik van vandaag, schijven en vrije ruimte.
 - Dubbelklik    : opent Taakbeheer.
 - Middelste muisknop: kopieert alle tooltip-informatie naar het klembord
-                  (ook via het menu: "Kopieer info naar klembord").
+                  (ook via het menu: "Kopieer info naar klembord"; "Systeeminformatie
+                  kopieren" zet alle specificaties op het klembord).
 
 WAT KAN JE INSTELLEN (rechtermuisknop > Instellingen)
 - Onderdelen    : CPU, GPU, geheugen, batterij (alleen op laptops),

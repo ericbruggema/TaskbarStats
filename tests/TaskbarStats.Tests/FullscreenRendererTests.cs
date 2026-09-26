@@ -279,6 +279,21 @@ public class FullscreenRendererTests : IDisposable
         });
 
     [Fact]
+    public void Specificatiepagina_heeft_een_kopieerknop_en_toont_de_bevestiging()
+        => UiThread.Run(() =>
+        {
+            using var rig = MakeRig(specs: SpecBlocks(3));
+            var snap = Snap();
+            Render(rig, snap);
+            Assert.DoesNotContain(rig.R.Hits, h => h.key == "copyspecs");   // alleen op de specificatiepagina
+            rig.V.Detail = "spec";
+            string plain = Render(rig, snap);
+            Assert.Contains(rig.R.Hits, h => h.key == "copyspecs");
+            rig.V.CopiedAt = rig.R.Ticks();
+            Assert.NotEqual(plain, Render(rig, snap));   // "Gekopieerd" op de knop
+        });
+
+    [Fact]
     public void Specificatiepagina_scrolt_en_geeft_de_maximale_scrollstand_terug()
         => UiThread.Run(() =>
         {

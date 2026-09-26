@@ -1,0 +1,32 @@
+name: Installer (handmatig)
+
+# Bouwt de installer en bewaart hem als artifact. Publiceert niets: een release blijft een bewuste handeling.
+on:
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish (self-contained, één bestand)
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+      - name: Inno Setup installeren
+        run: choco install innosetup -y --no-progress
+      - name: Installer bouwen
+        run: '& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\TaskbarStats.iss'
+      - name: SHA-256
+        shell: pwsh
+        run: |
+          Get-ChildItem installer\Output\*.exe | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$($_.Name)  $h" | Tee-Object -FilePath "$($_.FullName).sha256.txt" -Append | Out-Host
+            "**$($_.Name)** SHA-256: ``$h``" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TaskbarStats-installer
+          path: installer/Output/*

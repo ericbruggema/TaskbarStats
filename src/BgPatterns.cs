@@ -12,7 +12,7 @@ public static class BgPatterns
 {
     public const string Prefix = "builtin:";
 
-    public static readonly string[] Names = { "matrix", "grid", "stars", "sunset", "waves", "scanlines", "hearts" };
+    public static readonly string[] Names = { "matrix", "grid", "stars", "sunset", "waves", "scanlines", "hearts", "forest" };
 
     public static string Path(string name) => Prefix + name;
 
@@ -40,6 +40,7 @@ public static class BgPatterns
             case "waves": Waves(g, w, h); break;
             case "scanlines": Scanlines(g, w, h); break;
             case "hearts": Hearts(g, w, h, rnd); break;
+            case "forest": Forest(g, w, h, rnd); break;
         }
         return bmp;
     }
@@ -156,17 +157,61 @@ public static class BgPatterns
         g.Clip = clip;
     }
 
+    // Dennenbos in lagen: ver weg licht en nevelig, vooraan donker; onderin mist en een paar vuurvliegjes.
+    private static void Forest(Graphics g, int w, int h, Random rnd)
+    {
+        using (var sky = new LinearGradientBrush(new Rectangle(0, 0, w, h + 1), Color.Transparent, Color.FromArgb(90, 102, 187, 106), 90f))
+            g.FillRectangle(sky, 0, 0, w, h);
+        var layers = new (float baseY, float treeH, Color c, int gap)[]
+        {
+            (0.66f, 0.30f, Color.FromArgb(70, 102, 187, 106), 34),
+            (0.76f, 0.38f, Color.FromArgb(120, 46, 125, 50), 44),
+            (0.88f, 0.46f, Color.FromArgb(175, 20, 70, 36), 58),
+            (1.02f, 0.58f, Color.FromArgb(225, 6, 22, 13), 82),
+        };
+        foreach (var (baseY, treeH, c, gap) in layers)
+        {
+            using var br = new SolidBrush(c);
+            float unit = h / 540f;
+            for (float x = -gap; x < w + gap; x += gap * unit * (0.7f + (float)rnd.NextDouble() * 0.7f))
+            {
+                float th = h * treeH * (0.7f + (float)rnd.NextDouble() * 0.5f), tw = th * 0.42f, by = h * baseY;
+                float trunkW = tw * 0.09f;
+                g.FillRectangle(br, x - trunkW / 2, by - th * 0.12f, trunkW, th * 0.14f);
+                const int tiers = 5;
+                for (int i = 0; i < tiers; i++)   // gestapelde driehoeken, breder naar beneden
+                {
+                    float top = by - th + th * 0.86f * i / tiers * 0.8f;
+                    float bottom = top + th * 0.30f;
+                    float half = tw / 2 * (0.35f + 0.65f * (i + 1) / tiers);
+                    g.FillPolygon(br, new[] { new PointF(x, top), new PointF(x + half, bottom), new PointF(x - half, bottom) });
+                }
+            }
+        }
+        using (var mist = new LinearGradientBrush(new Rectangle(0, (int)(h * 0.72), w, (int)(h * 0.3) + 1), Color.Transparent, Color.FromArgb(70, 200, 240, 210), 90f))
+            g.FillRectangle(mist, 0, h * 0.72f, w, h * 0.3f);
+        for (int i = 0; i < Math.Max(8, w / 60); i++)   // vuurvliegjes
+        {
+            float x = rnd.Next(w), y = h * (0.35f + (float)rnd.NextDouble() * 0.5f);
+            using var glow = new SolidBrush(Color.FromArgb(40, 255, 226, 110));
+            using var core = new SolidBrush(Color.FromArgb(220, 255, 240, 160));
+            g.FillEllipse(glow, x - 5, y - 5, 10, 10);
+            g.FillEllipse(core, x - 1.5f, y - 1.5f, 3, 3);
+        }
+    }
+
     private static void Hearts(Graphics g, int w, int h, Random rnd)
     {
-        int n = Math.Max(14, w * h / 30000);
+        int n = Math.Max(120, w * h / 3500);
         for (int i = 0; i < n; i++)
         {
-            float size = rnd.Next(14, 54), x = rnd.Next(w), y = rnd.Next(h);
+            double kind = rnd.NextDouble();   // veel kleine, wat middelgrote en een paar grote hartjes
+            float size = kind < 0.5 ? rnd.Next(8, 22) : kind < 0.85 ? rnd.Next(24, 50) : rnd.Next(60, 130), x = rnd.Next(w), y = rnd.Next(h);
             using var font = new Font("Segoe UI Symbol", size, FontStyle.Regular, GraphicsUnit.Pixel);
             var st = g.Save();
             g.TranslateTransform(x, y);
             g.RotateTransform(rnd.Next(-30, 30));
-            using var br = new SolidBrush(Color.FromArgb(rnd.Next(60, 150), 255, rnd.Next(60, 140), rnd.Next(120, 190)));
+            using var br = new SolidBrush(Color.FromArgb(rnd.Next(80, 190), 255, rnd.Next(60, 140), rnd.Next(120, 190)));
             g.DrawString("♥", font, br, 0, 0);
             g.Restore(st);
         }

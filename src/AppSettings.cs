@@ -164,7 +164,7 @@ public sealed partial class AppSettings
             try
             {
                 string tmp = FilePath + ".tmp";
-                File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
+                File.WriteAllText(tmp, ToJson());
                 File.Move(tmp, FilePath, true);
             }
             catch (Exception dex) { Diag.Swallow(dex); /* best-effort */ }

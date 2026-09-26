@@ -182,7 +182,7 @@ public static class ThemeStore
         },
         new ThemeData
         {
-            Name = "Love", Background = "hearts", BackgroundOpacity = 70, TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
+            Name = "Love", Background = "hearts", BackgroundOpacity = 85, TextColor = "#FFE4EE", BackgroundColor = "#2B0A1A", AccentColor = "#FF4D8D", WarnColor = "#FFB3C7",
             CritColor = "#FF1744", BorderColor = "#FF69B4", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
             FontFamily = "Segoe UI Semibold",
         },
@@ -229,7 +229,7 @@ public static class ThemeStore
         },
         new ThemeData
         {
-            Name = "Forest", TextColor = "#E8F5E9", BackgroundColor = "#10201A", AccentColor = "#66BB6A", WarnColor = "#FFCA28",
+            Name = "Forest", Background = "forest", BackgroundOpacity = 60, TextColor = "#E8F5E9", BackgroundColor = "#10201A", AccentColor = "#66BB6A", WarnColor = "#FFCA28",
             CritColor = "#EF5350", BorderColor = "#2E7D32", CpuStyle = DisplayStyle.Gauge, GpuStyle = DisplayStyle.Gauge, MemStyle = DisplayStyle.Gauge,
         },
         new ThemeData

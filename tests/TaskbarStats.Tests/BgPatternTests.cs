@@ -53,4 +53,33 @@ public class BgPatternTests
         Assert.Equal(@"C:\eigen\foto.png", c.DashBgImage);   // eigen afbeelding blijft
         Assert.Null(ThemeData.Capture(c, "x").Background);
     }
+
+    [Fact]
+    public void Feestthema_is_tijdelijk_en_het_bestand_houdt_het_eigen_uiterlijk()
+    {
+        Assert.Equal("Love", Seasonal.ThemeFor(new DateTime(2026, 2, 14)));
+        Assert.Null(Seasonal.ThemeFor(new DateTime(2026, 2, 15)));
+
+        var c = new AppSettings { AccentColor = "#123456", WidgetHeight = 40 };
+        var love = ThemeStore.BuiltIn().Single(t => t.Name == "Love");
+        Assert.True(c.BeginSeasonal(love));
+        Assert.False(c.BeginSeasonal(love));   // maar één keer
+        Assert.Equal(love.AccentColor, c.AccentColor);
+        Assert.Equal("builtin:hearts", c.DashBgImage);
+        c.FloatX = 777;   // een andere wijziging van vandaag blijft wel bewaard
+
+        var saved = AppSettings.TryParse(c.ToJson())!;
+        Assert.Equal("#123456", saved.AccentColor);
+        Assert.Null(saved.DashBgImage);
+        Assert.Equal(777, saved.FloatX);
+
+        Assert.True(c.EndSeasonal());
+        Assert.Equal("#123456", c.AccentColor);
+        Assert.Null(c.WidgetBgImage);
+        Assert.False(c.EndSeasonal());
+
+        c.BeginSeasonal(love);
+        c.ForgetSeasonal();   // een ander thema kiezen: het feestthema hoeft niet terug
+        Assert.Equal(love.AccentColor, AppSettings.TryParse(c.ToJson())!.AccentColor);
+    }
 }

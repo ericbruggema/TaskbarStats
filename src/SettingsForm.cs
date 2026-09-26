@@ -981,6 +981,7 @@ public sealed partial class SettingsForm : Form
         right.Controls.Add(Head(Loc.T("Theme file (JSON)")));
         right.Controls.Add(jsonButtons);
         right.Controls.Add(json);
+        right.Controls.Add(Check(Loc.T("Show the Love theme on 14 February (temporary, at start-up)"), _c.SeasonalThemes, v => _c.SeasonalThemes = v));
         reload();
         return tab;
     }

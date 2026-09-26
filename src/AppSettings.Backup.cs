@@ -19,7 +19,14 @@ public sealed partial class AppSettings
     }
 
     /// <summary>De instellingen als JSON-tekst (zoals in settings.json).</summary>
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOpts);
+    public string ToJson()
+    {
+        if (!SeasonalActive) return JsonSerializer.Serialize(this, JsonOpts);
+        // feestthema actief: bewaar het eigen uiterlijk (en alle andere wijzigingen van vandaag)
+        var copy = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, JsonOpts), JsonOpts)!;
+        RestoreOriginalInto(copy);
+        return JsonSerializer.Serialize(copy, JsonOpts);
+    }
 
     /// <summary>
     /// Neemt alle instellingen van <paramref name="other"/> over in dit object (het object zelf blijft bestaan, want widget,
@@ -27,6 +34,7 @@ public sealed partial class AppSettings
     /// </summary>
     public void CopyFrom(AppSettings other)
     {
+        ForgetSeasonal();
         foreach (var p in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (!p.CanRead || !p.CanWrite || p.SetMethod is not { IsPublic: true }) continue;

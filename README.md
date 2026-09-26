@@ -41,7 +41,9 @@ A 70-second tour of the widget, the settings, the dashboard and the fullscreen s
 ![Instellingen: algemeen](docs/screenshots/settings-general.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
-Sommige thema's hebben een eigen **achtergrond**, in code getekend (dus geen bestanden): Matrix (vallende tekens), Neon (raster), Sunset (zon), Ocean (golven), Love (hartjes), Dracula (sterren), Amber, CGA en Game Boy (beeldbuislijntjes). Het thema zet die op widget, dashboard en fullscreen tegelijk; een thema zonder achtergrond haalt zo'n patroon weer weg (je eigen afbeelding blijft staan). In de JSON van een thema staan `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines` of `hearts`) en `BackgroundOpacity` (5-100).
+Sommige thema's hebben een eigen **achtergrond**, in code getekend (dus geen bestanden): Matrix (vallende tekens), Neon (raster), Sunset (zon), Forest (dennenbos met vuurvliegjes), Ocean (golven), Love (hartjes, groot en klein), Dracula (sterren), Amber, CGA en Game Boy (beeldbuislijntjes). Het thema zet die op widget, dashboard en fullscreen tegelijk; een thema zonder achtergrond haalt zo'n patroon weer weg (je eigen afbeelding blijft staan). In de JSON van een thema staan `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines`, `hearts` of `forest`) en `BackgroundOpacity` (5-100).
+
+Op **14 februari** start het programma tijdelijk met het Love-thema (alleen in het geheugen: `settings.json` houdt je eigen uiterlijk, en zodra je Instellingen opent of zelf een thema kiest is het weer van jou). Uitzetten kan bij Instellingen → *Thema's* (*Toon het Love-thema op 14 februari*).
 
 ![Widgets met de achtergronden van de thema's](docs/screenshots/themes-achtergronden.png)
 

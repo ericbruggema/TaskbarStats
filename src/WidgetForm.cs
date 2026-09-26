@@ -179,6 +179,7 @@ public sealed partial class WidgetForm : Form
         if (!_cfg.WelcomeShown) BeginInvoke(new Action(ShowWelcome));
         SyncDashboard();
         ActionsOnShown();
+        StartSeasonal();
         ShowCrashNotice();
     }
 
@@ -551,6 +552,13 @@ public sealed partial class WidgetForm : Form
         Render();
     }
 
+    // Op 14 februari tijdelijk het Love-thema (alleen in het geheugen; settings.json houdt het eigen uiterlijk).
+    private void StartSeasonal()
+    {
+        if (!_cfg.SeasonalThemes || Seasonal.ThemeFor(Seasonal.Today()) is not { } name) return;
+        if (ThemeStore.Entries(_cfg).FirstOrDefault(e => e.T.Name == name)?.T is { } t && _cfg.BeginSeasonal(t)) ApplyAll();
+    }
+
     private void Nudge(int code)
     {
         if (code != 1) return;
@@ -702,6 +710,7 @@ public sealed partial class WidgetForm : Form
 
     private void ShowSettings()
     {
+        if (_cfg.EndSeasonal()) ApplyAll();   // wie de instellingen opent, wil zijn eigen uiterlijk bewerken
         if (_settings is { IsDisposed: false }) { _settings.WindowState = FormWindowState.Normal; _settings.Activate(); return; }
         _settings = new SettingsForm(_cfg, new SettingsHost
         {
@@ -1038,7 +1047,7 @@ public sealed partial class WidgetForm : Form
         void addTheme(ThemeData t, bool builtIn)
         {
             var it = new ToolStripMenuItem(builtIn ? ThemeStore.Label(t.Name) : t.Name) { Tag = "close" };
-            it.Click += (_, _) => { t.ApplyTo(_cfg); ApplyAll(); };
+            it.Click += (_, _) => { _cfg.ForgetSeasonal(); t.ApplyTo(_cfg); ApplyAll(); };
             themes.DropDownItems.Add(it);
         }
         var all = ThemeStore.Entries(_cfg);

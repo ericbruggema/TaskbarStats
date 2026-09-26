@@ -21,13 +21,37 @@ Four English demos of 45 to 60 seconds each. Download, install and run takes a f
 
 More documentation is listed in the [docs index](docs/README.md).
 
+## Voor gamers 🎮
+
+Maak van je taakbalk een gratis FPS-teller, of sleep het widget over je game en laat het bovenop zweven.
+
+![FPS, GPU-belasting en -temperatuur, CPU en ping zwevend over een game](docs/screenshots/gamers-overlay.png)
+
+- **FPS van de game die je speelt** — gemeten zoals PresentMon dat doet (Windows event tracing), voor het programma op de voorgrond. Werkt met DirectX-games (DXGI/D3D9) en browsers. *Experimenteel*: aanzetten in Instellingen → Widget → Waarden.
+- **Mini-overlay** — compact, labels boven, alleen FPS, GPU en CPU:
+
+![Mini-overlay over een game](docs/screenshots/gamers-mini.png)
+
+- **Klik-door** (Ctrl+Alt+W): het widget blijft zichtbaar, maar je muisklikken gaan rechtstreeks naar de game.
+- **Alles wat een gamer wil weten**: GPU-belasting, GPU- en CPU-temperatuur, ping, en een grafiek voor wie het lastig maakt.
+- **Kies een look die bij je pc past**: Neon voor de retro race-sfeer, Matrix voor hackers, Game Boy voor nostalgie, Amber en CGA als je de jaren 80 mist.
+
+![Tien thema's, allemaal met FPS](docs/screenshots/themes-fps.png)
+
+Bekijk het in actie: [For gamers (51 s, Engels)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/gamers-en.mp4).
+
+**Geen gamer?** Hetzelfde widget telt ook je processen (totaal, zichtbare apps, achtergrond of beide):
+
+![Processen: totaal, apps, achtergrond, beide](docs/screenshots/widget-processen.png)
+
 ## Screenshots
 
-**Taakbalk-widget** — cijfers, meters met per-core-balkjes en batterij, of compact met labels boven:
+**Taakbalk-widget** — cijfers, meters, balken of grafieken, met FPS en aantal processen naast CPU, GPU en geheugen:
 
 ![Widget met cijfers](docs/screenshots/widget-digital.png)
 ![Widget met meters](docs/screenshots/widget-gauges.png)
-![Compacte widget](docs/screenshots/widget-compact.png)
+![Vier weergavestijlen: cijfers, meters, balken, grafieken](docs/screenshots/widget-stijlen.png)
+![Compact widget](docs/screenshots/widget-compact.png)
 
 **Rechtermuisknop-menu** (kort, en blijft open terwijl je meerdere dingen kiest) en het **instellingenvenster** met tabbladen
 (uiterlijk, kleuren, dashboard, fullscreen, thema's) waarvan elke wijziging direct zichtbaar is:

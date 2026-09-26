@@ -21,14 +21,38 @@ Four English demos of 45 to 60 seconds each. Download, install and run takes a f
 
 More documentation is listed in the [docs index](docs/README.md).
 
+## For gamers 🎮
+
+Turn your taskbar into a free FPS counter, or drag the widget over your game and let it float on top.
+
+![FPS, GPU load and temperature, CPU and ping floating over a game](docs/screenshots/gamers-overlay.png)
+
+- **FPS of the game you are playing** — measured the same way PresentMon does (Windows event tracing), for the program in the foreground. Works with DirectX games (DXGI/D3D9) and browsers. *Experimental*: turn it on in Settings → Widget → Values.
+- **Tiny overlay mode** — compact, labels on top, just FPS, GPU and CPU:
+
+![Tiny overlay over a game](docs/screenshots/gamers-mini.png)
+
+- **Click-through** (Ctrl+Alt+W): the widget stays visible but your mouse clicks go straight to the game.
+- **Everything a gamer wants to know**: GPU load, GPU and CPU temperature, ping, and a graph for whichever one is misbehaving.
+- **Pick a look that fits your rig**: Neon for the retro racing vibe, Matrix for hackers, Game Boy for nostalgia, Amber and CGA if you miss the 80s.
+
+![Ten themes, all with FPS](docs/screenshots/themes-fps.png)
+
+Watch it in action: [For gamers (51 s)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/gamers-en.mp4).
+
+**Not a gamer?** The same widget also counts your processes (total, apps you can see, background, or both):
+
+![Processes: total, apps, background, both](docs/screenshots/widget-processen.png)
+
 ## Screenshots
 
 *Screenshots show the Dutch interface; the app also runs in English and German.*
 
-**Taskbar widget** — numbers, gauges with per-core bars and battery, or compact with labels on top:
+**Taskbar widget** — numbers, gauges, bars or graphs, with FPS and process count next to CPU, GPU and memory:
 
 ![Widget with numbers](docs/screenshots/widget-digital.png)
 ![Widget with gauges](docs/screenshots/widget-gauges.png)
+![Four display styles: numbers, gauges, bars, graphs](docs/screenshots/widget-stijlen.png)
 ![Compact widget](docs/screenshots/widget-compact.png)
 
 **Right-click menu** (short, and it stays open while you pick several things) and the **settings window** with tabs

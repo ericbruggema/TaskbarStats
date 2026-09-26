@@ -21,15 +21,39 @@ Four English demos of 45 to 60 seconds each. Download, install and run takes a f
 
 More documentation is listed in the [docs index](docs/README.md).
 
+## Für Gamer 🎮
+
+Mach aus deiner Taskleiste einen kostenlosen FPS-Zähler, oder zieh das Widget über dein Spiel und lass es obenauf schweben.
+
+![FPS, GPU-Last und -Temperatur, CPU und Ping schwebend über einem Spiel](docs/screenshots/gamers-overlay.png)
+
+- **FPS des Spiels, das du gerade spielst** — gemessen wie bei PresentMon (Windows-Ereignisablaufverfolgung), für das Programm im Vordergrund. Funktioniert mit DirectX-Spielen (DXGI/D3D9) und Browsern. *Experimentell*: unter Einstellungen → Widget → Werte einschalten.
+- **Mini-Overlay** — kompakt, Beschriftung oben, nur FPS, GPU und CPU:
+
+![Mini-Overlay über einem Spiel](docs/screenshots/gamers-mini.png)
+
+- **Durchklicken** (Strg+Alt+W): das Widget bleibt sichtbar, deine Mausklicks gehen aber direkt ans Spiel.
+- **Alles, was Gamer wissen wollen**: GPU-Last, GPU- und CPU-Temperatur, Ping und ein Diagramm für den Übeltäter.
+- **Such dir einen Look, der zu deinem Rechner passt**: Neon für Retro-Racing-Feeling, Matrix für Hacker, Game Boy für Nostalgie, Amber und CGA, wenn du die 80er vermisst.
+
+![Zehn Designs, alle mit FPS](docs/screenshots/themes-fps.png)
+
+Live ansehen: [For gamers (51 s, Englisch)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/gamers-en.mp4).
+
+**Kein Gamer?** Dasselbe Widget zählt auch deine Prozesse (gesamt, sichtbare Apps, Hintergrund oder beides):
+
+![Prozesse: gesamt, Apps, Hintergrund, beides](docs/screenshots/widget-processen.png)
+
 ## Screenshots
 
 *Die Screenshots zeigen die niederländische Oberfläche; das Programm gibt es auch auf Englisch und Deutsch.*
 
-**Taskleisten-Widget** – Zahlen, Anzeigen mit Balken pro Kern und Akku, oder kompakt mit Beschriftung oben:
+**Taskleisten-Widget** — Zahlen, Anzeigen, Balken oder Diagramme, mit FPS und Prozessanzahl neben CPU, GPU und Speicher:
 
-![Widget met cijfers](docs/screenshots/widget-digital.png)
-![Widget met meters](docs/screenshots/widget-gauges.png)
-![Compacte widget](docs/screenshots/widget-compact.png)
+![Widget mit Zahlen](docs/screenshots/widget-digital.png)
+![Widget mit Anzeigen](docs/screenshots/widget-gauges.png)
+![Vier Darstellungen: Zahlen, Anzeigen, Balken, Diagramme](docs/screenshots/widget-stijlen.png)
+![Kompaktes Widget](docs/screenshots/widget-compact.png)
 
 **Rechtsklickmenü** (kurz, und es bleibt offen, während du mehrere Dinge auswählst) und das **Einstellungsfenster** mit Tabs
 (Erscheinungsbild, Farben, Dashboard, Vollbild, Designs), in dem jede Änderung sofort sichtbar ist:

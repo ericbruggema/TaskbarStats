@@ -87,7 +87,7 @@ public sealed partial class SettingsForm
         {
             using var dlg = new SaveFileDialog { Filter = "JSON|*.json", FileName = "TaskbarStats-settings.json", Title = Loc.T("Export settings…") };
             if (dlg.ShowDialog(this) != DialogResult.OK) return;
-            try { File.WriteAllText(dlg.FileName, _c.ToJson()); }
+            try { File.WriteAllText(dlg.FileName, _c.ToExportJson()); }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         };
         var import = Btn(Loc.T("Import settings…"), 170);

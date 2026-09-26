@@ -96,6 +96,7 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 
 ## Conventies
 
+- Alles wat naar het klembord of naar een bestand voor de gebruiker gaat (kopiëren, export) vermeldt het programma + link: `AppInfo.Url`/`AppInfo.Signature` (JSON: veld `_generator`, `ToExportJson`/`ThemeStore.Export`; CSV: laatste regel `# Exported by …`). Nieuwe kopieer-/exportacties doen dat ook.
 - Nederlandse commentaren; elke nieuwe zichtbare tekst als `Loc.T("English text")` (alleen vaste teksten; nooit `$"…"` of een variabele erin; `// lang-dynamic` alleen voor uitzonderingen, `// nolang` voor bewust vaste tekst). Daarna `LangTool sync`, de lege waarden in `lang/nl.json` en `lang/de.json` vertalen en `LangTool check`. Een Engelse tekst wijzigen: `LangTool rename "oud" "nieuw"`, nooit met de hand. Een tekst met een aantal (dag/dagen): `Loc.P`.
 - Lege `catch { }` bestaat niet meer: gebruik `catch (Exception dex) { Diag.Swallow(dex); }` (of vang gericht) zodat een fout een spoor in `diag.log` achterlaat.
 - Nieuwe instelling = property in `AppSettings` met default (oude `settings.json` blijft werken), opslaan via `Persist()`/`Relayout()`.

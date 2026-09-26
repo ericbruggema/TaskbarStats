@@ -55,7 +55,7 @@ public static class HardwareInfo
     public static string ToText(IReadOnlyList<SpecBlock> blocks, DateTime? now = null)
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append("TaskbarStats ").Append(AboutForm.Version).Append(" - ").Append((now ?? DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append("\r\n");
+        sb.Append("TaskbarStats ").Append(AboutForm.Version).Append(" - ").Append((now ?? DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append("\r\n").Append(AppInfo.Url).Append("\r\n");
         foreach (var b in blocks)
         {
             sb.Append("\r\n== ").Append(b.Title).Append(" ==\r\n");

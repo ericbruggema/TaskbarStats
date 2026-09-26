@@ -79,4 +79,27 @@ public class ThemeJsonTests : IDisposable
         Assert.False(Metrics.DemoActive);
         Assert.Same(MetricsSnapshot.Empty, m.Current);   // weer de echte (nog lege) meting
     }
+
+    [Fact]
+    public void Kopieer_en_exportacties_vermelden_het_programma_met_link()
+    {
+        Assert.Contains(AppInfo.Url, HardwareInfo.ToText(new List<SpecBlock>()));
+        Assert.Contains(AppInfo.Url, Diag.Report("nl"));
+
+        var s = new AppSettings { AccentColor = "#123456" };
+        string json = s.ToExportJson();
+        Assert.StartsWith("{", json.TrimStart());
+        Assert.Contains("\"_generator\": \"TaskbarStats ", json);
+        Assert.Contains(AppInfo.Url, json);
+        Assert.Equal("#123456", AppSettings.TryParse(json)!.AccentColor);   // importeren negeert de vermelding
+        Assert.DoesNotContain("_generator", s.ToJson());                    // settings.json zelf blijft schoon
+
+        string file = Path.Combine(_data.Dir, "export.json");
+        ThemeStore.Export(file, new ThemeData { Name = "Delen", AccentColor = "#ABCDEF" });
+        string text = File.ReadAllText(file);
+        Assert.Contains(AppInfo.Url, text);
+        var back = ThemeStore.Read(file)!;
+        Assert.Equal("Delen", back.Name); Assert.Equal("#ABCDEF", back.AccentColor);
+        Assert.DoesNotContain("_generator", ThemeStore.ToJson(new ThemeData { Name = "Gewoon" }));
+    }
 }

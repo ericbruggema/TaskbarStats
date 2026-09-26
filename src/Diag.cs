@@ -214,7 +214,7 @@ internal static class Diag
     public static string Report(string language)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("TaskbarStats " + Version);
+        sb.AppendLine("TaskbarStats " + Version + " - " + AppInfo.Url);
         if (PreviousCrash is not null) sb.AppendLine("Previous session crashed: " + PreviousCrash);
         else if (PreviousUnclean) sb.AppendLine("Previous session did not close normally (no crash found).");
         sb.AppendLine("Windows: " + Environment.OSVersion.Version + " (" + RuntimeInformation.OSArchitecture + "), " + RuntimeInformation.FrameworkDescription);

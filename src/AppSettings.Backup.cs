@@ -28,6 +28,15 @@ public sealed partial class AppSettings
         return JsonSerializer.Serialize(copy, JsonOpts);
     }
 
+    /// <summary>De instellingen voor een exportbestand: als <see cref="ToJson"/>, met bovenaan een vermelding van het programma (<c>_generator</c>; bij importeren genegeerd).</summary>
+    public string ToExportJson()
+    {
+        var old = System.Text.Json.Nodes.JsonNode.Parse(ToJson())!.AsObject();
+        var node = new System.Text.Json.Nodes.JsonObject { ["_generator"] = AppInfo.Signature };
+        foreach (var kv in old) node[kv.Key] = kv.Value?.DeepClone();
+        return node.ToJsonString(JsonOpts);
+    }
+
     /// <summary>
     /// Neemt alle instellingen van <paramref name="other"/> over in dit object (het object zelf blijft bestaan, want widget,
     /// dashboard en fullscreen houden er een verwijzing naar). <see cref="FilePath"/> blijft ongewijzigd.

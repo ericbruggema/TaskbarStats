@@ -64,6 +64,9 @@ public sealed partial class ThemeData
 
     /// <summary>Meegeleverde achtergrond (naam uit <see cref="BgPatterns.Names"/>) voor widget, dashboard en fullscreen; leeg = geen. Eigen bestanden horen niet in een thema.</summary>
     public string? Background { get; set; }
+
+    /// <summary>Vermelding van het programma in een geëxporteerd thema (leeg in de gewone bestanden); wordt bij het toepassen genegeerd.</summary>
+    [JsonPropertyName("_generator")] public string? Generator { get; set; }
     public int BackgroundOpacity { get; set; } = 60;
 
     public static ThemeData Capture(AppSettings c, string name)
@@ -271,6 +274,14 @@ public static class ThemeStore
     public static ThemeData? Read(string path)
     {
         try { return JsonSerializer.Deserialize<ThemeData>(File.ReadAllText(path), Opts); } catch { return null; }
+    }
+
+    /// <summary>Schrijft een thema om te delen: met de vermelding van het programma en de link erin.</summary>
+    public static void Export(string path, ThemeData t)
+    {
+        var copy = Parse(ToJson(t));
+        copy.Generator = AppInfo.Signature;
+        Write(path, copy);
     }
 
     public static void Write(string path, ThemeData t)

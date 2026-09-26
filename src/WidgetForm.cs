@@ -495,7 +495,7 @@ public sealed partial class WidgetForm : Form
         try
         {
             _procs.Sample();
-            string text = $"TaskbarStats {AboutForm.Version} - {DateTime.Now:yyyy-MM-dd HH:mm:ss}\r\n\r\n" +
+            string text = $"TaskbarStats {AboutForm.Version} - {DateTime.Now:yyyy-MM-dd HH:mm:ss}\r\n{AppInfo.Url}\r\n\r\n" +
                           BuildTooltip(true).Replace("\r\n", "\n").Replace("\n", "\r\n");
             Clipboard.SetText(text);
             _tip.Show(Loc.T("✔ Copied to clipboard"), this, 0, -Height, 1500);

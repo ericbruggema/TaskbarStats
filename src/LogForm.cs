@@ -91,6 +91,7 @@ public sealed class LogForm : Form
             foreach (var (name, u) in per)
                 sb.Append(day.ToString("yyyy-MM-dd")).Append(",\"").Append(name.Replace("\"", "\"\""))
                   .Append("\",").Append(u.Down).Append(',').Append(u.Up).Append('\n');
+        sb.Append("# Exported by ").Append(AppInfo.Signature).Append('\n');
         try { File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true)); }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Text); }
     }

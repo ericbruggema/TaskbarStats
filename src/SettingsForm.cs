@@ -926,7 +926,7 @@ public sealed partial class SettingsForm : Form
             if (list.SelectedIndex < 0) return;
             var t = entries[list.SelectedIndex].t;
             using var dlg = new SaveFileDialog { Filter = "TaskbarStats-thema (*.json)|*.json", FileName = t.Name + ".json" };
-            if (dlg.ShowDialog(this) == DialogResult.OK) ThemeStore.Write(dlg.FileName, t);
+            if (dlg.ShowDialog(this) == DialogResult.OK) ThemeStore.Export(dlg.FileName, t);
         });
         Add(Loc.T("Open folder"), () =>
         {

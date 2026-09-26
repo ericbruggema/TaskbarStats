@@ -17,3 +17,5 @@ Afspraken: geen vensters, geen netwerk, geen UAC en nooit de echte `%AppData%\Ta
 niet parallel. De LangTool-tests starten `dotnet run` (enkele tot tientallen seconden).
 
 CI: `.github\workflows\ci.yml` bouwt, test en draait `LangTool check --strict` op Windows.
+
+Draait de echte app uit `bin\Release`? Dan is die map vergrendeld en mislukt `-c Release`; gebruik dan `dotnet test tests\TaskbarStats.Tests -c Debug`.

@@ -109,6 +109,7 @@ Twee omgevingsvariabelen laten een testkopie naast de echte app draaien:
 |-----------|--------|
 | `TASKBARSTATS_DATA` | Eigen map voor `settings.json` en `usage.json` (in plaats van `%AppData%\TaskbarStats`). |
 | `TASKBARSTATS_INSTANCE` | Achtervoegsel voor de single-instance-mutex, zodat er een tweede instantie kan starten. |
+| `TASKBARSTATS_PSEUDO` | `1` toont de testtaal *Pseudo (test)* in de talenlijst (controle op niet-vertaalde of te lange teksten). |
 
 De app vraagt administrator-rechten (`app.manifest`); voor geautomatiseerde tests zet je in een tijdelijke kopie
 `requireAdministrator` op `asInvoker`. Zie ook `CLAUDE.md`.
@@ -235,13 +236,22 @@ die rechten toont het scherm de sensoren die wel beschikbaar zijn (GPU, geheugen
 
 **Volgorde en onderdelen**: in het instellingenvenster (tab *Dashboard* of *Fullscreen*) zet je de hoofdonderdelen (CPU, GPU, geheugen, netwerk, schijven, batterij, zwaarste programma's, systeem) aan of uit en verplaats je ze met de pijlknoppen. Het bureaublad-dashboard vult zijn kolommen in die volgorde; het fullscreen-scherm vult rijen van vier kolommen (CPU is twee breed; batterij en systeem delen een cel) en past de breedte aan.
 
-**Talen**: de app is beschikbaar in het Nederlands, Engels en Duits; bij een eerste start volgt hij de taal van Windows als die beschikbaar is. Teksten staan niet meer in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een taal toevoegen (bijvoorbeeld Frans):
+**Talen**: de app is beschikbaar in het Nederlands, Engels en Duits; bij een eerste start volgt hij de taal van Windows als die beschikbaar is (ook regiotalen zoals `pt-br`, die `pt` aanvullen). Teksten staan niet in de code maar in `lang/<code>.json` (ingebed in de exe): links de Engelse brontekst, rechts de vertaling. Een leeg veld betekent "nog niet vertaald" en toont Engels. Het hulpprogramma `tools\LangTool` leest de code echt (Roslyn) en **controleert bij elke build** of alles klopt: een fout in een taalbestand laat de build mislukken, ontbrekende vertalingen zijn waarschuwingen.
 
-1. Kopieer `lang/nl.json` naar `lang/fr.json`, zet `"_name": "Français"` en vertaal de waarden rechts. De sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
-2. Let op spaties aan het begin of eind van een tekst: die horen ook in de vertaling te staan (het controlescript meldt het).
-3. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
-4. Een ontbrekende tekst valt terug op Engels. `powershell -File tools\check-lang.ps1` toont wat er nog ontbreekt of niet meer gebruikt wordt.
-5. Deel je vertaling via een pull request (`lang/fr.json`).
+Een taal toevoegen (bijvoorbeeld Frans):
+
+```
+dotnet run --project tools\LangTool -c Release -- new fr "Français" --culture fr-FR
+```
+
+1. Dat maakt `lang/fr.json` met alle teksten leeg. Vul de waarden rechts in; de sleutels links en de plaatsaanduidingen (`{0}`, `{1}`) blijven zoals ze zijn; `@@…` achter een sleutel is alleen context.
+2. Meervoud (`"{0} day|{0} days"`): geef evenveel vormen, gescheiden door `|`, als de regel `_plural` van je taal vraagt (`one-other` is standaard; `zero-or-one-other` voor Frans en Braziliaans Portugees, `one-few-many-other` voor Pools en Russisch, `other` voor Japans en Chinees).
+3. Controleren: `dotnet run --project tools\LangTool -c Release -- check` (fouten: kapotte plaatsaanduidingen, dubbele sleutels, verkeerd aantal meervoudsvormen, spaties aan begin of eind die niet overeenkomen). `status` toont hoeveel procent per taal af is.
+4. Uitproberen zonder bouwen: zet het bestand in `%AppData%\TaskbarStats\lang\` en start de app opnieuw; de taal staat dan bij Instellingen → *Algemeen*. Een bestand daar overschrijft ook een ingebouwde taal.
+5. Wil je zien wat er nog niet vertaald is of te lang uitvalt? Start de app met de omgevingsvariabele `TASKBARSTATS_PSEUDO=1` en kies de taal *Pseudo (test)*: elke tekst verschijnt dan met accenten en 30% langer tussen haken, dus niet-vertaalde of afgeknipte tekst valt meteen op.
+6. Deel je vertaling via een pull request (`lang/fr.json`).
+
+Voor wie de code aanpast: gebruik alleen `Loc.T("vaste tekst")`, `Loc.T("tekst {0}", waarde)` en `Loc.P("{0} dag|{0} dagen", n)`; draai daarna `LangTool sync` (zet nieuwe teksten klaar in alle talen) en vertaal de lege waarden. Een Engelse tekst wijzigen: `LangTool rename "oud" "nieuw"` (past code en alle taalbestanden aan). `LangTool` meldt ook teksten die vast in de code staan.
 
 **Thema's**: een thema is een klein JSON-bestand met stijl, kleuren, lettertype, hoogte, dashboard- en fullscreen-indeling (geen posities of taal). Eigen thema's staan in `%AppData%\TaskbarStats\themes\` en zijn te delen: exporteer een thema en geef het bestand door, de ander importeert het.
 
@@ -254,6 +264,10 @@ je gewone sessie niet ziet, leest de app de koppelingen uit het register (`HKCU\
 Opgeslagen in `%AppData%\TaskbarStats\settings.json` (overleeft herbouw en
 herinstallatie). Wijzigingen in de instellingen worden direct bewaard. Ook handmatig aan te
 passen: `FontFamily`, `FontSize`, `WidgetHeight`, `TrayGap`, kleuren en drempels.
+
+**Back-up en portable**: bij Instellingen → *Algemeen* → *Backup* exporteer je alle instellingen naar één JSON-bestand, importeer je ze weer (bijvoorbeeld op een andere pc) of zet je alles terug naar de standaardwaarden (thema's en het verbruikslog blijven). Voor **portable gebruik** (bijvoorbeeld op een USB-stick) maak je een leeg bestand `portable.txt` naast `TaskbarStats.exe`: instellingen, thema's, taalbestanden en logs staan dan in de map `data` daarnaast en er wordt niets in `%AppData%` geschreven.
+
+**Als er iets misgaat**: fouten worden vastgelegd in `diag.log` in de gegevensmap (alleen op je eigen pc, er wordt niets verstuurd). Een fout in een timer of tekenroutine laat de app doordraaien; een fatale fout op een achtergrondthread start de app één keer opnieuw op. In *Over TaskbarStats* kopieert de knop *Kopieer diagnose* versie, Windows, schermen en de laatste logregels (zonder gebruikers- of computernaam) om in een bugmelding te plakken. Start je de app een tweede keer, dan opent de draaiende app zijn instellingen.
 
 ## Transparante achtergrond
 
@@ -292,7 +306,10 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Instellingenvenster met tabbladen (live toegepast), thema's (meegeleverd + eigen JSON-bestanden), onderdelen-ids/volgorde. |
 | `src/LogForm.cs` | Venster met het verbruikslog. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
-| `src/Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text")` met per taal een JSON-bestand (zie *Talen*). |
+| `src/Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text")`, `Loc.P` (meervoud) met per taal een JSON-bestand (zie *Talen*). |
+| `tools/LangTool` | Controleert, synchroniseert en hernoemt de taalteksten (Roslyn); draait bij elke build. |
+| `src/Diag.cs`, `src/AppPaths.cs` | Logbestand, crashvangnet, diagnose-rapport; waar de gegevens staan (`%AppData%`, `TASKBARSTATS_DATA` of portable). |
+| `tests/TaskbarStats.Tests` | Automatische tests (xUnit); `dotnet test tests\TaskbarStats.Tests -c Release`. |
 
 ## Prestaties en threads
 

@@ -798,8 +798,48 @@ public sealed partial class SettingsForm : Form
         }
         list.SelectedIndexChanged += (_, _) => showPreview();
 
+        // Voorbeeld: het thema (of de nog niet opgeslagen JSON in de editor) 10 s toepassen en daarna de eerdere stand terugzetten.
+        // Alleen wat een thema bevat wordt teruggezet; andere wijzigingen tussendoor (bijvoorbeeld de positie) blijven.
+        ThemeData? before = null;
+        int previewLeft = 0;
+        Button? previewBtn = null;
+        var previewTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+
+        void stopPreview()
+        {
+            previewTimer.Stop();
+            if (before is null) return;
+            before.ApplyTo(_c);
+            before = null;
+            _apply();
+            if (previewBtn is { IsDisposed: false }) previewBtn.Text = Loc.T("Preview (10 s)");
+        }
+        previewTimer.Tick += (_, _) =>
+        {
+            if (--previewLeft <= 0) { stopPreview(); return; }
+            if (previewBtn is { IsDisposed: false }) previewBtn.Text = Loc.T("Stop preview ({0} s)", previewLeft);
+        };
+        FormClosing += (_, _) => stopPreview();
+        tab.Disposed += (_, _) => { stopPreview(); previewTimer.Stop(); previewTimer.Dispose(); };
+
+        void startPreview()
+        {
+            if (before is not null) { stopPreview(); return; }   // nogmaals klikken = stoppen
+            if (list.SelectedIndex < 0) return;
+            ThemeData t;
+            try { t = ThemeStore.Parse(json.Text); }
+            catch (Exception jex) { MessageBox.Show(this, Loc.T("Not valid JSON: ") + jex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            before = ThemeData.Capture(_c, "");
+            t.ApplyTo(_c);
+            _apply();
+            previewLeft = 10;
+            if (previewBtn is not null) previewBtn.Text = Loc.T("Stop preview ({0} s)", previewLeft);
+            previewTimer.Start();
+        }
+
         void applySelected()
         {
+            stopPreview();
             if (list.SelectedIndex < 0) return;
             entries[list.SelectedIndex].t.ApplyTo(_c);
             _apply();
@@ -815,6 +855,7 @@ public sealed partial class SettingsForm : Form
             return b;
         }
         Add(Loc.T("Apply"), applySelected);
+        previewBtn = Add(Loc.T("Preview (10 s)"), startPreview);
         Add(Loc.T("Save as…"), () =>
         {
             var name = Ask(Loc.T("Theme name (your current settings are saved):"), "");

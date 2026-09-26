@@ -2,7 +2,7 @@
 
 | What | Where |
 |------|-------|
-| Project overview, features, settings | [README.md](../README.md) |
+| Project overview, features, settings | [README.md](../README.md) (English) · [Nederlands](../README.nl.md) · [Deutsch](../README.de.md) |
 | Full recreation plan (build it yourself with Claude) | [PLAN.md](PLAN.md) |
 | Screenshots (widget, settings, dashboard, fullscreen, themes) | [screenshots/](screenshots/) |
 | Instructions for Claude / contributors | [CLAUDE.md](../CLAUDE.md) |

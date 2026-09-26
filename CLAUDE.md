@@ -107,7 +107,8 @@ Ctrl+Alt+F (fullscreen). Widget verbergt zichzelf bij fullscreen (instelling `Hi
 - Code sluit aan op de omringende stijl; geen onnodige abstracties. Bestanden hebben CRLF (`.gitattributes`).
 - Repo is **openbaar**: geen persoonlijke gegevens, geen schermafbeeldingen met privé-inhoud. Commit-auteur gebruikt het
   GitHub-`noreply`-adres. Commit-berichten eindigen met de `Co-Authored-By`-regel uit de sessie.
-- Documentatie bijwerken bij functionele wijzigingen: `README.md`, `installer\Leesmij.txt`, `WelcomeForm.cs`, dit bestand.
+- README is drietalig: `README.md` (Engels, hoofdtaal), `README.nl.md`, `README.de.md` (taalkeuzeregel bovenaan; screenshots tonen de Nederlandse UI). Wijzigingen in alle drie doorvoeren.
+- Documentatie bijwerken bij functionele wijzigingen: `README.md` (+ nl/de), `installer\Leesmij.txt`, `WelcomeForm.cs`, dit bestand.
 
 ## Ideeën / nog te doen
 

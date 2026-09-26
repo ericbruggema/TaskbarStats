@@ -615,14 +615,13 @@ gifs always in English"). Put project facts in `CLAUDE.md` (shared, versioned) a
 - `Loc.N("text")` marks a string in an array or table as translatable without translating it there; translate at
   use with `Loc.T(variable)`.
 - First run: the language is taken from Windows when a matching file exists.
-- Check script: `tools\check-lang.ps1 [-Lang nl]` scans `Loc.T/N("...")` in `src/*.cs` with a regex and reports
-  missing, unused, placeholder mismatches and leading/trailing whitespace differences per language; exit code 1
-  on placeholder/whitespace errors.
-- Convention: any change to an English text must also rename the key in every language file.
+- Check: the first version (1.4) was a regex script (`tools\check-lang.ps1`); it is now `tools/LangTool` (see "Language
+  tooling" below), which runs on every build and reads the code as a syntax tree.
+- Convention: never edit an English text by hand; `LangTool rename "old" "new"` renames the key in the code and in every language file.
 
 **Why it worked**: translating was done by Claude in one pass per language (Dutch, German), and the check script
-made it verifiable. **What did not**: the regex check does not see strings built in interpolations or by
-concatenation, and renaming keys by hand across files is error-prone.
+made it verifiable. **What did not**: the regex check did not see strings built in interpolations or by
+concatenation, and renaming keys by hand across files was error-prone. Both are solved by `LangTool`.
 
 ### Language tooling (v1.5): every change is checked
 

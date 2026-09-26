@@ -89,7 +89,7 @@ public sealed partial class DashboardForm : Form
     private bool _suppressed, _dragging, _closing, _wantHidden;
     private Point _dragStart;
 
-    // fonts, per render aangemaakt
+    // fonts, per render opgehaald uit GdiCache (niet vrijgeven)
     private Font _f = null!, _fs = null!, _fb = null!, _fbig = null!;
 
     protected override bool ShowWithoutActivation => true;
@@ -329,6 +329,7 @@ public sealed partial class DashboardForm : Form
     {
         if (!IsHandleCreated || _suppressed) return;
         _lastRender = Environment.TickCount64;
+        GdiCache.Trim();
 
         var m = _c.Metrics;
         var gpus = m.GpuPerLuid.Where(k => k.Key != "" && Metrics.IsRealGpu(k.Key)).OrderBy(k => k.Key).ToList();
@@ -374,8 +375,7 @@ public sealed partial class DashboardForm : Form
         if (Width != w || Height != h) { Width = w; Height = h; }
 
         string family = Cfg.FontFamily;
-        _f = new Font(family, 9f); _fs = new Font(family, 8f); _fb = new Font(family, 10.5f, FontStyle.Bold); _fbig = new Font(family, 17f, FontStyle.Bold);
-        try
+        _f = GdiCache.Font(family, 9f); _fs = GdiCache.Font(family, 8f); _fb = GdiCache.Font(family, 10.5f, FontStyle.Bold); _fbig = GdiCache.Font(family, 17f, FontStyle.Bold);
         {
             using var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
             bmp.SetResolution(96, 96);
@@ -387,11 +387,9 @@ public sealed partial class DashboardForm : Form
                 g.ScaleTransform(s, s);
 
                 using (var path = Rounded(new RectangleF(0, 0, logicalW, logicalH), 14))
-                using (var bg = new SolidBrush(Color.FromArgb(255, Col(Cfg.BackgroundColor, Color.FromArgb(20, 20, 20)))))
-                using (var edge = new Pen(Color.FromArgb(40, 255, 255, 255), 1f))
                 {
-                    g.FillPath(bg, path);
-                    g.DrawPath(edge, path);
+                    g.FillPath(GdiCache.Brush(Color.FromArgb(255, Col(Cfg.BackgroundColor, Color.FromArgb(20, 20, 20)))), path);
+                    g.DrawPath(GdiCache.Pen(Color.FromArgb(40, 255, 255, 255), 1f), path);
                 }
                 if (tiles.Count == 0)
                     DrawText(g, Loc.T("No tiles enabled — turn them on in Settings (Dashboard tab)"), _f, Dim, 16, 30);
@@ -409,7 +407,6 @@ public sealed partial class DashboardForm : Form
             }
             Push(bmp);
         }
-        finally { _f.Dispose(); _fs.Dispose(); _fb.Dispose(); _fbig.Dispose(); }
     }
 
     private void Push(Bitmap bmp)
@@ -444,13 +441,13 @@ public sealed partial class DashboardForm : Form
 
     private void DrawText(Graphics g, string s, Font f, Color c, float x, float y)
     {
-        using var b = new SolidBrush(c);
+        var b = GdiCache.Brush(c);
         g.DrawString(s, f, b, x, y);
     }
 
     private void DrawTextRight(Graphics g, string s, Font f, Color c, float right, float y)
     {
-        using var b = new SolidBrush(c);
+        var b = GdiCache.Brush(c);
         using var sf = new StringFormat { Alignment = StringAlignment.Far };
         g.DrawString(s, f, b, new RectangleF(right - 240, y, 240, 24), sf);
     }
@@ -458,44 +455,37 @@ public sealed partial class DashboardForm : Form
     private void Card(Graphics g, RectangleF r, string title)
     {
         using (var path = Rounded(r, 10))
-        using (var bg = new SolidBrush(Color.FromArgb(18, 255, 255, 255)))
-            g.FillPath(bg, path);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(18, 255, 255, 255)), path);
         DrawText(g, title, _fs, Dim, r.X + 14, r.Y + 8);
     }
 
     private void Gauge(Graphics g, float cx, float cy, float rad, double pct, Color col, string label)
     {
         var rect = new RectangleF(cx - rad, cy - rad, rad * 2, rad * 2);
-        using (var bg = new Pen(Color.FromArgb(70, 78, 90), 8f))
-            g.DrawArc(bg, rect, 0, 360);
+        g.DrawArc(GdiCache.Pen(Color.FromArgb(70, 78, 90), 8f), rect, 0, 360);
         if (pct > 0.5)
-            using (var fg = new Pen(col, 8f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(pct, 0, 100) / 100.0));
+            g.DrawArc(GdiCache.PenRoundCap(col, 8f), rect, -90, (float)(360.0 * Math.Clamp(pct, 0, 100) / 100.0));
         using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-        using var b = new SolidBrush(TextCol);
+        var b = GdiCache.Brush(TextCol);
         g.DrawString(label, _fb, b, new RectangleF(cx - rad, cy - rad, rad * 2, rad * 2), sf);
     }
 
     private void Bar(Graphics g, float x, float y, float w, double pct, Color col, float h = 8)
     {
         using (var bgp = Rounded(new RectangleF(x, y, w, h), h / 2))
-        using (var bg = new SolidBrush(Color.FromArgb(70, 78, 90)))
-            g.FillPath(bg, bgp);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(70, 78, 90)), bgp);
         float fw = (float)(w * Math.Clamp(pct, 0, 100) / 100.0);
         if (fw >= h)
             using (var fp = Rounded(new RectangleF(x, y, fw, h), h / 2))
-            using (var fb = new SolidBrush(col))
-                g.FillPath(fb, fp);
+                g.FillPath(GdiCache.Brush(col), fp);
         else if (fw > 0.5f)
-            using (var fb = new SolidBrush(col))
-                g.FillRectangle(fb, x, y, fw, h);
+            g.FillRectangle(GdiCache.Brush(col), x, y, fw, h);
     }
 
     /// <summary>Lijngrafiekje; nieuwste meting rechts. max &lt;= 0 = automatisch schalen.</summary>
     private void Spark(Graphics g, RectangleF r, Ring ring, Color col, double max)
     {
-        using (var basePen = new Pen(Color.FromArgb(40, 255, 255, 255), 1f))
-            g.DrawLine(basePen, r.X, r.Bottom, r.Right, r.Bottom);
+        g.DrawLine(GdiCache.Pen(Color.FromArgb(40, 255, 255, 255), 1f), r.X, r.Bottom, r.Right, r.Bottom);
         const int win = 300;
         int n = Math.Min(ring.Count, win), start = ring.Count - n;
         if (n < 2) return;
@@ -508,8 +498,8 @@ public sealed partial class DashboardForm : Form
             pts[i] = new PointF(x, y);
         }
         var fill = pts.Concat(new[] { new PointF(pts[^1].X, r.Bottom), new PointF(pts[0].X, r.Bottom) }).ToArray();
-        using (var fb = new SolidBrush(Color.FromArgb(46, col))) g.FillPolygon(fb, fill);
-        using (var pen = new Pen(col, 1.6f) { LineJoin = LineJoin.Round }) g.DrawLines(pen, pts);
+        g.FillPolygon(GdiCache.Brush(Color.FromArgb(46, col)), fill);
+        g.DrawLines(GdiCache.PenRoundJoin(col, 1.6f), pts);
     }
 
     // ---------- Tegels ----------
@@ -528,9 +518,9 @@ public sealed partial class DashboardForm : Form
             for (int i = 0; i < cores.Length; i++)
             {
                 float x = x0 + i * (bw + 2);
-                using (var bg = new SolidBrush(Color.FromArgb(70, 78, 90))) g.FillRectangle(bg, x, top, bw, hh);
+                g.FillRectangle(GdiCache.Brush(Color.FromArgb(70, 78, 90)), x, top, bw, hh);
                 float fh = (float)(hh * Math.Clamp(cores[i], 0, 100) / 100.0);
-                using (var fb = new SolidBrush(Thr(cores[i]))) g.FillRectangle(fb, x, top + hh - fh, bw, fh);
+                g.FillRectangle(GdiCache.Brush(Thr(cores[i])), x, top + hh - fh, bw, fh);
             }
         }
         Spark(g, new RectangleF(r.X + 14, r.Y + 130, r.Width - 28, 46), _c.History.Cpu, Accent, 100);
@@ -644,19 +634,16 @@ public sealed partial class DashboardForm : Form
                    : pct <= 20 ? Col(Cfg.WarnColor, Color.Orange) : Accent;
 
         float bx = r.X + 24, by = r.Y + 36, bw = 32, bh = 60;
-        using (var nub = new SolidBrush(Color.FromArgb(142, 142, 147))) g.FillRectangle(nub, bx + bw / 2 - 7, by - 4, 14, 4);
+        g.FillRectangle(GdiCache.Brush(Color.FromArgb(142, 142, 147)), bx + bw / 2 - 7, by - 4, 14, 4);
         using (var path = Rounded(new RectangleF(bx, by, bw, bh), 5))
-        using (var bg = new SolidBrush(Color.FromArgb(42, 42, 45)))
-        using (var edge = new Pen(Color.FromArgb(142, 142, 147), 1.6f))
         {
-            g.FillPath(bg, path);
-            g.DrawPath(edge, path);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(42, 42, 45)), path);
+            g.DrawPath(GdiCache.Pen(Color.FromArgb(142, 142, 147), 1.6f), path);
         }
         float ih = bh - 5, fh = (float)(ih * pct / 100.0);
         if (fh >= 1)
             using (var fp = Rounded(new RectangleF(bx + 2.5f, by + 2.5f + ih - fh, bw - 5, fh), 3))
-            using (var fb = new SolidBrush(fill))
-                g.FillPath(fb, fp);
+                g.FillPath(GdiCache.Brush(fill), fp);
         if (charging) WidgetForm.DrawBolt(g, bx + bw / 2, by + bh / 2, 30);
         else if (ac) WidgetForm.DrawPlug(g, bx + bw / 2, by + bh / 2, 30);
 

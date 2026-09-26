@@ -46,14 +46,14 @@ public sealed partial class WidgetForm
         int gx = above ? x + (cellW - gw) / 2 : x + lw + 3;
         int gy = above ? top : (Height - gh) / 2;
         r = new Rectangle(gx, gy, gw, gh);
-        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(50, 50, 50)));
+        var bg = GdiCache.Brush(EffectiveTrack(Color.FromArgb(50, 50, 50)));
         g.FillRectangle(bg, r);
         return cellW;
     }
 
     private void GraphFrame(Graphics g, Rectangle r)
     {
-        using var pen = new Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
+        var pen = GdiCache.Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
         var sm = g.SmoothingMode;
         g.SmoothingMode = SmoothingMode.None;
         g.DrawRectangle(pen, r.X, r.Y, r.Width - 1, r.Height - 1);
@@ -84,10 +84,10 @@ public sealed partial class WidgetForm
             Array.Copy(_gp, _gpoly, cnt);
             _gpoly[cnt] = new PointF(_gp[cnt - 1].X, r.Bottom - 2);
             _gpoly[cnt + 1] = new PointF(_gp[0].X, r.Bottom - 2);
-            using var fb = new SolidBrush(Color.FromArgb(70, col));
+            var fb = GdiCache.Brush(Color.FromArgb(70, col));
             g.FillPolygon(fb, _gpoly);
         }
-        using var pen = new Pen(col, Math.Max(1.2f, (float)(1.3 * UiScale))) { LineJoin = LineJoin.Round };
+        var pen = GdiCache.PenRoundJoin(col, Math.Max(1.2f, (float)(1.3 * UiScale)));
         g.DrawLines(pen, _gp);
     }
 
@@ -156,8 +156,8 @@ public sealed partial class WidgetForm
                   : last < 0 || last >= 250 ? crit
                   : last >= 100 ? C(_cfg.WarnColor, Color.Orange) : EffectiveAccent();
         float w = r.Width - 1, bottom = r.Bottom - 2, hgt = r.Height - 3;
-        using var pen = new Pen(col, Math.Max(1.2f, (float)(1.3 * UiScale))) { LineJoin = LineJoin.Round };
-        using var lost = new SolidBrush(crit);
+        var pen = GdiCache.PenRoundJoin(col, Math.Max(1.2f, (float)(1.3 * UiScale)));
+        var lost = GdiCache.Brush(crit);
         float dot = Math.Max(3f, (float)(3 * UiScale));
         float px = 0, py = 0; bool prev = false;
         for (int k = 0; k < cnt; k++)

@@ -821,7 +821,7 @@ public sealed partial class WidgetForm : Form
             Cadence.Fool(g, Width, Height, _font);
             if (!string.IsNullOrWhiteSpace(_cfg.BorderColor))
             {
-                using var pen = new Pen(C(_cfg.BorderColor, Color.Magenta), 1);
+                var pen = GdiCache.Pen(C(_cfg.BorderColor, Color.Magenta), 1);
                 g.SmoothingMode = SmoothingMode.None;
                 g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
             }
@@ -933,7 +933,7 @@ public sealed partial class WidgetForm : Form
     {
         float reserve = g.MeasureString(template, _font).Width;
         var sz = g.MeasureString(actual, _font);
-        using var b = new SolidBrush(color);
+        var b = GdiCache.Brush(color);
         g.DrawString(actual, _font, b, x, (Height - sz.Height) / 2);
         return (int)Math.Ceiling(reserve);
     }
@@ -1009,7 +1009,7 @@ public sealed partial class WidgetForm : Form
     private void DrawTopLabel(Graphics g, int x, int cellW, string label)
     {
         float w = g.MeasureString(label, _fontSmall).Width;
-        using var b = new SolidBrush(EffectiveText());
+        var b = GdiCache.Brush(EffectiveText());
         g.DrawString(label, _fontSmall, b, x + (cellW - w) / 2, 0);
     }
 
@@ -1024,7 +1024,7 @@ public sealed partial class WidgetForm : Form
                                                g.MeasureString(valueTemplate, _font).Width));
         DrawTopLabel(g, x, cellW, label);
         var sz = g.MeasureString(value, _font);
-        using var b = new SolidBrush(color);
+        var b = GdiCache.Brush(color);
         g.DrawString(value, _font, b, x + (cellW - sz.Width) / 2, top + (h - sz.Height) / 2);
         return cellW;
     }
@@ -1078,13 +1078,13 @@ public sealed partial class WidgetForm : Form
         int pw = above ? 3 : Math.Max(3, (int)Math.Round(4 * UiScale)), inset = above ? 2 : 0;
 
         var rect = new Rectangle(gx + inset, gy + inset, d - 2 * inset, d - 2 * inset);
-        using var bg = new Pen(EffectiveTrack(Color.FromArgb(80, 80, 80)), pw);
-        using var fg = new Pen(ThresholdColor(v, EffectiveAccent()), pw);
+        var bg = GdiCache.Pen(EffectiveTrack(Color.FromArgb(80, 80, 80)), pw);
+        var fg = GdiCache.Pen(ThresholdColor(v, EffectiveAccent()), pw);
         g.DrawArc(bg, rect, 0, 360);
         g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(v, 0, 100) / 100.0));
         var txt = $"{v:0}";
         var sz = g.MeasureString(txt, _fontSmall);
-        using var tb = new SolidBrush(EffectiveText());
+        var tb = GdiCache.Brush(EffectiveText());
         g.DrawString(txt, _fontSmall, tb, gx + (d - sz.Width) / 2, gy + (d - sz.Height) / 2);
         return cellW;
     }
@@ -1101,11 +1101,11 @@ public sealed partial class WidgetForm : Form
         int bx = above ? x + (cellW - bw) / 2 : x + lw + 3;
         int by = above ? top + (h - bh) / 2 : (Height - bh) / 2;
         var rect = new Rectangle(bx, by, bw, bh);
-        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
-        using var fg = new SolidBrush(ThresholdColor(v, EffectiveAccent()));
+        var bg = GdiCache.Brush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
+        var fg = GdiCache.Brush(ThresholdColor(v, EffectiveAccent()));
         g.FillRectangle(bg, rect);
         g.FillRectangle(fg, new Rectangle(rect.X, rect.Y, (int)(bw * Math.Clamp(v, 0, 100) / 100.0), bh));
-        using var pen = new Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
+        var pen = GdiCache.Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));
         g.DrawRectangle(pen, rect);
         return cellW;
     }
@@ -1121,12 +1121,12 @@ public sealed partial class WidgetForm : Form
         int cellW = above ? Math.Max(coresW, lw) : lw + 3 + coresW;
         if (above) DrawTopLabel(g, x, cellW, label);
         int cx = above ? x + (cellW - coresW) / 2 : x + lw + 3;
-        using var bg = new SolidBrush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
+        var bg = GdiCache.Brush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
         foreach (var v in cores)
         {
             g.FillRectangle(bg, cx, top, barW, h);
             int fh = (int)(h * Math.Clamp(v, 0, 100) / 100.0);
-            using var fg = new SolidBrush(ThresholdColor(v, EffectiveAccent()));
+            var fg = GdiCache.Brush(ThresholdColor(v, EffectiveAccent()));
             g.FillRectangle(fg, cx, top + (h - fh), barW, fh);
             cx += barW + gap;
         }
@@ -1151,8 +1151,8 @@ public sealed partial class WidgetForm : Form
         float s = h / 16f;
         var pts = new (float x, float y)[] { (5, 0), (0, 8.5f), (4, 8.5f), (3, 16), (10, 6.5f), (5.5f, 6.5f), (8, 0) };
         var poly = pts.Select(p => new PointF(cx - 5 * s + p.x * s, cy - h / 2 + p.y * s)).ToArray();
-        using var fill = new SolidBrush(Color.White);
-        using var edge = new Pen(Color.FromArgb(150, 0, 0, 0), 1f);
+        var fill = GdiCache.Brush(Color.White);
+        var edge = GdiCache.Pen(Color.FromArgb(150, 0, 0, 0), 1f);
         g.FillPolygon(fill, poly);
         g.DrawPolygon(edge, poly);
     }
@@ -1160,8 +1160,8 @@ public sealed partial class WidgetForm : Form
     internal static void DrawPlug(Graphics g, float cx, float cy, float h)
     {
         float s = h / 18f, top = cy - h / 2;
-        using var pen = new Pen(Color.White, Math.Max(1.3f, 1.6f * s)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        using var body = new SolidBrush(Color.FromArgb(90, 255, 255, 255));
+        var pen = GdiCache.PenRoundCap(Color.White, Math.Max(1.3f, 1.6f * s));
+        var body = GdiCache.Brush(Color.FromArgb(90, 255, 255, 255));
         g.DrawLine(pen, cx - 3 * s, top, cx - 3 * s, top + 4 * s);
         g.DrawLine(pen, cx + 3 * s, top, cx + 3 * s, top + 4 * s);
         using var path = RoundedRect(new RectangleF(cx - 6 * s, top + 4 * s, 12 * s, 8 * s), 3 * s);
@@ -1201,7 +1201,7 @@ public sealed partial class WidgetForm : Form
         if (fh >= 1)
         {
             using var fp = RoundedRect(new RectangleF(bx + 2, by + 2 + ih - fh, bodyW - 4, fh), 2);
-            using var fb = new SolidBrush(fill);
+            var fb = GdiCache.Brush(fill);
             g.FillPath(fb, fp);
         }
 
@@ -1219,7 +1219,7 @@ public sealed partial class WidgetForm : Form
             string t = $"{pct:0}";
             var sz = g.MeasureString(t, _fontSmall);
             float ty = (bolt || plug) ? by + bodyH * 0.66f - sz.Height / 2 : cy - sz.Height / 2;
-            using var tb = new SolidBrush(Color.White);
+            var tb = GdiCache.Brush(Color.White);
             g.DrawString(t, _fontSmall, tb, cx - sz.Width / 2, ty);
         }
 
@@ -1228,7 +1228,7 @@ public sealed partial class WidgetForm : Form
         {
             string t = $"{pct:0}%";
             var sz = g.MeasureString(t, _font);
-            using var tb = new SolidBrush(EffectiveText());
+            var tb = GdiCache.Brush(EffectiveText());
             g.DrawString(t, _font, tb, bx + bodyW + 5, (Height - sz.Height) / 2);
             w = bodyW + 2 + 5 + (int)Math.Ceiling(g.MeasureString("100%", _font).Width);
         }
@@ -1238,7 +1238,7 @@ public sealed partial class WidgetForm : Form
     private int DrawLabel(Graphics g, int x, string label)
     {
         var sz = g.MeasureString(label, _fontSmall);
-        using var b = new SolidBrush(EffectiveText());
+        var b = GdiCache.Brush(EffectiveText());
         g.DrawString(label, _fontSmall, b, x, (Height - sz.Height) / 2);
         return (int)Math.Ceiling(sz.Width);
     }

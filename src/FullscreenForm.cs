@@ -245,20 +245,20 @@ public sealed partial class FullscreenForm : Form
 
     private void T(Graphics g, string s, Font f, Color c, float x, float y)
     {
-        using var b = new SolidBrush(c);
+        var b = GdiCache.Brush(c);
         g.DrawString(s, f, b, x, y);
     }
 
     private void TR(Graphics g, string s, Font f, Color c, float right, float y)
     {
-        using var b = new SolidBrush(c);
+        var b = GdiCache.Brush(c);
         using var sf = new StringFormat { Alignment = StringAlignment.Far };
         g.DrawString(s, f, b, new RectangleF(right - 600, y, 600, 40), sf);
     }
 
     private void TC(Graphics g, string s, Font f, Color c, float cx, float cy)
     {
-        using var b = new SolidBrush(c);
+        var b = GdiCache.Brush(c);
         using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
         g.DrawString(s, f, b, new RectangleF(cx - 200, cy - 40, 400, 80), sf);
     }
@@ -271,11 +271,9 @@ public sealed partial class FullscreenForm : Form
         if (key is not null) _hits.Add((key, r));
         bool hot = key is not null && key == _hover && _detail is null;
         using (var path = Rounded(r, 12))
-        using (var bg = new SolidBrush(Color.FromArgb(hot ? 34 : 20, 255, 255, 255)))
-        using (var pen = new Pen(hot ? Color.FromArgb(170, Accent) : Color.FromArgb(30, 255, 255, 255), hot ? 1.8f : 1f))
         {
-            g.FillPath(bg, path);
-            g.DrawPath(pen, path);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(hot ? 34 : 20, 255, 255, 255)), path);
+            g.DrawPath(GdiCache.Pen(hot ? Color.FromArgb(170, Accent) : Color.FromArgb(30, 255, 255, 255), hot ? 1.8f : 1f), path);
         }
         T(g, title, _fh, TextCol, r.X + 16, r.Y + 10);
         if (sub is not null) TR(g, sub, _fs, Dim, r.Right - 16, r.Y + 15);
@@ -286,26 +284,22 @@ public sealed partial class FullscreenForm : Form
     {
         float pw = rad * 0.16f;
         var rect = new RectangleF(cx - rad, cy - rad, rad * 2, rad * 2);
-        using (var bg = new Pen(Color.FromArgb(70, 78, 90), pw)) g.DrawArc(bg, rect, 0, 360);
+        g.DrawArc(GdiCache.Pen(Color.FromArgb(70, 78, 90), pw), rect, 0, 360);
         if (pct > 0.5)
-            using (var fg = new Pen(col, pw) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(pct, 0, 100) / 100.0));
+            g.DrawArc(GdiCache.PenRoundCap(col, pw), rect, -90, (float)(360.0 * Math.Clamp(pct, 0, 100) / 100.0));
         TC(g, label, rad >= 50 ? _fbig : _fh, TextCol, cx, cy);
     }
 
     private void Bar(Graphics g, float x, float y, float w, double pct, Color col, float h = 8)
     {
         using (var bgp = Rounded(new RectangleF(x, y, w, h), h / 2))
-        using (var bg = new SolidBrush(Color.FromArgb(70, 78, 90)))
-            g.FillPath(bg, bgp);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(70, 78, 90)), bgp);
         float fw = (float)(w * Math.Clamp(pct, 0, 100) / 100.0);
         if (fw >= h)
             using (var fp = Rounded(new RectangleF(x, y, fw, h), h / 2))
-            using (var fb = new SolidBrush(col))
-                g.FillPath(fb, fp);
+                g.FillPath(GdiCache.Brush(col), fp);
         else if (fw > 0.5f)
-            using (var fb = new SolidBrush(col))
-                g.FillRectangle(fb, x, y, fw, h);
+            g.FillRectangle(GdiCache.Brush(col), x, y, fw, h);
     }
 
     private string WinLabel() => _win switch { 60 => Loc.T("1 min"), 300 => Loc.T("5 min"), _ => Loc.T("1 hour") };
@@ -327,13 +321,13 @@ public sealed partial class FullscreenForm : Form
         float left = axes ? 64 : 0;
         var p = new RectangleF(r.X + left, r.Y + (axes ? 8 : 0), r.Width - left - (axes ? 8 : 0), r.Height - (axes ? 30 : 0));
         int lines = axes ? 4 : 2;
-        using (var grid = new Pen(Color.FromArgb(34, 255, 255, 255), 1f))
-            for (int k = 0; k <= lines; k++)
-            {
-                float y = p.Bottom - p.Height * k / lines;
-                g.DrawLine(grid, p.X, y, p.Right, y);
-                if (axes) TR(g, fmt(max * k / lines), _fs, Dim, p.X - 8, y - 8);
-            }
+        var grid = GdiCache.Pen(Color.FromArgb(34, 255, 255, 255), 1f);
+        for (int k = 0; k <= lines; k++)
+        {
+            float y = p.Bottom - p.Height * k / lines;
+            g.DrawLine(grid, p.X, y, p.Right, y);
+            if (axes) TR(g, fmt(max * k / lines), _fs, Dim, p.X - 8, y - 8);
+        }
         if (axes)
         {
             T(g, "-" + WinLabel(), _fs, Dim, p.X, p.Bottom + 6);
@@ -348,8 +342,8 @@ public sealed partial class FullscreenForm : Form
                 pts[i] = new PointF(p.Right - (n - 1 - i) * p.Width / (win - 1),
                                     p.Bottom - (float)(Math.Clamp(ring[start + i] / max, 0, 1) * p.Height));
             var fill = pts.Concat(new[] { new PointF(pts[^1].X, p.Bottom), new PointF(pts[0].X, p.Bottom) }).ToArray();
-            using (var fb = new SolidBrush(Color.FromArgb(40, col))) g.FillPolygon(fb, fill);
-            using (var pen = new Pen(col, 1.8f) { LineJoin = LineJoin.Round }) g.DrawLines(pen, pts);
+            g.FillPolygon(GdiCache.Brush(Color.FromArgb(40, col)), fill);
+            g.DrawLines(GdiCache.PenRoundJoin(col, 1.8f), pts);
         }
     }
 
@@ -392,8 +386,7 @@ public sealed partial class FullscreenForm : Form
             float yy = y + i * 24;
             string name = cpu ? _procs.TopCpu[i].name : _procs.TopMem[i].name;
             double val = cpu ? _procs.TopCpu[i].cpu : _procs.TopMem[i].mem;
-            using (var bar = new SolidBrush(Color.FromArgb(28, Accent)))
-                g.FillRectangle(bar, x, yy + 1, (float)(w * Math.Clamp(val / Math.Max(1e-9, top), 0, 1)), 21);
+            g.FillRectangle(GdiCache.Brush(Color.FromArgb(28, Accent)), x, yy + 1, (float)(w * Math.Clamp(val / Math.Max(1e-9, top), 0, 1)), 21);
             T(g, Trunc(name, 24), _f, TextCol, x + 6, yy + 2);
             TR(g, cpu ? $"{val:0.0}%" : SizeStr(val), _f, Dim, x + w - 6, yy + 2);
         }
@@ -570,8 +563,7 @@ public sealed partial class FullscreenForm : Form
             var chip = new RectangleF(M + 330, 16, 210, 32);
             _hits.Add(("spec", chip));
             using (var path = Rounded(chip, 8))
-            using (var bg = new SolidBrush(Color.FromArgb(_hover == "spec" ? 50 : 26, 255, 255, 255)))
-                g.FillPath(bg, path);
+                g.FillPath(GdiCache.Brush(Color.FromArgb(_hover == "spec" ? 50 : 26, 255, 255, 255)), path);
             TC(g, Loc.T("Specifications  (I)"), _fb, TextCol, chip.X + chip.Width / 2, chip.Y + chip.Height / 2);
         }
         else
@@ -580,8 +572,7 @@ public sealed partial class FullscreenForm : Form
             _hits.Add(("back", back));
             bool hot = _hover == "back";
             using (var path = Rounded(back, 10))
-            using (var bg = new SolidBrush(Color.FromArgb(hot ? 50 : 26, 255, 255, 255)))
-                g.FillPath(bg, path);
+                g.FillPath(GdiCache.Brush(Color.FromArgb(hot ? 50 : 26, 255, 255, 255)), path);
             T(g, "←  " + Loc.T("Back (Esc)"), _fb, TextCol, M + 16, 23);
         }
 
@@ -594,8 +585,7 @@ public sealed partial class FullscreenForm : Form
         _hits.Add(("exit", exit));
         bool exitHot = _hover == "exit";
         using (var path = Rounded(exit, 8))
-        using (var bg = new SolidBrush(exitHot ? Color.FromArgb(220, 200, 40, 40) : Color.FromArgb(26, 255, 255, 255)))
-            g.FillPath(bg, path);
+            g.FillPath(GdiCache.Brush(exitHot ? Color.FromArgb(220, 200, 40, 40) : Color.FromArgb(26, 255, 255, 255)), path);
         TC(g, "✕", _fb, TextCol, exit.X + exit.Width / 2, exit.Y + exit.Height / 2);
 
         float x = CW - M - 4 - 56;
@@ -606,8 +596,7 @@ public sealed partial class FullscreenForm : Form
             _hits.Add(($"w{w}", r));
             bool on = _win == w, hot = _hover == $"w{w}";
             using (var path = Rounded(r, 8))
-            using (var bg = new SolidBrush(on ? Color.FromArgb(180, Accent) : Color.FromArgb(hot ? 50 : 26, 255, 255, 255)))
-                g.FillPath(bg, path);
+                g.FillPath(GdiCache.Brush(on ? Color.FromArgb(180, Accent) : Color.FromArgb(hot ? 50 : 26, 255, 255, 255)), path);
             TC(g, l, _fb, TextCol, r.X + r.Width / 2, r.Y + r.Height / 2);
             x -= 62;
         }
@@ -619,7 +608,7 @@ public sealed partial class FullscreenForm : Form
         if (_tour)   // voortgang van de huidige pagina
         {
             float f = Math.Clamp((Environment.TickCount64 - _tourAt) / (float)TourMs, 0f, 1f);
-            using var pb = new SolidBrush(Color.FromArgb(200, Accent));
+            var pb = GdiCache.Brush(Color.FromArgb(200, Accent));
             g.FillRectangle(pb, 0, CH - 5, CW * f, 5);
         }
     }
@@ -680,8 +669,7 @@ public sealed partial class FullscreenForm : Form
                 float x = x0 + (i % cols) * cw, y = y0 + (i / cols) * ch;
                 var cell = new RectangleF(x + 2, y + 2, cw - 4, ch - 4);
                 using (var path = Rounded(cell, 6))
-                using (var bg = new SolidBrush(Color.FromArgb(24, 255, 255, 255)))
-                    g.FillPath(bg, path);
+                    g.FillPath(GdiCache.Brush(Color.FromArgb(24, 255, 255, 255)), path);
                 Bar(g, cell.X + 6, cell.Bottom - 8, cell.Width - 12, cores[i], Thr(cores[i]), 4);
                 T(g, $"C{i}", _fs, Dim, cell.X + 8, cell.Y + 3);
                 TR(g, $"{cores[i]:0}%", _fb, TextCol, cell.Right - 8, cell.Y + 3);
@@ -830,19 +818,16 @@ public sealed partial class FullscreenForm : Form
         double pct = m.BatteryPercent;
         Color fill = m.BatteryCharging || m.BatteryOnAc ? Green
                    : pct <= 10 ? Col(Cfg.CritColor, Color.Red) : pct <= 20 ? Col(Cfg.WarnColor, Color.Orange) : Accent;
-        using (var nub = new SolidBrush(Color.FromArgb(142, 142, 147))) g.FillRectangle(nub, x + w / 2 - 9, y - 6, 18, 6);
+        g.FillRectangle(GdiCache.Brush(Color.FromArgb(142, 142, 147)), x + w / 2 - 9, y - 6, 18, 6);
         using (var path = Rounded(new RectangleF(x, y, w, h), 7))
-        using (var bg = new SolidBrush(Color.FromArgb(42, 42, 45)))
-        using (var edge = new Pen(Color.FromArgb(142, 142, 147), 2f))
         {
-            g.FillPath(bg, path);
-            g.DrawPath(edge, path);
+            g.FillPath(GdiCache.Brush(Color.FromArgb(42, 42, 45)), path);
+            g.DrawPath(GdiCache.Pen(Color.FromArgb(142, 142, 147), 2f), path);
         }
         float ih = h - 6, fh = (float)(ih * pct / 100.0);
         if (fh >= 1)
             using (var fp = Rounded(new RectangleF(x + 3, y + 3 + ih - fh, w - 6, fh), 4))
-            using (var fb = new SolidBrush(fill))
-                g.FillPath(fb, fp);
+                g.FillPath(GdiCache.Brush(fill), fp);
         if (m.BatteryCharging) WidgetForm.DrawBolt(g, x + w / 2, y + h / 2, h * 0.5f);
         else if (m.BatteryOnAc) WidgetForm.DrawPlug(g, x + w / 2, y + h / 2, h * 0.5f);
     }
@@ -930,9 +915,7 @@ public sealed partial class FullscreenForm : Form
             if (r.Bottom > area.Y && r.Y < area.Bottom)
             {
                 using (var path = Rounded(r, 10))
-                using (var bg = new SolidBrush(Color.FromArgb(14, 255, 255, 255)))
-                using (var pen = new Pen(Color.FromArgb(26, 255, 255, 255)))
-                { g.FillPath(bg, path); g.DrawPath(pen, path); }
+                { g.FillPath(GdiCache.Brush(Color.FromArgb(14, 255, 255, 255)), path); g.DrawPath(GdiCache.Pen(Color.FromArgb(26, 255, 255, 255)), path); }
                 T(g, b.Title, _fb, Accent, x + 14, y + 8);
                 float ry = y + head;
                 foreach (var row in b.Rows)
@@ -954,7 +937,7 @@ public sealed partial class FullscreenForm : Form
         {
             float th = Math.Max(40, area.Height * area.Height / total);
             float ty = area.Y + (area.Height - th) * (_specScroll / _specMax);
-            using var sb = new SolidBrush(Color.FromArgb(70, 255, 255, 255));
+            var sb = GdiCache.Brush(Color.FromArgb(70, 255, 255, 255));
             g.FillRectangle(sb, R.Right - 7, ty, 4, th);
         }
     }
@@ -981,8 +964,7 @@ public sealed partial class FullscreenForm : Form
                 float cx0 = R.X + 16 + (i % cols) * cw, cy0 = y0 + (i / cols) * ch;
                 var cell = new RectangleF(cx0 + 3, cy0 + 3, cw - 6, ch - 6);
                 using (var path = Rounded(cell, 8))
-                using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
-                    g.FillPath(bg, path);
+                    g.FillPath(GdiCache.Brush(Color.FromArgb(22, 255, 255, 255)), path);
                 T(g, Loc.T("Core") + $" {i}", _fs, Dim, cell.X + 10, cell.Y + 6);
                 TR(g, $"{cores[i]:0}%", _fb, Thr(cores[i]), cell.Right - 10, cell.Y + 5);
                 if (i < _c.History.Cores.Count)
@@ -1122,8 +1104,7 @@ public sealed partial class FullscreenForm : Form
                 float cx0 = R.X + 16 + (i % 2) * (cellW + 8), cy0 = gy + (i / 2) * (miniH + 8);
                 var cell = new RectangleF(cx0, cy0, cellW, miniH);
                 using (var path = Rounded(cell, 8))
-                using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
-                    g.FillPath(bg, path);
+                    g.FillPath(GdiCache.Brush(Color.FromArgb(22, 255, 255, 255)), path);
                 m.NetPerAdapter.TryGetValue(n, out var rt);
                 T(g, TruncMid(n, 34), _fs, Dim, cell.X + 10, cell.Y + 6);
                 TR(g, $"↓ {Rate(rt.down)}   ↑ {Rate(rt.up)}", _fb, TextCol, cell.Right - 10, cell.Y + 5);

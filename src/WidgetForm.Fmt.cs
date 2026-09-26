@@ -61,7 +61,7 @@ public sealed partial class WidgetForm
     {
         if (_cfg.NetStyle == TextGraphStyle.Graph) return DrawNetGraph(g, x);
         bool bits = _cfg.NetUnit == RateUnitKind.Bits;
-        using var b = new SolidBrush(EffectiveText());
+        var b = GdiCache.Brush(EffectiveText());
         string up = _cfg.ShowNetUp ? "↑ " + WidgetRate(_metrics.NetUpBytesPerSec, bits) : "";
         string dn = _cfg.ShowNetDown ? "↓ " + WidgetRate(_metrics.NetDownBytesPerSec, bits) : "";
         string top = _cfg.SwapNet ? dn : up, bottom = _cfg.SwapNet ? up : dn;
@@ -75,7 +75,7 @@ public sealed partial class WidgetForm
 
     private int DrawDisk(Graphics g, int x)
     {
-        using var b = new SolidBrush(EffectiveText());
+        var b = GdiCache.Brush(EffectiveText());
         string rd = "R " + WidgetRate(_metrics.DiskReadBytesPerSec, false);
         string wr = "W " + WidgetRate(_metrics.DiskWriteBytesPerSec, false);
         float w = Reserve(g, "R " + RateTemplate(false), rd, wr);   // vaste reservering

@@ -34,12 +34,12 @@ public sealed partial class WidgetForm
     };
 
     // Cel met label en een omkaderde vlakte; r = het vlak waarin de lijn(en) getekend worden.
-    private int GraphCell(Graphics g, int x, string label, out Rectangle r)
+    private int GraphCell(Graphics g, int x, string label, string key, out Rectangle r)
     {
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
         var (top, h) = Area(g);
-        int gw = (int)Math.Round(_cfg.GraphWidthBase * UiScale), gh = above ? h : Height - 10;
+        int gw = (int)Math.Round(_cfg.GraphWidthFor(key) * UiScale), gh = above ? h : Height - 10;
         int lw = above ? LabelWidth(g, label) : DrawLabel(g, x, label);
         int cellW = above ? Math.Max(gw, lw) : lw + 3 + gw;
         if (above) DrawTopLabel(g, x, cellW, label);
@@ -93,11 +93,11 @@ public sealed partial class WidgetForm
 
     // Percentage (0-100) of temperatuur (0-100 °C) als lijn/vlak; kleur volgt de huidige waarde.
     private int DrawGraph(Graphics g, int x, string label, double v)
-        => DrawGraphRing(g, x, label, v, HistFor(label));
+        => DrawGraphRing(g, x, label, label.ToLowerInvariant(), v, HistFor(label));
 
-    private int DrawGraphRing(Graphics g, int x, string label, double v, Ring? ring)
+    private int DrawGraphRing(Graphics g, int x, string label, string key, double v, Ring? ring)
     {
-        int cell = GraphCell(g, x, label, out var r);
+        int cell = GraphCell(g, x, label, key, out var r);
         if (ring is not null) PlotLine(g, r, FillPoints(ring, r, 100, GraphN), ThresholdColor(v, EffectiveAccent()), true);
         GraphFrame(g, r);
         return cell;
@@ -106,13 +106,13 @@ public sealed partial class WidgetForm
     private int DrawTempGraph(Graphics g, int x, string what, double t)
     {
         string label = _cfg.LabelsAbove ? what + "°C" : what + "°";
-        return DrawGraphRing(g, x, label, t, what == "CPU" ? _hCpuT : _hGpuT);
+        return DrawGraphRing(g, x, label, what == "CPU" ? "cputemp" : "gputemp", t, what == "CPU" ? _hCpuT : _hGpuT);
     }
 
     // Netwerk: download en upload als twee lijnen; schaal automatisch of vast (NetGraphMaxMBps).
     private int DrawNetGraph(Graphics g, int x)
     {
-        int cell = GraphCell(g, x, "NET", out var r);
+        int cell = GraphCell(g, x, "NET", "net", out var r);
         int n = GraphN;
         bool dn = _cfg.ShowNetDown, up = _cfg.ShowNetUp;
         double max;
@@ -142,7 +142,7 @@ public sealed partial class WidgetForm
     // Ping: lijn van 0 tot max(100 ms, hoogste meting); "geen antwoord" (-1) onderbreekt de lijn en krijgt een rode punt.
     private int DrawPingGraph(Graphics g, int x)
     {
-        int cell = GraphCell(g, x, "PING", out var r);
+        int cell = GraphCell(g, x, "PING", "ping", out var r);
         var s = PingSamples();
         int n = Math.Max(8, GraphN / 2);   // er komt ongeveer om de 2 s een meting
         int cnt = Math.Min(s.Length, n);

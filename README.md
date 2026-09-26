@@ -149,7 +149,7 @@ bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "V
 
 - **Instellingen…** (vet, bovenaan) opent het instellingenvenster met tabbladen. Elke wijziging wordt direct toegepast en bewaard;
   bedieningselementen die door een andere keuze geen effect hebben, worden uitgeschakeld:
-  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke Het tabblad is verdeeld in subtabs: *Onderdelen*, *Bronnen*, *Weergave*, *Waarden*, *Uiterlijk* en *Geavanceerd* (lengte en periode van de grafiek, netwerkgrafiek-schaal, CPU-meting en verversnelheid). Ook *Dashboard*, *Fullscreen* en *Algemeen* hebben subtabs. Instellingen van onderdelen die nu uit staan (bijvoorbeeld GPU) kun je gewoon alvast invullen; ze gelden zodra je het onderdeel aanzet.
+  - *Widget*: onderdelen (CPU, GPU, geheugen, up-/download, batterij, schijf, temperaturen) met hun **bronnen** (welke GPU of automatisch, welke Het tabblad is verdeeld in subtabs: *Onderdelen*, *Bronnen*, *Weergave*, *Waarden*, *Uiterlijk* en *Geavanceerd* (lengte van de grafiek, ook per onderdeel, periode, netwerkgrafiek-schaal, CPU-meting en verversnelheid). Ook *Dashboard*, *Fullscreen* en *Algemeen* hebben subtabs. Instellingen van onderdelen die nu uit staan (bijvoorbeeld GPU) kun je gewoon alvast invullen; ze gelden zodra je het onderdeel aanzet.
     netwerkadapter of alle, schijfruimte uit/totaal/alle apart/één schijf, netwerkschijven meenemen), weergave per onderdeel (digitaal, meter of balk;
     CPU per core), batterijpercentage, labels boven, compact, transparant, hoogte, lettertype/-grootte en ververssnelheid.
     De **volgorde van de onderdelen in het widget** (netwerk, schijf-I/O, CPU, GPU, geheugen, batterij, schijfruimte, temperaturen) stel je in met de pijlknoppen; uitgeschakelde onderdelen staan er met "(uit)" bij. De volgorde zit ook in thema's.
@@ -216,6 +216,10 @@ Instellingen → *Fullscreen*. Een klik of toets stopt de tour.
 ![Widget met de nieuwe onderdelen, grafieken en opmaak](docs/screenshots/widget-nieuw.png)
 
 ![Grafiek in vier lengtes: zeer kort, kort, middel, lang](docs/screenshots/widget-grafieklengte.png)
+
+**Lengte per grafiek**: elke grafiek in het widget kan een eigen lengte hebben, bijvoorbeeld het netwerk breed, de CPU zeer kort en het geheugen op 100 px. Bij Instellingen → *Widget* → *Geavanceerd* → *Grafieklengte per onderdeel* kies je per onderdeel *Standaard* (volgt de algemene lengte), *Zeer kort*, *Kort*, *Middel*, *Lang* of *Aangepast* met een eigen breedte van 16 tot 160 px. De keuze hoort bij het thema en wordt direct bewaard.
+
+![Elke grafiek een eigen lengte: netwerk 140 px, ping standaard, CPU zeer kort, GPU lang, geheugen 100 px, temperaturen kort en standaard](docs/screenshots/widget-grafieklengte-per-onderdeel.png)
 
 **Achtergrondafbeelding**: kies per venster (widget, dashboard en fullscreen; Instellingen, tabbladen *Widget*, *Dashboard* en *Fullscreen*) een png/jpg/bmp met modus *Vullen*, *Uitgerekt*, *Passen*, *Tegelen* of *Gecentreerd* en een dekking van 0–100%. De afbeelding komt onder de tekst en tegels; ontbreekt het bestand, dan geldt de gewone achtergrond. Paden horen niet bij thema's.
 

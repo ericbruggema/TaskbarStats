@@ -28,6 +28,7 @@ public sealed partial class ThemeData
     public int GraphSeconds { get; set; } = 60;
     public GraphLen GraphLength { get; set; } = GraphLen.Medium;
     public int GraphWidthPx { get; set; } = 46;
+    public Dictionary<string, GraphSize>? GraphSizes { get; set; }
     public TextGraphStyle NetStyle { get; set; }
     public TextGraphStyle PingStyle { get; set; }
     public bool CpuPerCore { get; set; }
@@ -72,7 +73,7 @@ public sealed partial class ThemeData
             ShowCpuFreq = c.ShowCpuFreq, ShowDiskBusy = c.ShowDiskBusy, DiskBusyStyle = c.DiskBusyStyle, ShowDiskTemp = c.ShowDiskTemp, ShowMoboTemp = c.ShowMoboTemp,
             CpuStyle = c.CpuStyle, GpuStyle = c.GpuStyle, MemStyle = c.MemStyle, CpuPerCore = c.CpuPerCore,
             CpuTempStyle = c.CpuTempStyle, GpuTempStyle = c.GpuTempStyle, TempMerge = c.TempMerge,
-            GraphSeconds = c.GraphSeconds, GraphLength = c.GraphLength, GraphWidthPx = c.GraphWidthPx, NetStyle = c.NetStyle, PingStyle = c.PingStyle,
+            GraphSeconds = c.GraphSeconds, GraphLength = c.GraphLength, GraphWidthPx = c.GraphWidthPx, GraphSizes = c.GraphSizes.ToDictionary(k => k.Key, k => new GraphSize { Len = k.Value.Len, Px = k.Value.Px }), NetStyle = c.NetStyle, PingStyle = c.PingStyle,
             BatteryPercent = c.BatteryPercent, LabelsAbove = c.LabelsAbove, Compact = c.Compact, AutoHeight = c.AutoHeight,
             WidgetHeight = c.WidgetHeight, FontFamily = c.FontFamily, FontSize = c.FontSize, TransparentBackground = c.TransparentBackground,
             TextColor = c.TextColor, BackgroundColor = c.BackgroundColor, AccentColor = c.AccentColor, WarnColor = c.WarnColor,
@@ -93,7 +94,9 @@ public sealed partial class ThemeData
         c.ShowCpuFreq = ShowCpuFreq; c.ShowDiskBusy = ShowDiskBusy; c.DiskBusyStyle = DiskBusyStyle; c.ShowDiskTemp = ShowDiskTemp; c.ShowMoboTemp = ShowMoboTemp;
         c.CpuStyle = CpuStyle; c.GpuStyle = GpuStyle; c.MemStyle = MemStyle; c.CpuPerCore = CpuPerCore;
         c.CpuTempStyle = CpuTempStyle; c.GpuTempStyle = GpuTempStyle; c.TempMerge = TempMerge;
-        c.GraphSeconds = GraphSeconds <= 30 ? 30 : GraphSeconds >= 120 ? 120 : 60; c.GraphLength = GraphLength; c.GraphWidthPx = Math.Clamp(GraphWidthPx, 16, 160); c.NetStyle = NetStyle; c.PingStyle = PingStyle;
+        c.GraphSeconds = GraphSeconds <= 30 ? 30 : GraphSeconds >= 120 ? 120 : 60; c.GraphLength = GraphLength; c.GraphWidthPx = Math.Clamp(GraphWidthPx, 16, 160);
+        c.GraphSizes = (GraphSizes ?? new()).Where(k => AppSettings.GraphKeys.Contains(k.Key)).ToDictionary(k => k.Key, k => new GraphSize { Len = k.Value.Len, Px = Math.Clamp(k.Value.Px, 16, 160) });
+        c.NetStyle = NetStyle; c.PingStyle = PingStyle;
         c.BatteryPercent = BatteryPercent; c.Compact = Compact; c.LabelsAbove = LabelsAbove || Compact;   // compact hoort bij labels boven
         c.AutoHeight = AutoHeight;
         c.WidgetHeight = Math.Clamp(WidgetHeight, 24, 96);

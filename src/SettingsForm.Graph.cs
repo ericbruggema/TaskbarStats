@@ -45,6 +45,42 @@ public sealed partial class SettingsForm
         pxRow.Controls.Add(new Label { Text = Loc.T("px (16–160; Tiny 24, Short 34, Medium 46, Long 60)"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
         adv.Add(Row(Loc.T("Own width"), pxRow));
         adv.Add(Row(Loc.T("Period: the last"), secs));
+
+        adv.Add(Head(Loc.T("Graph length per item")));
+        adv.Add(Note(Loc.T("Every graph can have its own length. \"Default\" follows the general length above; for \"Custom\" fill in the width in pixels.")));
+        foreach (var (key, name) in new (string, string)[]
+        {
+            ("cpu", Loc.T("CPU")), ("gpu", Loc.T("GPU")), ("mem", Loc.T("Memory")), ("cputemp", Loc.T("CPU temperature")),
+            ("gputemp", Loc.T("GPU temperature")), ("net", Loc.T("Network")), ("ping", "Ping"),
+        })
+            adv.Add(GraphSizeRow(key, name));
         return adv;
+    }
+
+    // Eén rij: lengtekeuze (Standaard, Tiny…Custom) en een eigen breedte in px; het invullen van de breedte kiest automatisch "Custom".
+    private Control GraphSizeRow(string key, string name)
+    {
+        // -1 = standaard (geen eigen regel), 0..4 = GraphLen
+        int Get() => _c.GraphSizes.TryGetValue(key, out var sz) && sz.Len is GraphLen l ? (int)l : -1;
+        GraphSize Own() { if (!_c.GraphSizes.TryGetValue(key, out var sz)) _c.GraphSizes[key] = sz = new GraphSize { Px = _c.GraphWidthPx }; return sz; }
+        var seg = Seg(new (string, int)[]
+        {
+            (Loc.T("Default"), -1), (Loc.T("Tiny"), 0), (Loc.T("Short"), 1), (Loc.T("Medium"), 2), (Loc.T("Long"), 3), (Loc.T("Custom"), 4),
+        }, Get, v =>
+        {
+            if (v < 0) _c.GraphSizes.Remove(key);
+            else Own().Len = (GraphLen)v;
+        }, 60);
+        var px = Num(16, 160, () => _c.GraphSizes.TryGetValue(key, out var sz) ? sz.Px : _c.GraphWidthPx, v =>
+        {
+            var sz = Own(); sz.Px = v; sz.Len = GraphLen.Custom;
+            bool was = _building; _building = true; seg.Controls.OfType<RadioButton>().Last().Checked = true; _building = was;
+        });
+        // Past de breedte-invoer niet naast de knoppen (bijv. in het Nederlands), dan komt hij eronder in plaats van buiten beeld.
+        var line = new FlowLayoutPanel { AutoSize = true, WrapContents = true, MaximumSize = new Size(548, 0), Margin = new Padding(0) };
+        line.Controls.Add(seg);
+        line.Controls.Add(px);
+        new ToolTip().SetToolTip(px, Loc.T("Own width in pixels (16–160)"));
+        return Row(name, line, 134);
     }
 }

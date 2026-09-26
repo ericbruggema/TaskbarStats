@@ -354,8 +354,8 @@ internal sealed class DashboardRenderer : IDisposable
             Bar(g, r.X + 14, y + 19, r.Width - 28, d.UsedPercent, Thr(d.UsedPercent), 7);
             y += 34;
         }
-        DrawText(g, $"R {Metrics.FormatRate(m.DiskReadBytesPerSec)}", _fs, Accent, r.X + 14, y + 2);
-        DrawTextRight(g, $"W {Metrics.FormatRate(m.DiskWriteBytesPerSec)}", _fs, Color.FromArgb(255, 149, 0), r.Right - 14, y + 2);
+        DrawText(g, $"{_cfg.DiskReadLabel} {Metrics.FormatRate(m.DiskReadBytesPerSec)}", _fs, Accent, r.X + 14, y + 2);
+        DrawTextRight(g, $"{_cfg.DiskWriteLabel} {Metrics.FormatRate(m.DiskWriteBytesPerSec)}", _fs, Color.FromArgb(255, 149, 0), r.Right - 14, y + 2);
         var sp = new RectangleF(r.X + 14, y + 22, r.Width - 28, 32);
         double max = Math.Max(1024, Math.Max(_history.DiskRead.Max(300), _history.DiskWrite.Max(300)) * 1.15);
         Spark(g, sp, _history.DiskRead, Accent, max);

@@ -74,8 +74,8 @@ internal sealed partial class WidgetRenderer
     private int DrawDisk(Graphics g, int x)
     {
         var b = GdiCache.Brush(EffectiveText());
-        string rd = "R " + WidgetRate(_snap.DiskReadBytesPerSec, false);
-        string wr = "W " + WidgetRate(_snap.DiskWriteBytesPerSec, false);
+        string rd = _cfg.DiskReadLabel + " " + WidgetRate(_snap.DiskReadBytesPerSec, false);
+        string wr = _cfg.DiskWriteLabel + " " + WidgetRate(_snap.DiskWriteBytesPerSec, false);
         float w = Reserve(g, "R " + RateTemplate(false), rd, wr);   // vaste reservering
         float lh = _fontSmall.GetHeight(g);
         float y = (Height - lh * 2) / 2;

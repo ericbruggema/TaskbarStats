@@ -249,8 +249,8 @@ public sealed partial class FullscreenRenderer
         var drives = _c.Drives();
         Card(g, null, R, Loc.T("Disks") + " — details");
         float gw = 1240;
-        T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
-        T(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fbig, Orange, R.X + 380, R.Y + 44);
+        T(g, $"{Cfg.DiskReadLabel}  {Rate(m.DiskReadBytesPerSec)}", _fbig, Accent, R.X + 16, R.Y + 44);
+        T(g, $"{Cfg.DiskWriteLabel}  {Rate(m.DiskWriteBytesPerSec)}", _fbig, Orange, R.X + 380, R.Y + 44);
         float diskGh = Math.Max(240f, R.Bottom - (R.Y + 96) - (drives.Count * 34 + 84));
         Graph(g, new RectangleF(R.X + 16, R.Y + 96, gw, diskGh), new[] { (_c.History.DiskRead, Accent), (_c.History.DiskWrite, Orange) }, 0, Rate);
 
@@ -276,7 +276,7 @@ public sealed partial class FullscreenRenderer
         foreach (var (name, rt) in m.DiskPerDisk.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
         {
             T(g, Trunc(name, 22), _f, TextCol, rx, ry);
-            TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _f, Dim, rx + rw, ry);
+            TR(g, $"{Cfg.DiskReadLabel} {Rate(rt.read)}   {Cfg.DiskWriteLabel} {Rate(rt.write)}", _f, Dim, rx + rw, ry);
             ry += 26;
         }
         var stLines = StorageLines();

@@ -52,6 +52,12 @@ public sealed partial class SettingsForm
                             () => _c.DiskBusyStyle, v => _c.DiskBusyStyle = v);
         p.Controls.Add(Row(Loc.T("Disk active: style"), busyStyle));
 
+        var diskLabels = Seg(new (string, DiskLabelMode)[]
+        {
+            (Loc.T("R / W"), DiskLabelMode.Letters), (Loc.T("Arrows (↓ read, ↑ write)"), DiskLabelMode.Arrows),
+        }, () => _c.DiskLabels, v => _c.DiskLabels = v, 100);
+        p.Controls.Add(Row(Loc.T("Disk read/write shown as"), diskLabels));
+
         var procMode = Seg(new (string, ProcMode)[]
         {
             (Loc.T("All"), ProcMode.Total), (Loc.T("Apps"), ProcMode.Apps), (Loc.T("Background"), ProcMode.Background), (Loc.T("Apps / background"), ProcMode.Both),

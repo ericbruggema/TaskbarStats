@@ -385,4 +385,17 @@ public class WidgetRendererTests : IDisposable
     {
         Assert.InRange(Metrics.CountApps(), 0, 5000);
     }
+
+    [Fact]
+    public void Schijflabels_zijn_letters_of_pijlen()
+    {
+        var c = new AppSettings();
+        Assert.Equal("R", c.DiskReadLabel); Assert.Equal("W", c.DiskWriteLabel);
+        c.DiskLabels = DiskLabelMode.Arrows;
+        Assert.Equal("↓", c.DiskReadLabel); Assert.Equal("↑", c.DiskWriteLabel);
+        // het widget tekent met de gekozen labels: ander beeld, zelfde onderdelen
+        using var letters = Draw(Cfg(x => x.ShowDisk = true));
+        using var arrows = Draw(Cfg(x => { x.ShowDisk = true; x.DiskLabels = DiskLabelMode.Arrows; }));
+        Assert.NotEqual(Pixels(letters), Pixels(arrows));
+    }
 }

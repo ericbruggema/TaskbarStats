@@ -29,7 +29,17 @@ public sealed partial class AppSettings
     public bool ShowMoboTemp { get; set; } = false;       // hoofdbord (LibreHardwareMonitor)
     public bool ShowProcs { get; set; } = false;          // aantal draaiende processen
     public ProcMode ProcMode { get; set; } = ProcMode.Total;
+    public DiskLabelMode DiskLabels { get; set; } = DiskLabelMode.Letters;   // lezen/schrijven als R/W of als pijlen
     public bool ShowFps { get; set; } = false;            // EXPERIMENTEEL: framerate van het voorgrondprogramma
+}
+
+/// <summary>Hoe lezen en schrijven van de schijf worden aangeduid: letters (R / W) of pijlen (omlaag = lezen, omhoog = schrijven).</summary>
+public enum DiskLabelMode { Letters, Arrows }
+
+public sealed partial class AppSettings
+{
+    public string DiskReadLabel => DiskLabels == DiskLabelMode.Arrows ? "↓" : "R";
+    public string DiskWriteLabel => DiskLabels == DiskLabelMode.Arrows ? "↑" : "W";
 }
 
 /// <summary>Welk aantal processen het widget toont.</summary>

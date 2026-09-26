@@ -387,9 +387,9 @@ public sealed partial class WidgetForm : Form
         }
 
         sb.AppendLine();
-        sb.AppendLine($"{Loc.T("Disk read/write")}  R {Metrics.FormatRate(m.DiskReadBytesPerSec)}  W {Metrics.FormatRate(m.DiskWriteBytesPerSec)}");
+        sb.AppendLine($"{Loc.T("Disk read/write")}  {_cfg.DiskReadLabel} {Metrics.FormatRate(m.DiskReadBytesPerSec)}  {_cfg.DiskWriteLabel} {Metrics.FormatRate(m.DiskWriteBytesPerSec)}");
         foreach (var (name, r) in m.DiskPerDisk.OrderBy(k => k.Key))
-            sb.AppendLine($"   {name}  R {Metrics.FormatRate(r.read)}  W {Metrics.FormatRate(r.write)}");
+            sb.AppendLine($"   {name}  {_cfg.DiskReadLabel} {Metrics.FormatRate(r.read)}  {_cfg.DiskWriteLabel} {Metrics.FormatRate(r.write)}");
         foreach (var d in _drives)
             sb.AppendLine($"   {DriveLine(d)}");
         return sb.ToString().TrimEnd();

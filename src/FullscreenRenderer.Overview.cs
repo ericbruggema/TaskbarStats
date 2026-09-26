@@ -166,8 +166,8 @@ public sealed partial class FullscreenRenderer
             y += 44;
         }
         if (drives.Count > 6) { T(g, $"+{drives.Count - 6} {Loc.T("more — click for all")}", _fs, Dim, r.X + 16, y - 8); y += 14; }
-        T(g, $"R  {Rate(m.DiskReadBytesPerSec)}", _fb, Accent, r.X + 16, y + 4);
-        TR(g, $"W  {Rate(m.DiskWriteBytesPerSec)}", _fb, Orange, r.Right - 16, y + 4);
+        T(g, $"{Cfg.DiskReadLabel}  {Rate(m.DiskReadBytesPerSec)}", _fb, Accent, r.X + 16, y + 4);
+        TR(g, $"{Cfg.DiskWriteLabel}  {Rate(m.DiskWriteBytesPerSec)}", _fb, Orange, r.Right - 16, y + 4);
         float gh = 96;
         Graph(g, new RectangleF(r.X + 16, y + 32, r.Width - 32, gh), new[] { (_c.History.DiskRead, Accent), (_c.History.DiskWrite, Orange) }, 0, Rate, false);
         y += 32 + gh + 12;
@@ -175,7 +175,7 @@ public sealed partial class FullscreenRenderer
         {
             if (y > r.Bottom - 26) break;
             T(g, Trunc(name, 22), _fs, Dim, r.X + 16, y);
-            TR(g, $"R {Rate(rt.read)}   W {Rate(rt.write)}", _fs, TextCol, r.Right - 16, y);
+            TR(g, $"{Cfg.DiskReadLabel} {Rate(rt.read)}   {Cfg.DiskWriteLabel} {Rate(rt.write)}", _fs, TextCol, r.Right - 16, y);
             y += 21;
         }
         foreach (var (name, text) in StorageLines())

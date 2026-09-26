@@ -136,11 +136,8 @@ public sealed partial class AppSettings
 
     public static AppSettings Load()
     {
-        // TASKBARSTATS_DATA = eigen datamap (voor tests/screenshots, zodat je echte instellingen ongemoeid blijven).
-        var custom = Environment.GetEnvironmentVariable("TASKBARSTATS_DATA");
-        var dir = !string.IsNullOrWhiteSpace(custom)
-            ? custom
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
+        // TASKBARSTATS_DATA = eigen datamap (voor tests/screenshots, zodat je echte instellingen ongemoeid blijven); portable.txt naast de exe = map "data" ernaast.
+        var dir = AppPaths.DataDir;
         Directory.CreateDirectory(dir);
         Loc.ExternalDir = Path.Combine(dir, "lang");   // eigen taalbestanden
         var path = Path.Combine(dir, "settings.json");

@@ -21,14 +21,7 @@ internal static class Diag
     private const long MaxLog = 256 * 1024;
 
     /// <summary>Map van het logbestand: dezelfde als de instellingen (TASKBARSTATS_DATA overschrijft).</summary>
-    public static string Dir
-    {
-        get
-        {
-            var custom = Environment.GetEnvironmentVariable("TASKBARSTATS_DATA");
-            return !string.IsNullOrWhiteSpace(custom) ? custom : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
-        }
-    }
+    public static string Dir => AppPaths.DataDir;
     public static string LogPath => Path.Combine(Dir, "diag.log");
 
     /// <summary>Legt een waarschuwing vast (een keer per tekst).</summary>

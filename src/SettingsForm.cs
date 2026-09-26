@@ -350,6 +350,9 @@ public sealed partial class SettingsForm : Form
         p = SubPage(sub, Loc.T("Mouse and updates"));
         MouseSection(p);
         UpdateSection(p);
+
+        p = SubPage(sub, Loc.T("Backup"));
+        BackupSection(p);
         return tab;
     }
 

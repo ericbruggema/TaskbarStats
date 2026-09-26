@@ -433,7 +433,7 @@ running in idle mode (the sampler still runs every 5 s).
 ### Phase 12: Localisation
 
 - **Goal**: all visible text goes through `Loc.T("English text")`; translations in JSON.
-- **Files**: `Loc.cs`, `lang/nl.json`, `lang/de.json`, `tools/check-lang.ps1`, csproj `EmbeddedResource` line.
+- **Files**: `Loc.cs`, `lang/nl.json`, `lang/de.json`, `tools/LangTool` (first a script, `tools/check-lang.ps1`), csproj `EmbeddedResource` line.
 - **Prompt**:
 
 ```text
@@ -444,12 +444,12 @@ Add Loc.cs. The English text in the code is the key: Loc.T("Graph length"). Tran
 Loc.Missing. "text@@context" separates same-English-different-meaning texts (everything after @@ is never
 shown). {0},{1} placeholders go through string.Format; a broken translation falls back to English instead of
 throwing. Loc.N("text") marks strings in arrays for later translation. Detect language from Windows on first run.
-Write tools/check-lang.ps1 that lists missing, unused and mismatched-placeholder/whitespace entries per language
-and exits 1 on errors. Then convert all existing hard-coded strings.
+Write a checker (later: tools/LangTool, see section 5) that lists missing, unused and mismatched-placeholder/whitespace
+entries per language and exits 1 on errors, and run it on every build. Then convert all existing hard-coded strings.
 ```
 
 - **Acceptance**: switching language updates the open windows and menu; a deliberately broken JSON file does not
-  crash; `tools\check-lang.ps1` reports 0 missing for the shipped languages.
+  crash; the checker reports 0 missing for the shipped languages.
 - **Pitfalls**: the first version (1.1-1.4) had Dutch/English strings mixed in the code with `Loc.Pick(nl, en)`;
   moving to keys plus JSON was a large refactor (`5cd5c4a`). Start with it in phase 1. See section 5.
 
@@ -624,20 +624,47 @@ gifs always in English"). Put project facts in `CLAUDE.md` (shared, versioned) a
 made it verifiable. **What did not**: the regex check does not see strings built in interpolations or by
 concatenation, and renaming keys by hand across files is error-prone.
 
-### Language tooling (v1.5, in progress)
+### Language tooling (v1.5): every change is checked
 
-> This section is a placeholder. The localisation system is being reworked right now; another person will fill in
-> the details. The intentions, as known today:
->
-> - A Roslyn-based `LangTool` (`tools/LangTool`, uses `Microsoft.CodeAnalysis.CSharp`) that reads the C# code as a
->   syntax tree instead of using a regex, so it also finds texts in interpolations and concatenated strings.
-> - Commands: `sync` (add missing keys, mark or remove unused ones), `check` (validate), `rename` (rename a key in
->   the code and in all language files in one go), `status` (per language coverage).
-> - Plural forms.
-> - A pseudo-locale for testing layout and untranslated text.
-> - Build-time validation, so a broken or incomplete language file fails the build instead of reaching users.
->
-> TODO: usage examples, file formats, CI integration, and how this replaces `tools\check-lang.ps1`.
+The regex script of 1.4 was replaced by `tools/LangTool` (a small console app that parses the C# code with Roslyn,
+`Microsoft.CodeAnalysis.CSharp`). It runs on **every build** (an MSBuild target in the csproj), in the tests and in CI,
+so a broken or incomplete language change cannot reach users unnoticed.
+
+**What it reads from the code**
+
+- `Loc.T("text")`, `Loc.T("text {0}", value)`, `Loc.N("text")` (marker) and `Loc.P("{0} day|{0} days", n)` (plural),
+  including texts built with `"a" + "b"`. A `Loc.T` with an interpolated `$"…"` string is an **error** (it can never be
+  translated); a `Loc.T(variable)` is a warning unless the line carries `// lang-dynamic`.
+- A declaration marked `// lang-lines` before a raw string: every line becomes a key (used for the About text).
+- Arguments are counted: `Loc.T("Needs {0} and {1}", x)` is an error (missing value).
+- Hard-coded UI text (`Text = "…"`, `MessageBox.Show("…")`, menu items) is a warning; silence with `// nolang`.
+
+**Commands** (`dotnet run --project tools/LangTool -c Release -- <command>`)
+
+| Command | What it does |
+|---|---|
+| `check [--strict] [--lang xx]` | Validates all `lang/*.json`. Errors (exit 1): invalid JSON, duplicate keys, wrong `{0}` placeholders, wrong number of plural forms, unknown `_plural`/`_culture`, missing `_name`, whitespace mismatch, `@@` in a value. Warnings: untranslated, unused, hard-coded text. `--strict` makes untranslated texts errors (CI). |
+| `sync [--prune]` | Adds every missing key to every language file with an empty value (`""` = "not translated yet", shows English), sorts the files into one canonical order (stable diffs) and, with `--prune`, removes unused keys. It never changes an existing translation. |
+| `rename "old" "new"` | Renames a key in the code **and** in all language files, so fixing an English typo never orphans translations. |
+| `new xx "Name" [--culture xx-XX]` | Creates a new language file with all keys empty. |
+| `status [--md]` | Coverage per language (markdown table for the README). |
+
+Output uses the MSBuild diagnostic format (`file(line,col): error LANG102: …`), so errors show up in the build output
+and IDE with a clickable location.
+
+**Runtime features added with it**
+
+- Empty translation = untranslated = English (never blank text).
+- Plurals: `Loc.P("{0} day|{0} days", n)`; each language file declares `_plural` (`one-other` (default),
+  `zero-or-one-other`, `one-few-many-other`, `other`) and gives the same number of forms separated by `|`.
+- `_culture` (for example `de-DE`) sets the number/date format inside translated texts.
+- Region files: `pt-br.json` completes `pt.json`; the language is detected from the Windows UI culture (full name first).
+- Pseudo-locale `qps` (set `TASKBARSTATS_PSEUDO=1` to list it): every text is shown as `[Tëxt   !]`, +30% longer, with
+  accents. Untranslated or hard-coded text stands out, and too-long translations show layout problems early.
+- Broken language file: ignored, English keeps working, and the problem is written to `diag.log`.
+
+**Rules for Claude (put them in your CLAUDE.md)**: use only `Loc.T/N/P` with literal strings; after adding or changing a
+text run `sync`, translate the empty values, run `check`; to change an English text use `rename`, never edit by hand.
 
 ---
 

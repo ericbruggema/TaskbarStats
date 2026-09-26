@@ -78,4 +78,65 @@ public sealed partial class SettingsForm
         p.Controls.Add(line);
         p.Controls.Add(Note(Loc.T("Only a notification and a menu item; nothing is ever downloaded or installed automatically. At most once per 24 hours.")));
     }
+    // ---------- back-up: exporteren, importeren, terugzetten ----------
+    private void BackupSection(FlowLayoutPanel p)
+    {
+        p.Controls.Add(Head(Loc.T("Backup and reset")));
+        var export = Btn(Loc.T("Export settings…"), 170);
+        export.Click += (_, _) =>
+        {
+            using var dlg = new SaveFileDialog { Filter = "JSON|*.json", FileName = "TaskbarStats-settings.json", Title = Loc.T("Export settings…") };
+            if (dlg.ShowDialog(this) != DialogResult.OK) return;
+            try { File.WriteAllText(dlg.FileName, _c.ToJson()); }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        };
+        var import = Btn(Loc.T("Import settings…"), 170);
+        import.Click += (_, _) =>
+        {
+            using var dlg = new OpenFileDialog { Filter = "JSON|*.json", Title = Loc.T("Import settings…") };
+            if (dlg.ShowDialog(this) != DialogResult.OK) return;
+            AppSettings? other = null;
+            try { other = AppSettings.TryParse(File.ReadAllText(dlg.FileName)); }
+            catch (Exception ex) { Diag.Swallow(ex); }
+            if (other is null) { MessageBox.Show(this, Loc.T("This is not a TaskbarStats settings file."), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (MessageBox.Show(this, Loc.T("Replace all your current settings with the ones in this file?"), Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            ReplaceSettings(other);
+        };
+        var reset = Btn(Loc.T("Reset all settings…"), 170);
+        reset.Click += (_, _) =>
+        {
+            if (MessageBox.Show(this, Loc.T("Reset every setting to its default? Your themes and usage log are kept."), Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            var fresh = new AppSettings { WelcomeShown = true };
+            ReplaceSettings(fresh);
+        };
+        var line = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0) };
+        line.Controls.AddRange(new Control[] { export, import, reset });
+        p.Controls.Add(line);
+        p.Controls.Add(Note(Loc.T("The file contains only your settings (no personal data). Themes are separate files in the data folder.")));
+
+        p.Controls.Add(Head(Loc.T("Data folder")));
+        var open = Btn(Loc.T("Open data folder"), 170);
+        open.Click += (_, _) =>
+        {
+            try { Directory.CreateDirectory(AppPaths.DataDir); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppPaths.DataDir) { UseShellExecute = true }); }
+            catch (Exception ex) { Diag.Swallow(ex); }
+        };
+        p.Controls.Add(open);
+        p.Controls.Add(Note(AppPaths.Portable
+            ? Loc.T("Portable mode: everything is stored in the data folder next to the program.")
+            : Loc.T("For portable use (for example on a USB stick), create an empty file named portable.txt next to TaskbarStats.exe and restart; the data then moves to a data folder there.")));
+    }
+
+    /// <summary>Zet alle instellingen op die van <paramref name="other"/>, past ze toe en bouwt dit venster opnieuw op.</summary>
+    private void ReplaceSettings(AppSettings other)
+    {
+        _c.CopyFrom(other);
+        Loc.Lang = string.IsNullOrEmpty(_c.Language) ? Loc.Detect() : _c.Language;
+        _apply();
+        BeginInvoke(new Action(() =>
+        {
+            Text = Loc.T("TaskbarStats — settings");
+            Build(_tabs.SelectedIndex);
+        }));
+    }
 }

@@ -14,10 +14,10 @@ Four English demos of 45 to 60 seconds each. Download, install and run takes a f
 
 | Video | For | What it shows |
 |-------|-----|---------------|
-| [Quick start (47 s)](docs/tour/promo/quick-start-en.mp4) | Everyone | Download, install, run, right-click menu, themes with backgrounds, JSON editor with preview, processes and FPS, dashboard and fullscreen |
-| [For number lovers (57 s)](docs/tour/promo/nerds-en.mp4) | Statistics nerds | Every graph with its own length, four display styles, processes (all, apps, background), tooltip details, dashboard, fullscreen cockpit, specifications, JSON everything |
-| [For gamers (51 s)](docs/tour/promo/gamers-en.mp4) | Gamers | FPS in the taskbar or floating on top of your game, 1% low, tiny overlay mode, click-through (Ctrl+Alt+W), GPU and CPU temperatures, ping, themes |
-| [The complete tour (59 s)](docs/tour/promo/tour-en.mp4) | Everyone | The whole program, feature by feature |
+| [Quick start (47 s)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/quick-start-en.mp4) | Everyone | Download, install, run, right-click menu, themes with backgrounds, JSON editor with preview, processes and FPS, dashboard and fullscreen |
+| [For number lovers (57 s)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/nerds-en.mp4) | Statistics nerds | Every graph with its own length, four display styles, processes (all, apps, background), tooltip details, dashboard, fullscreen cockpit, specifications, JSON everything |
+| [For gamers (51 s)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/gamers-en.mp4) | Gamers | FPS in the taskbar or floating on top of your game, 1% low, tiny overlay mode, click-through (Ctrl+Alt+W), GPU and CPU temperatures, ping, themes |
+| [The complete tour (59 s)](https://github.com/ericbruggema/TaskbarStats/releases/download/v1.6.0/tour-en.mp4) | Everyone | The whole program, feature by feature |
 
 More documentation is listed in the [docs index](docs/README.md).
 

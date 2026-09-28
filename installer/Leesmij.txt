@@ -223,4 +223,4 @@ You will be asked whether to also remove your settings and log.
  LinkedIn: https://www.linkedin.com/in/eric-bruggema-28a81a186/
  Facebook: https://www.facebook.com/eric.bruggema
 
- Versie / Version 1.6.1
+ Versie / Version 1.6.2

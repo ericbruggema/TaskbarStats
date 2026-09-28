@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.6.1"
+#define AppVersion "1.6.2"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -51,6 +51,8 @@ dutch.IconReadme=Leesmij (uitleg en credits)
 english.IconReadme=Readme (explanation and credits)
 dutch.IconUninstall=verwijderen
 english.IconUninstall=Uninstall
+dutch.IconGitHub=TaskbarStats op GitHub
+english.IconGitHub=TaskbarStats on GitHub
 dutch.RunReadme=Leesmij (uitleg en credits) openen
 english.RunReadme=Open the readme (explanation and credits)
 dutch.RunStart=nu starten
@@ -71,6 +73,7 @@ Source: "Leesmij.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"
 Name: "{group}\{cm:IconReadme}"; Filename: "{app}\Leesmij.txt"
 Name: "{group}\{#AppName} {cm:IconUninstall}"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:IconGitHub}"; Filename: "https://github.com/ericbruggema/TaskbarStats"; IconFilename: "{app}\{#ExeName}"
 ; Bureaublad (optioneel)
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopicon
 

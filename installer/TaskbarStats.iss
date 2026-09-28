@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.6.2"
+#define AppVersion "1.6.3"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -79,10 +79,12 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopic
 
 [Run]
 ; Autostart-taak aanmaken of juist weghalen, afhankelijk van de keuze
-Filename: "{app}\{#ExeName}"; Parameters: "--autostart-on"; Flags: runhidden waituntilterminated; Tasks: startup
-Filename: "{app}\{#ExeName}"; Parameters: "--autostart-off"; Flags: runhidden waituntilterminated; Tasks: not startup
+; shellexec: TaskbarStats.exe vraagt zelf om administrator-rechten (manifest); CreateProcess (het Inno-standaard)
+; kan zo'n programma niet starten en geeft dan code 740, ShellExecute wel.
+Filename: "{app}\{#ExeName}"; Parameters: "--autostart-on"; Flags: runhidden waituntilterminated shellexec; Tasks: startup
+Filename: "{app}\{#ExeName}"; Parameters: "--autostart-off"; Flags: runhidden waituntilterminated shellexec; Tasks: not startup
 Filename: "{app}\Leesmij.txt"; Description: "{cm:RunReadme}"; Flags: postinstall shellexec skipifsilent unchecked
-Filename: "{app}\{#ExeName}"; Description: "{#AppName} {cm:RunStart}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#ExeName}"; Description: "{#AppName} {cm:RunStart}"; Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallRun]
 ; App afsluiten en de autostart-taak weghalen voordat de bestanden verdwijnen.

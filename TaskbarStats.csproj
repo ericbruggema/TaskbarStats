@@ -11,7 +11,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>1.6.3</Version>
+    <Version>1.6.4</Version>
     <!-- Zuinig: geen extra achtergrond-GC-thread, minder opstart-optimalisatie, geheugen krap houden -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
@@ -40,10 +40,14 @@
   <ItemGroup>
     <!-- PerformanceCounter zit op moderne .NET in dit NuGet-pakket -->
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
-    <!-- Temperatuur/klok/VRAM (optioneel, dezelfde engine als HWiNFO) -->
-    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.3" />
-    <!-- WMI voor de specificatiepagina (hardware-inventaris) -->
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <!-- Temperatuur/klok/VRAM (optioneel, dezelfde engine als HWiNFO). 0.9.6 i.p.v. 0.9.3: geen ingebakken
+         WinRing0-driver meer (0.9.3 bakt "WinRing0(x64).gz" in en pakt die als <appnaam>.sys uit zodra CPU/hoofdbord-
+         sensoren aan staan; WinRing0 staat op Microsofts blocklist voor kwetsbare drivers en Defender verwijdert
+         hem dan als "VulnerableDriver:WinNT/Winring0" - onterecht alarmerend voor gebruikers, en zonder driver
+         werken CPU-vermogen/hoofdbord-sensoren toch al niet meer). -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <!-- WMI voor de specificatiepagina (hardware-inventaris); 10.0.2 is de ondergrens die LibreHardwareMonitorLib 0.9.6 vereist -->
+    <PackageReference Include="System.Management" Version="10.0.2" />
   </ItemGroup>
 
   <!-- Elke build controleert de taalbestanden tegen de code (tools\LangTool): fouten (kapotte {0}, meervoud, dubbele sleutel, Loc-aanroep

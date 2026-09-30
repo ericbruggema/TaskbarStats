@@ -5,6 +5,6 @@ public static class AppInfo
 {
     public const string Url = "https://github.com/ericbruggema/TaskbarStats";
 
-    /// <summary>"TaskbarStats 1.6.5 - https://github.com/..."</summary>
+    /// <summary>"TaskbarStats 1.6.6 - https://github.com/..."</summary>
     public static string Signature => "TaskbarStats " + AboutForm.Version + " - " + Url;
 }

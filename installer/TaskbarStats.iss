@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.6.5"
+#define AppVersion "1.6.6"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -59,6 +59,12 @@ dutch.RunStart=nu starten
 english.RunStart=Start now
 dutch.UninstallData=Ook je instellingen en het netwerkverbruik-log verwijderen?
 english.UninstallData=Also delete your settings and the network usage log?
+
+[InstallDelete]
+; Startmenu-map eerst leegmaken: snelkoppelingsbestanden heten per taal anders ("Leesmij..." vs "Readme..."), dus een
+; update in dezelfde map overschrijft alleen gelijknamige bestanden - een oudere versie of eerdere taalkeuze liet
+; anders voorgoed een verweesde snelkoppeling achter (bv. naar een inmiddels verwijderde installatiemap).
+Type: filesandordirs; Name: "{group}"
 
 [Tasks]
 Name: "startup"; Description: "{cm:TaskStartup}"; GroupDescription: "{cm:TaskGroup}"

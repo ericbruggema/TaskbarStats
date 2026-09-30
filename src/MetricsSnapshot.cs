@@ -62,6 +62,8 @@ public sealed class MetricsSnapshot
     public IReadOnlyDictionary<string, (double down, double up)> NetPerAdapter { get; init; } = new Dictionary<string, (double, double)>();
     /// <summary>Gebruik per GPU (sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> GpuPerLuid { get; init; } = new Dictionary<string, double>();
+    /// <summary>Drukste engine-soort per GPU (3D/VideoDecode/Copy/...; sleutel = LUID-string, zie <see cref="Metrics.EngineName"/>).</summary>
+    public IReadOnlyDictionary<string, string> GpuEnginePerLuid { get; init; } = new Dictionary<string, string>();
     /// <summary>Gebruikt dedicated videogeheugen per GPU (bytes, sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> VramUsedPerLuid { get; init; } = new Dictionary<string, double>();
     /// <summary>Lees/schrijfsnelheid per fysieke schijf (bytes/s).</summary>
@@ -120,7 +122,7 @@ public sealed partial class Metrics
             PeakCpu = PeakCpu, PeakMem = PeakMem, PeakDown = PeakDown,
             ProcessTotal = ProcessTotal, ProcessApps = ProcessApps, ThreadTotal = ThreadTotal,
             Fps = Fps.Enabled ? Fps.Read() : null,
-            NetPerAdapter = _netRates, GpuPerLuid = _gpuRates, VramUsedPerLuid = _vramRates, DiskPerDisk = _diskRates,
+            NetPerAdapter = _netRates, GpuPerLuid = _gpuRates, GpuEnginePerLuid = _gpuEngines, VramUsedPerLuid = _vramRates, DiskPerDisk = _diskRates,
             Sensors = _sensors,
         };
     }

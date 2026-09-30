@@ -335,7 +335,8 @@ public sealed partial class WidgetForm : Form
             long ded = Metrics.GpuDedicatedBytes(luid);
             if (ded > 0 && m.VramUsedPerLuid.TryGetValue(luid, out var used))
                 vram = $"  VRAM {Metrics.FormatSize(used)} / {Metrics.FormatSize(ded)}";
-            sb.AppendLine($"GPU  {Metrics.GpuName(luid)}  {v:0}%{vram}");
+            string engine = m.GpuEnginePerLuid.TryGetValue(luid, out var eng) ? $"  ({Metrics.EngineName(eng)})" : "";
+            sb.AppendLine($"GPU  {Metrics.GpuName(luid)}  {v:0}%{engine}{vram}");
         }
         sb.AppendLine($"{Loc.T("Memory")}  {Metrics.FormatSize(m.MemUsedBytes)} / {Metrics.FormatSize(m.MemTotalBytes)} ({m.MemPercent:0}%)");
         if (m.BatteryPresent)
@@ -469,11 +470,12 @@ public sealed partial class WidgetForm : Form
         if (_cfg.AutoHeight && Environment.TickCount64 - _heightCheckedAt > 5000) ApplyHeight();
         bool fs = _cfg.HideInFullscreen && IsFullscreenAppRunning();
         _dash?.SetSuppressed(fs && _cfg.DashFront);
-        if (fs != _hidden)
+        bool hide = fs || (_cfg.HideWithTaskbar && TaskbarHost.IsAutoHiddenNow());
+        if (hide != _hidden)
         {
-            _hidden = fs;
-            ShowWindow(Handle, fs ? SW_HIDE : SW_SHOWNOACTIVATE);
-            if (!fs) Render();
+            _hidden = hide;
+            ShowWindow(Handle, hide ? SW_HIDE : SW_SHOWNOACTIVATE);
+            if (!hide) Render();
         }
         KeepOnTop();
     }

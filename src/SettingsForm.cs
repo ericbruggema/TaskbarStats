@@ -319,6 +319,7 @@ public sealed partial class SettingsForm : Form
         p.Controls.Add(Check(Loc.T("Start with Windows"), StartupManager.IsEnabled(), v => StartupManager.Set(v)));
         p.Controls.Add(Check(Loc.T("Lock position"), _c.LockPosition, v => _c.LockPosition = v));
         p.Controls.Add(Check(Loc.T("Hide in full screen"), _c.HideInFullscreen, v => _c.HideInFullscreen = v));
+        p.Controls.Add(Check(Loc.T("Hide when the taskbar auto-hides"), _c.HideWithTaskbar, v => _c.HideWithTaskbar = v));
         p.Controls.Add(Check(Loc.T("Stick to the notification area (follows it)"), _c.StickToTray, v => _c.StickToTray = v));
         p.Controls.Add(Note(Loc.T("The widget stays next to the notification area, even when it moves. Dragging turns this off.")));
 

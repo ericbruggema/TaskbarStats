@@ -40,7 +40,7 @@ public readonly record struct DriveSpace(string Name, long Total, long Free, boo
 /// bronnen die Windows Task Manager gebruikt.
 ///  - CPU  : "Processor Information\% Processor Time" (totaal en per core; dat is wat Taakbeheer toont), of optioneel "% Processor Utility" (telt turbo mee).
 ///  - MEM  : GlobalMemoryStatusEx.dwMemoryLoad.
-///  - GPU  : som van alle "GPU Engine\Utilization Percentage" per fysieke GPU (LUID).
+///  - GPU  : "GPU Engine\Utilization Percentage", per fysieke GPU (LUID) de drukste engine (3D/Video/Copy/...; zo telt Taakbeheer ook), niet de som van alle engines.
 ///  - NET  : "Network Interface\Bytes Received/Sent per sec" (per adapter, plus totaal).
 ///  - DISK : "PhysicalDisk\Disk Read/Write Bytes/sec" (per schijf, plus totaal).
 ///  - TEMP : LibreHardwareMonitorLib (vereist administrator-rechten).
@@ -78,6 +78,7 @@ public sealed partial class Metrics : IDisposable
     public IReadOnlyDictionary<string, (double down, double up)> NetPerAdapter => _netRates;
     /// <summary>Actueel gebruik per GPU (sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> GpuPerLuid => _gpuRates;
+    public IReadOnlyDictionary<string, string> GpuEnginePerLuid => _gpuEngines;
     /// <summary>Gebruikt dedicated videogeheugen per GPU (bytes, sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> VramUsedPerLuid => _vramRates;
     /// <summary>Actuele lees/schrijfsnelheid per fysieke schijf (bytes/s).</summary>
@@ -93,6 +94,7 @@ public sealed partial class Metrics : IDisposable
     private readonly Dictionary<string, (PerformanceCounter read, PerformanceCounter write)> _disks = new();
     private Dictionary<string, (double down, double up)> _netRates = new();
     private Dictionary<string, double> _gpuRates = new();
+    private Dictionary<string, string> _gpuEngines = new();   // per LUID: welke engine (3D/VideoDecode/Copy/...) op dit moment het drukst is
     private Dictionary<string, (double read, double write)> _diskRates = new();
 
     private string? _gpuLuidFilter;
@@ -465,6 +467,25 @@ public sealed partial class Metrics : IDisposable
         return _gpuNames.TryGetValue(luid, out var n) ? n : luid;
     }
 
+    /// <summary>Leesbare naam voor een GPU-engine-soort (bv. "VideoDecode" -> "Video decode"); onbekende namen blijven zoals ze zijn.</summary>
+    public static string EngineName(string engine)
+    {
+        var baseName = engine.Split('_')[0];   // "Compute_0"/"Compute_1" e.d. -> "Compute"
+        return baseName switch
+        {
+            "3D" => "3D",
+            "VideoDecode" => Loc.T("Video decode"),
+            "VideoEncode" => Loc.T("Video encode"),
+            "VideoProcessing" => Loc.T("Video processing"),
+            "Copy" => Loc.T("Copy@@gpu-engine"),
+            "Compute" => Loc.T("Compute"),
+            "LegacyOverlay" => Loc.T("Overlay"),
+            "SceneAssembly" => Loc.T("Scene assembly"),
+            "Security" => Loc.T("Security"),
+            _ => baseName,
+        };
+    }
+
     /// <summary>True voor een echte videokaart: naam bekend via DXGI en niet de "Microsoft Basic Render Driver".</summary>
     public static bool IsRealGpu(string luid)
     {
@@ -507,6 +528,13 @@ public sealed partial class Metrics : IDisposable
         if (i < 0) return null;
         int j = instance.IndexOf("_phys", i, StringComparison.Ordinal);
         return j < 0 ? null : instance.Substring(i, j - i);
+    }
+
+    /// <summary>Engine-soort uit een "GPU Engine"-instantienaam (bv. "...engtype_3D" -> "3D", "...engtype_VideoDecode" -> "VideoDecode").</summary>
+    private static string? ExtractEngineType(string instance)
+    {
+        int i = instance.IndexOf("engtype_", StringComparison.Ordinal);
+        return i < 0 ? null : instance[(i + "engtype_".Length)..];
     }
 
     // ---------- Verversen ----------
@@ -559,21 +587,36 @@ public sealed partial class Metrics : IDisposable
         catch (Exception dex) { Diag.Swallow(dex); }
     }
 
-    /// <summary>GPU-belasting (PDH-wildcard: alle engines in één query), som per adapter.</summary>
+    /// <summary>
+    /// GPU-belasting (PDH-wildcard: alle engines in één query). Een adapter heeft meerdere engines naast elkaar
+    /// (3D, Video Decode/Encode, Copy, ...) die onafhankelijk kunnen lopen; Taakbeheer toont per adapter het
+    /// percentage van de drukste engine, niet de som van alle engines (anders telt bv. video-decode in een browser
+    /// gewoon mee bovenop 3D-rendering en lijkt de GPU drukker dan Taakbeheer laat zien). Per engine wel eerst
+    /// optellen: meerdere processen kunnen dezelfde engine tegelijk gebruiken, en dat is wél een reëel totaal.
+    /// </summary>
     private void UpdateGpu()
     {
         try
         {
-            var perLuid = new Dictionary<string, double>();
+            var perLuidEngine = new Dictionary<(string Luid, string Engine), double>();
             if (_gpuQuery is not null)
                 foreach (var (inst, v) in _gpuQuery.Read())
                 {
-                    if (!inst.Contains("engtype")) continue;
-                    var luid = ExtractLuid(inst) ?? "";
-                    perLuid[luid] = perLuid.TryGetValue(luid, out var cur) ? cur + v : v;
+                    if (ExtractEngineType(inst) is not { } engine) continue;
+                    var key = (ExtractLuid(inst) ?? "", engine);
+                    perLuidEngine[key] = perLuidEngine.TryGetValue(key, out var cur) ? cur + v : v;
                 }
-            foreach (var k in perLuid.Keys.ToList()) perLuid[k] = Math.Min(100, perLuid[k]);
+            var perLuid = new Dictionary<string, double>();
+            var busiestEngine = new Dictionary<string, string>();
+            foreach (var (key, sum) in perLuidEngine)
+            {
+                var clamped = Math.Min(100, sum);
+                if (perLuid.TryGetValue(key.Luid, out var cur) && cur >= clamped) continue;
+                perLuid[key.Luid] = clamped;
+                busiestEngine[key.Luid] = key.Engine;
+            }
             _gpuRates = perLuid;
+            _gpuEngines = busiestEngine;
             GpuPercent = _gpuLuidFilter is not null
                 ? perLuid.GetValueOrDefault(_gpuLuidFilter)
                 : perLuid.Count == 0 ? 0 : perLuid.Values.Max();

@@ -79,6 +79,9 @@ public sealed partial class Metrics : IDisposable
     /// <summary>Actueel gebruik per GPU (sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> GpuPerLuid => _gpuRates;
     public IReadOnlyDictionary<string, string> GpuEnginePerLuid => _gpuEngines;
+    /// <summary>Index (0, 1, ...) van de GPU die <see cref="GpuPercent"/> nu toont in de vaste, alfabetische adaptervolgorde
+    /// (zie <see cref="RealGpuOrder"/>); -1 bij één of geen echte GPU (dan blijft de meter/balk de gewone accentkleur).</summary>
+    public int GpuColorIndex { get; private set; } = -1;
     /// <summary>Gebruikt dedicated videogeheugen per GPU (bytes, sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> VramUsedPerLuid => _vramRates;
     /// <summary>Actuele lees/schrijfsnelheid per fysieke schijf (bytes/s).</summary>
@@ -98,6 +101,8 @@ public sealed partial class Metrics : IDisposable
     private Dictionary<string, (double read, double write)> _diskRates = new();
 
     private string? _gpuLuidFilter;
+    private string[] _realGpuOrderCache = Array.Empty<string>();
+    private DateTime _realGpuOrderCacheAt = DateTime.MinValue;
     private string? _netFilter;
     private Computer? _lhm;
     private readonly object _lhmLock = new();   // alle LibreHardwareMonitor-toegang (UI zet vlaggen, sampler-thread voert uit)
@@ -593,6 +598,10 @@ public sealed partial class Metrics : IDisposable
     /// percentage van de drukste engine, niet de som van alle engines (anders telt bv. video-decode in een browser
     /// gewoon mee bovenop 3D-rendering en lijkt de GPU drukker dan Taakbeheer laat zien). Per engine wel eerst
     /// optellen: meerdere processen kunnen dezelfde engine tegelijk gebruiken, en dat is wél een reëel totaal.
+    /// Alleen LUID's die DXGI als echte adapter kent (<see cref="IsRealGpu"/>): de "GPU Engine"-teller geeft op
+    /// sommige pc's ook een LUID zonder DXGI-naam (bv. een losse NPU/compute-engine, geen beeldadapter) - die zou
+    /// anders als de drukste worden gekozen (bij "automatisch") en de widget iets heel anders dan de echte GPU laten
+    /// zien, zonder dat je een naam ziet om het te herkennen.
     /// </summary>
     private void UpdateGpu()
     {
@@ -603,7 +612,9 @@ public sealed partial class Metrics : IDisposable
                 foreach (var (inst, v) in _gpuQuery.Read())
                 {
                     if (ExtractEngineType(inst) is not { } engine) continue;
-                    var key = (ExtractLuid(inst) ?? "", engine);
+                    var luid = ExtractLuid(inst) ?? "";
+                    if (!IsRealGpu(luid)) continue;
+                    var key = (luid, engine);
                     perLuidEngine[key] = perLuidEngine.TryGetValue(key, out var cur) ? cur + v : v;
                 }
             var perLuid = new Dictionary<string, double>();
@@ -617,12 +628,47 @@ public sealed partial class Metrics : IDisposable
             }
             _gpuRates = perLuid;
             _gpuEngines = busiestEngine;
-            GpuPercent = _gpuLuidFilter is not null
-                ? perLuid.GetValueOrDefault(_gpuLuidFilter)
-                : perLuid.Count == 0 ? 0 : perLuid.Values.Max();
+            string? active;
+            if (_gpuLuidFilter is not null)
+            {
+                active = _gpuLuidFilter;
+                GpuPercent = perLuid.GetValueOrDefault(_gpuLuidFilter);
+            }
+            else if (perLuid.Count == 0)
+            {
+                active = null;
+                GpuPercent = 0;
+            }
+            else
+            {
+                var top = perLuid.OrderByDescending(kv => kv.Value).First();
+                active = top.Key;
+                GpuPercent = top.Value;
+            }
+            // Kleur per GPU-index alleen zinvol bij 2+ echte adapters; anders (veruit de meeste pc's) ongewijzigd
+            // de gewone accentkleur, zie WidgetRenderer.GpuBarColor.
+            var order = RealGpuOrder();
+            GpuColorIndex = active is not null && order.Length >= 2 ? Array.IndexOf(order, active) : -1;
         }
-        catch { GpuPercent = 0; }
+        catch { GpuPercent = 0; GpuColorIndex = -1; }
     }
+
+    /// <summary>Vaste, alfabetische volgorde van de echte GPU's (zoals de Bronnen-lijst in Instellingen), gecachet
+    /// (GetGpuLuids() is een aparte WMI/PDH-metadata-aanvraag, niet elke tik herhalen) zodat een GPU-index niet
+    /// heen en weer springt als een adapter tijdelijk geen enkele actieve engine-instantie heeft.</summary>
+    private string[] RealGpuOrder()
+    {
+        var now = DateTime.UtcNow;
+        if (now - _realGpuOrderCacheAt > TimeSpan.FromSeconds(30) || _realGpuOrderCache.Length == 0)
+        {
+            _realGpuOrderCache = GetGpuLuids().Where(IsRealGpu).ToArray();
+            _realGpuOrderCacheAt = now;
+        }
+        return _realGpuOrderCache;
+    }
+
+    /// <summary>Standaardkleuren per GPU-index (bij ontbrekende eigen keuze in AppSettings.GpuColors).</summary>
+    public static readonly string[] DefaultGpuColors = { "#2196F3", "#00E5FF", "#E040FB", "#FFD600", "#76FF03" };
 
     /// <summary>CPU-klokfrequentie (basisfrequentie x prestatie%).</summary>
     private void UpdateCpuClock()

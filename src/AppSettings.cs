@@ -9,6 +9,9 @@ public enum DisplayStyle { Digital, Gauge, Bar, Graph }
 /// <summary>Wat tonen we van de schijfruimte in het widget?</summary>
 public enum DiskSpaceMode { Off, Total, Each, Single }
 
+/// <summary>Hoe toont de netwerktegel in het fullscreen-overzicht het dataverbruik?</summary>
+public enum NetUsageMode { Total, ByType }
+
 /// <summary>Waar staat het percentage bij de batterij?</summary>
 public enum BatteryPercentMode { Inside, Beside, Off }
 
@@ -51,6 +54,22 @@ public sealed partial class AppSettings
     // GPU: null = automatisch de drukste GPU volgen, anders een vaste LUID-string.
     public string? GpuLuid { get; set; } = null;
 
+    // Kleur per GPU-index (0, 1, ...) op de GPU-meter/-balk, alleen zichtbaar bij 2+ echte adapters, zodat je in
+    // "automatisch" ziet welke van de twee er nu getoond wordt; lege/ontbrekende plek = Metrics.DefaultGpuColors.
+    public List<string> GpuColors { get; set; } = new();
+
+    /// <summary>Kleur voor GPU-index i: eigen keuze uit <see cref="GpuColors"/>, anders het standaardpalet.</summary>
+    public string GpuColorHex(int index) =>
+        index >= 0 && index < GpuColors.Count && !string.IsNullOrWhiteSpace(GpuColors[index])
+            ? GpuColors[index]
+            : Metrics.DefaultGpuColors[index % Metrics.DefaultGpuColors.Length];
+
+    public void SetGpuColor(int index, string hex)
+    {
+        while (GpuColors.Count <= index) GpuColors.Add("");
+        GpuColors[index] = hex;
+    }
+
     // Schijfruimte in het widget: uit / totaal / elke schijf apart / één schijf (DiskSpaceDrive, bv. "C:")
     public DiskSpaceMode DiskSpace { get; set; } = DiskSpaceMode.Off;
     public bool IncludeNetworkDrives { get; set; } = false;   // gekoppelde netwerkschijven meenemen (op de achtergrond opgevraagd)
@@ -84,6 +103,9 @@ public sealed partial class AppSettings
     public List<string>? FullHidden { get; set; } = null;   // onderdelen die in het fullscreen-scherm uit staan
 
     public string? FullMonitor { get; set; } = null;   // null = automatisch (scherm waar het widget staat)
+
+    // Netwerktegel in het fullscreen-overzicht: dataverbruik als totaal, of apart per soort verbinding (Wi-Fi / mobiel / Ethernet).
+    public NetUsageMode FullNetUsage { get; set; } = NetUsageMode.Total;
 
     public bool WelcomeShown { get; set; } = false;   // eenmalig welkomstscherm al getoond?
 

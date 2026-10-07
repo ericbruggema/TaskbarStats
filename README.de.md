@@ -121,7 +121,7 @@ Die mitgelieferten Designs, hier auf dem Desktop-Dashboard:
 | Spezifikationen | WMI (`System.Management`), Registry, Win32 | Hardware-Inventar für die Spezifikationsseite. |
 
 Die GPU steht standardmäßig auf **automatisch**: Sie folgt der am stärksten ausgelasteten GPU (praktisch bei iGPU +
-dGPU). Du kannst in den Einstellungen auch eine feste GPU wählen (Tab Widget → Quellen).
+dGPU). Du kannst in den Einstellungen auch eine feste GPU wählen (Tab Widget → Quellen). Bei zwei oder mehr GPUs bekommt jede GPU eine eigene Farbe auf der GPU-Anzeige/dem Balken (dort auch änderbar), sodass du bei *Automatisch* sofort siehst, zu welcher GPU die Zahl gehört. Adapter, die keine echten Grafikkarten sind (etwa eine NPU), werden ignoriert.
 
 ## Bauen
 
@@ -208,7 +208,7 @@ Ein **Rechtsklick** auf das Widget öffnet ein kurzes Menü:
   - *Designs*: 16 mitgelieferte Designs (Standard, Dunkel, Hell, Schwarz-Weiß, Liebe, CGA, Matrix, Amber, Game Boy, Dracula, Ozean, Sonnenuntergang, Wald, Minimal, Meters, Neon); eigenes Design speichern, laden, löschen, importieren und exportieren (siehe unten).
   - *Allgemein*: Sprache (Nederlands, English, Deutsch oder eine eigene Sprachdatei), mit Windows starten (geplante Aufgabe, keine UAC-Meldung), Position sperren und an den Infobereich anheften, bei Vollbild ausblenden, **Wartezeit des Tooltips** (mindestens 2 s, standardmäßig 2 s, oder aus), Benachrichtigungen (fast volle Festplatte, dauerhaft hohe Auslastung), Monatslimit für die Netzwerknutzung und das Nutzungsprotokoll.
 - **Design**: Schnellauswahl, um mit einem Klick ein Design anzuwenden.
-- **Nutzung**: empfangen/gesendet pro Netzwerkadapter (Sitzung, heute, gestern, 7 Tage, Monat) und das Protokoll pro Tag mit CSV-Export.
+- **Nutzung**: empfangen/gesendet pro Netzwerkadapter (Sitzung, heute, gestern, 7 Tage, Monat) und das Protokoll pro Tag mit CSV-Export. In der Vollbild-Übersicht (Einstellungen → *Vollbild* → *Fenster*) kann die Netzwerk-Kachel die Daten getrennt nach Verbindungsart (WLAN, Mobilfunk, Ethernet) statt als einen Gesamtwert anzeigen.
 - **An den Infobereich anheften** (das Widget bleibt am Infobereich und folgt ihm).
 - **Desktop-Dashboard** und **Vollbild-Dashboard**, jeweils ein Untermenü (Dashboard: anzeigen, Durchklicken, sperren, Einstellungen; Vollbild: öffnen/schließen, Tour, Einstellungen), dann *Nutzung*, *Infos kopieren*, *Systeminformationen kopieren*, *Credits*, *Über TaskbarStats* (mit einer Schaltfläche für den Willkommensbildschirm) und **Beenden**.
 - **Tooltip**: Halte die Maus mindestens 2 s (einstellbar) über dem Widget, um alle Details zu sehen (RAM in GB, pro GPU, Netzwerk pro Adapter, Datenträger und Speicherplatz, Temperaturen).

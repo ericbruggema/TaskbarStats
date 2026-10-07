@@ -66,6 +66,8 @@ public sealed class MetricsSnapshot
     public IReadOnlyDictionary<string, string> GpuEnginePerLuid { get; init; } = new Dictionary<string, string>();
     /// <summary>Gebruikt dedicated videogeheugen per GPU (bytes, sleutel = LUID-string).</summary>
     public IReadOnlyDictionary<string, double> VramUsedPerLuid { get; init; } = new Dictionary<string, double>();
+    /// <summary>Index (zie <see cref="Metrics.GpuColorIndex"/>) van de GPU die <see cref="GpuPercent"/> nu toont; -1 = geen eigen kleur.</summary>
+    public int GpuColorIndex { get; init; } = -1;
     /// <summary>Lees/schrijfsnelheid per fysieke schijf (bytes/s).</summary>
     public IReadOnlyDictionary<string, (double read, double write)> DiskPerDisk { get; init; } = new Dictionary<string, (double, double)>();
     /// <summary>Alle sensoren; alleen gevuld zolang het fullscreen-scherm ze vraagt.</summary>
@@ -123,6 +125,7 @@ public sealed partial class Metrics
             ProcessTotal = ProcessTotal, ProcessApps = ProcessApps, ThreadTotal = ThreadTotal,
             Fps = Fps.Enabled ? Fps.Read() : null,
             NetPerAdapter = _netRates, GpuPerLuid = _gpuRates, GpuEnginePerLuid = _gpuEngines, VramUsedPerLuid = _vramRates, DiskPerDisk = _diskRates,
+            GpuColorIndex = GpuColorIndex,
             Sensors = _sensors,
         };
     }

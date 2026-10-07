@@ -244,6 +244,39 @@ public class UsageTrackerTests : IDisposable
         Assert.True(t.Session().Total >= 0);
     }
 
+    [Fact]
+    public void Verbruik_per_soort_telt_wifi_mobiel_en_ethernet_apart()
+    {
+        Seed(new()
+        {
+            [Day(0)] = new()
+            {
+                ["Intel[R] Wi-Fi 6"] = new() { Down = 100, Up = 10 },
+                ["Mobile Broadband Adapter"] = new() { Down = 40, Up = 4 },
+                ["Realtek PCIe GbE Family Controller"] = new() { Down = 7, Up = 1 },
+            },
+            [Day(1)] = new() { ["Intel[R] Wi-Fi 6"] = new() { Down = 1000, Up = 100 } },
+        });
+        var t = new UsageTracker(_data.Dir);
+        var now = DateTime.Now;
+
+        Assert.Equal(100, t.SumKind(now, now, NetKind.WiFi).Down);
+        Assert.Equal(44, t.SumKind(now, now, NetKind.Mobile).Total);
+        Assert.Equal(8, t.SumKind(now, now, NetKind.Ethernet).Total);
+        Assert.Equal(0, t.SumKind(now, now, NetKind.Other).Total);
+        Assert.Equal(1100, t.SumKind(now.AddDays(-1), now.AddDays(-1), NetKind.WiFi).Total);
+    }
+
+    [Theory]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211, "Qualcomm FastConnect", NetKind.WiFi)]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Wwanpp, "Fibocom L860", NetKind.Mobile)]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Wwanpp2, "Quectel EM160R", NetKind.Mobile)]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Ethernet, "Intel(R) I225-V", NetKind.Ethernet)]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Ethernet, "Intel(R) Wi-Fi 6E AX211", NetKind.WiFi)]
+    [InlineData(System.Net.NetworkInformation.NetworkInterfaceType.Ppp, "Mystery adapter", NetKind.Other)]
+    public void KindOf_gebruikt_het_windows_type_en_valt_terug_op_de_naam(System.Net.NetworkInformation.NetworkInterfaceType type, string name, NetKind expected)
+        => Assert.Equal(expected, UsageTracker.KindOf(type, name));
+
     [Theory]
     [InlineData("Intel(R) Wi-Fi #2", "Intel[R] Wi-Fi _2")]
     [InlineData("a/b\\c", "a_b_c")]

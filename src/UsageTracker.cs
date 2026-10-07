@@ -12,6 +12,9 @@ public sealed class AdapterUsage
     [JsonIgnore] public long Total => Down + Up;
 }
 
+/// <summary>Soort verbinding van een netwerkadapter (voor "data per type" in het fullscreen-overzicht).</summary>
+public enum NetKind { WiFi, Mobile, Ethernet, Other }
+
 /// <summary>
 /// Houdt per netwerkadapter bij hoeveel er is ontvangen/verzonden: sinds het starten (sessie)
 /// en per dag (bewaard in usage.json). Telt de verschillen van de cumulatieve tellers van Windows
@@ -26,6 +29,7 @@ public sealed class UsageTracker
     private Dictionary<string, Dictionary<string, AdapterUsage>> _days = new();
     private readonly Dictionary<string, (long rx, long tx)> _last = new();
     private readonly Dictionary<string, AdapterUsage> _session = new();
+    private readonly Dictionary<string, NetKind> _kinds = new();   // adapter -> soort, bijgehouden zolang de adapter bestaat
     private long _lastSample, _lastSave;
     private bool _dirty;
 
@@ -52,6 +56,34 @@ public sealed class UsageTracker
     public static string PerfName(string description)
         => description.Replace('(', '[').Replace(')', ']').Replace('#', '_').Replace('\\', '_').Replace('/', '_');
 
+    /// <summary>Soort adapter uit het type dat Windows opgeeft; "overig" valt terug op de naam (bv. een tunnel/virtuele adapter die zich als Ethernet meldt).</summary>
+    public static NetKind KindOf(NetworkInterfaceType type, string description)
+    {
+        switch (type)
+        {
+            case NetworkInterfaceType.Wireless80211: return NetKind.WiFi;
+            case NetworkInterfaceType.Wwanpp or NetworkInterfaceType.Wwanpp2: return NetKind.Mobile;
+            case NetworkInterfaceType.Ethernet or NetworkInterfaceType.GigabitEthernet or NetworkInterfaceType.FastEthernetT:
+                var k = KindFromName(description);
+                return k == NetKind.Other ? NetKind.Ethernet : k;
+            default: return KindFromName(description);
+        }
+    }
+
+    /// <summary>Gok op basis van de adapternaam, voor adapters die niet (meer) bestaan en dus geen type opgeven (oude dagen in usage.json).</summary>
+    public static NetKind KindFromName(string name)
+    {
+        var n = name.ToLowerInvariant();
+        if (n.Contains("wi-fi") || n.Contains("wifi") || n.Contains("wireless") || n.Contains("wlan") || n.Contains("802.11")) return NetKind.WiFi;
+        // "lte"/"4g"/"5g" alleen als los woord: "Realtek" bevat ook "lte".
+        if (n.Contains("mobile") || n.Contains("cellular") || n.Contains("wwan") || n.Contains("broadband") || n.Contains("modem")
+            || System.Text.RegularExpressions.Regex.IsMatch(n, @"\b(lte|4g|5g)\b")) return NetKind.Mobile;
+        if (n.Contains("eth") || n.Contains("gbe") || n.Contains("lan") || n.Contains("realtek pcie")) return NetKind.Ethernet;
+        return NetKind.Other;
+    }
+
+    private NetKind KindUnlocked(string adapter) => _kinds.TryGetValue(adapter, out var k) ? k : KindFromName(adapter);
+
     /// <summary>Maximaal 1x per seconde de tellers uitlezen.</summary>
     public void Sample()
     {
@@ -73,6 +105,7 @@ public sealed class UsageTracker
                 string key = PerfName(ni.Description);
                 seen[key] = seen.TryGetValue(key, out int n) ? n + 1 : 1;
                 if (seen[key] > 1) key += "_" + seen[key];
+                lock (_lock) _kinds[key] = KindOf(ni.NetworkInterfaceType, ni.Description);
 
                 if (_last.TryGetValue(key, out var l))
                 {
@@ -125,6 +158,15 @@ public sealed class UsageTracker
 
     /// <summary>Totaal over een periode (inclusief begin en einde), voor één adapter of alle (null).</summary>
     public AdapterUsage Sum(DateTime from, DateTime to, string? adapter = null)
+        => SumWhere(from, to, name => adapter is null || adapter == name);
+
+    /// <summary>Totaal over een periode voor alle adapters van één soort (Wi-Fi, mobiel, ...).</summary>
+    public AdapterUsage SumKind(DateTime from, DateTime to, NetKind kind)
+    {
+        lock (_lock) return SumWhere(from, to, name => KindUnlocked(name) == kind);
+    }
+
+    private AdapterUsage SumWhere(DateTime from, DateTime to, Func<string, bool> pick)
     {
         var r = new AdapterUsage();
         string a = Key(from), b = Key(to);
@@ -133,7 +175,7 @@ public sealed class UsageTracker
             {
                 if (string.CompareOrdinal(day, a) < 0 || string.CompareOrdinal(day, b) > 0) continue;
                 foreach (var (name, u) in list)
-                    if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
+                    if (pick(name)) { r.Down += u.Down; r.Up += u.Up; }
             }
         return r;
     }
@@ -145,6 +187,23 @@ public sealed class UsageTracker
             foreach (var (name, u) in _session)
                 if (adapter is null || adapter == name) { r.Down += u.Down; r.Up += u.Up; }
         return r;
+    }
+
+    public AdapterUsage SessionKind(NetKind kind)
+    {
+        var r = new AdapterUsage();
+        lock (_lock)
+            foreach (var (name, u) in _session)
+                if (KindUnlocked(name) == kind) { r.Down += u.Down; r.Up += u.Up; }
+        return r;
+    }
+
+    /// <summary>Soorten verbinding met verkeer in deze maand of sessie, in vaste volgorde (Wi-Fi, mobiel, Ethernet, overig).</summary>
+    public List<NetKind> KindsInUse()
+    {
+        var set = new HashSet<NetKind>();
+        foreach (var name in KnownAdapters()) lock (_lock) set.Add(KindUnlocked(name));
+        return Enum.GetValues<NetKind>().Where(set.Contains).ToList();
     }
 
     /// <summary>Alles wat ooit is bijgehouden (binnen de bewaartermijn).</summary>

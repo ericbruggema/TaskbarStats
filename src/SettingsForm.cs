@@ -415,10 +415,21 @@ public sealed partial class SettingsForm : Form
     {
         // Bronnen: welke GPU, netwerkadapter en schijven het widget toont (hoort bij de vinkjes hierboven).
         p.Controls.Add(Head(Loc.T("Sources")));
+        var realGpus = Metrics.GetGpuLuids().Where(Metrics.IsRealGpu).ToArray();
         var gpuItems = new List<(string, string)> { (Loc.T("Automatic (busiest)"), "") };
-        foreach (var l in Metrics.GetGpuLuids().Where(Metrics.IsRealGpu)) gpuItems.Add((Metrics.GpuName(l), l));
+        foreach (var l in realGpus) gpuItems.Add((Metrics.GpuName(l), l));
         var gpuSrc = Seg(gpuItems, () => _c.GpuLuid ?? "", v => _c.GpuLuid = v == "" ? null : v, 60);
         p.Controls.Add(Row(Loc.T("GPU"), gpuSrc));
+
+        // Meerdere echte GPU's: eigen kleur per adapter op de meter/balk, zodat "automatisch" laat zien wélke van de
+        // twee er nu getoond wordt (zie Metrics.GpuColorIndex / WidgetRenderer.GpuBarColor).
+        if (realGpus.Length >= 2)
+            for (int i = 0; i < realGpus.Length; i++)
+            {
+                int idx = i;
+                p.Controls.Add(ColorRow(Loc.T("{0} color", Metrics.GpuName(realGpus[idx])),
+                    () => _c.GpuColorHex(idx), v => _c.SetGpuColor(idx, v)));
+            }
 
         var cpuMode = Seg(new (string, bool)[]
         {
@@ -635,6 +646,10 @@ public sealed partial class SettingsForm : Form
         cb.SelectedIndex = Math.Max(0, screens.FindIndex(s => s.Item2 == _c.FullMonitor));
         cb.SelectedIndexChanged += (_, _) => { if (_building || cb.SelectedIndex < 0) return; _c.FullMonitor = screens[cb.SelectedIndex].Item2; Changed(); };
         p.Controls.Add(cb);
+        p.Controls.Add(Head(Loc.T("Network data in the overview")));
+        p.Controls.Add(Note(Loc.T("Show the data usage in the Network tile as one total, or separately per connection type (Wi-Fi, mobile, Ethernet)."), 520));
+        p.Controls.Add(Seg(new (string, NetUsageMode)[] { (Loc.T("Total"), NetUsageMode.Total), (Loc.T("Per type"), NetUsageMode.ByType) },
+                           () => _c.FullNetUsage, v => _c.FullNetUsage = v, 90));
         p.Controls.Add(Head(Loc.T("Automatic tour")));
         p.Controls.Add(Note(Loc.T("Click 3 times on an empty spot in the fullscreen screen (or press the space bar) to step through all pages. Time per page:"), 520));
         p.Controls.Add(Seg(new (string, int)[] { ("5 s", 5), ("10 s", 10), ("15 s", 15), ("20 s", 20), ("30 s", 30), ("60 s", 60) },

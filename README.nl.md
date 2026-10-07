@@ -121,7 +121,7 @@ De meegeleverde thema's, hier op het bureaublad-dashboard:
 | Specificaties | WMI (`System.Management`), registry, Win32 | Hardware-inventaris voor de specificatiepagina. |
 
 GPU staat standaard op **automatisch**: het volgt de drukste GPU (handig bij een iGPU +
-dGPU). Je kunt ook een vaste GPU kiezen in de instellingen (tab Widget → Bronnen).
+dGPU). Je kunt ook een vaste GPU kiezen in de instellingen (tab Widget → Bronnen). Bij twee of meer GPU's krijgt elke GPU een eigen kleur op de GPU-meter/-balk (daar ook aan te passen), zodat je in *Automatisch* in één oogopslag ziet bij welke GPU het getal hoort. Adapters die geen echte videokaart zijn (zoals een NPU) worden genegeerd.
 
 ## Bouwen
 
@@ -207,7 +207,7 @@ bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "V
   - *Thema's*: 16 meegeleverde thema's (Standaard, Donker, Licht, Zwart-wit, Liefde, CGA, Matrix, Amber, Game Boy, Dracula, Oceaan, Zonsondergang, Bos, Minimaal, Meters, Neon); eigen thema opslaan, laden, verwijderen, importeren en exporteren (zie hieronder).
   - *Algemeen*: taal (Nederlands, English of een eigen taalbestand), met Windows meestarten (geplande taak, geen UAC-melding), positie vergrendelen en vastplakken aan het systeemvak, verbergen bij volledig scherm, **wachttijd van de tooltip** (minimaal 2 s, standaard 2 s, of uit), meldingen (bijna volle schijf, langdurig hoge belasting), maandlimiet voor netwerkverbruik en het verbruikslog.
 - **Thema**: snelkeuze om met één klik een thema toe te passen.
-- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export.
+- **Verbruik**: ontvangen/verzonden per netwerkadapter (sessie, vandaag, gisteren, 7 dagen, maand) en het log per dag met CSV-export. In het fullscreen-overzicht (Instellingen → *Fullscreen* → *Venster*) kan de netwerktegel de data apart per soort verbinding tonen (Wi-Fi, mobiel, Ethernet) in plaats van één totaal.
 - **Vastplakken aan systeemvak** (het widget blijft tegen het systeemvak staan en volgt het).
 - **Bureaublad-dashboard** en **Fullscreen-dashboard**, elk een submenu (dashboard: tonen, klik-door, vergrendelen, instellingen; fullscreen: openen/sluiten, tour, instellingen), dan *Verbruik*, *Kopieer info*, *Systeeminformatie kopiëren*, *Credits*, *Over* (met een knop voor het welkomstscherm) en **Afsluiten**.
 - **Tooltip**: houd de muis minstens 2 s (instelbaar) boven het widget voor alle details (RAM in GB, per-GPU, netwerk per adapter, schijven en schijfruimte, temperaturen).

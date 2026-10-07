@@ -152,7 +152,7 @@ internal sealed partial class WidgetRenderer : IDisposable
                 case "gpu":
                     if (_cfg.ShowGpu)
                     {
-                        x += DrawMetric(g, x, "GPU", _snap.GpuPercent, _cfg.GpuStyle);
+                        x += DrawMetric(g, x, "GPU", _snap.GpuPercent, _cfg.GpuStyle, GpuBarColor());
                         if (_cfg.TempMerge && _cfg.ShowGpuTemp && _snap.GpuTempC is double mgt) x += DrawTempTag(g, x, mgt, textCol);
                         x += gap;
                     }
@@ -280,13 +280,18 @@ internal sealed partial class WidgetRenderer : IDisposable
         return DrawTextCell(g, x, "PING", txt, "999 ms", col);
     }
 
-    private int DrawMetric(Graphics g, int x, string label, double v, DisplayStyle style) => style switch
+    private int DrawMetric(Graphics g, int x, string label, double v, DisplayStyle style, Color? baseColor = null) => style switch
     {
-        DisplayStyle.Gauge => DrawGauge(g, x, label, v),
-        DisplayStyle.Bar   => DrawBar(g, x, label, v),
+        DisplayStyle.Gauge => DrawGauge(g, x, label, v, baseColor),
+        DisplayStyle.Bar   => DrawBar(g, x, label, v, baseColor),
         DisplayStyle.Graph => DrawGraph(g, x, label, v),
         _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, EffectiveText())),
     };
+
+    /// <summary>Kleur van de GPU-meter/-balk: bij 2+ echte GPU's de eigen kleur van de adapter die nu getoond wordt
+    /// (zie Metrics.GpuColorIndex/AppSettings.GpuColors), zodat je in "automatisch" ziet welke van de twee het is.
+    /// Bij één GPU (verreweg de meeste pc's) null: dan blijft het gewoon de normale accentkleur.</summary>
+    private Color? GpuBarColor() => _snap.GpuColorIndex < 0 ? null : C(_cfg.GpuColorHex(_snap.GpuColorIndex), EffectiveAccent());
 
     // Temperatuur als eigen cel: cijfer ("CPU 51°"), meter of balk (0-100 °C); als meter/balk met "CPU°" om het van het percentage te onderscheiden.
     private int DrawTemp(Graphics g, int x, string what, double t, DisplayStyle style, Color textCol) => style switch
@@ -301,7 +306,7 @@ internal sealed partial class WidgetRenderer : IDisposable
     private int DrawTempTag(Graphics g, int x, double t, Color textCol)
         => 4 + DrawDigital(g, x + 4, $"{t:0}°", "100°", ThresholdColor(t, textCol));
 
-    private int DrawGauge(Graphics g, int x, string label, double v)
+    private int DrawGauge(Graphics g, int x, string label, double v, Color? baseColor = null)
     {
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
@@ -316,7 +321,7 @@ internal sealed partial class WidgetRenderer : IDisposable
 
         var rect = new Rectangle(gx + inset, gy + inset, d - 2 * inset, d - 2 * inset);
         var bg = GdiCache.Pen(EffectiveTrack(Color.FromArgb(80, 80, 80)), pw);
-        var fg = GdiCache.Pen(ThresholdColor(v, EffectiveAccent()), pw);
+        var fg = GdiCache.Pen(ThresholdColor(v, baseColor ?? EffectiveAccent()), pw);
         g.DrawArc(bg, rect, 0, 360);
         g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(v, 0, 100) / 100.0));
         var txt = $"{v:0}";
@@ -326,7 +331,7 @@ internal sealed partial class WidgetRenderer : IDisposable
         return cellW;
     }
 
-    private int DrawBar(Graphics g, int x, string label, double v)
+    private int DrawBar(Graphics g, int x, string label, double v, Color? baseColor = null)
     {
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
@@ -339,7 +344,7 @@ internal sealed partial class WidgetRenderer : IDisposable
         int by = above ? top + (h - bh) / 2 : (Height - bh) / 2;
         var rect = new Rectangle(bx, by, bw, bh);
         var bg = GdiCache.Brush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
-        var fg = GdiCache.Brush(ThresholdColor(v, EffectiveAccent()));
+        var fg = GdiCache.Brush(ThresholdColor(v, baseColor ?? EffectiveAccent()));
         g.FillRectangle(bg, rect);
         g.FillRectangle(fg, new Rectangle(rect.X, rect.Y, (int)(bw * Math.Clamp(v, 0, 100) / 100.0), bh));
         var pen = GdiCache.Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));

@@ -121,7 +121,7 @@ The bundled themes, shown here on the desktop dashboard:
 | Specifications | WMI (`System.Management`), registry, Win32 | Hardware inventory for the specifications page. |
 
 GPU defaults to **automatic**: it follows the busiest GPU (handy with an iGPU +
-dGPU). You can also pick a fixed GPU in the settings (Widget tab → Sources).
+dGPU). You can also pick a fixed GPU in the settings (Widget tab → Sources). With two or more GPUs, each one gets its own colour on the GPU meter/bar (changeable there too), so in *Automatic* you can see at a glance which GPU the number belongs to. Adapters that are not real graphics cards (such as an NPU) are ignored.
 
 ## Building
 
@@ -208,7 +208,7 @@ on release); in the settings (General tab) and in the menu there is "Stick to no
   - *Themes*: 16 bundled themes (Default, Dark, Light, Black and white, Love, CGA, Matrix, Amber, Game Boy, Dracula, Ocean, Sunset, Forest, Minimal, Meters, Neon); save, load, delete, import and export your own theme (see below).
   - *General*: language (Dutch, English or your own language file), start with Windows (scheduled task, no UAC prompt), lock position and stick to the notification area, hide in fullscreen, **tooltip delay** (minimum 2 s, default 2 s, or off), notifications (nearly full disk, prolonged high load), monthly limit for network usage and the usage log.
 - **Theme**: quick pick to apply a theme with one click.
-- **Usage**: received/sent per network adapter (session, today, yesterday, 7 days, month) and the per-day log with CSV export.
+- **Usage**: received/sent per network adapter (session, today, yesterday, 7 days, month) and the per-day log with CSV export. In the fullscreen overview (Settings → *Fullscreen* → *Window*) the Network tile can show the data separately per connection type (Wi-Fi, mobile, Ethernet) instead of one total.
 - **Stick to notification area** (the widget stays against the notification area and follows it).
 - **Desktop dashboard** and **Fullscreen dashboard**, each a submenu (dashboard: show, click-through, lock, settings; fullscreen: open/close, tour, settings), then *Usage*, *Copy info*, *Copy system information*, *Credits*, *About* (with a button for the welcome screen) and **Exit**.
 - **Tooltip**: hold the mouse over the widget for at least 2 s (adjustable) for all details (RAM in GB, per GPU, network per adapter, disks and disk space, temperatures).

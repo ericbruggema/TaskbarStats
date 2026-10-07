@@ -165,6 +165,25 @@ public class FullscreenRendererTests : IDisposable
 
     // ---------- tests ----------
     [Fact]
+    public void Overzicht_netwerkdata_per_soort_wijkt_af_van_het_totaal_en_blijft_stabiel()
+        => UiThread.Run(() =>
+        {
+            string day = DateTime.Now.ToString("yyyy-MM-dd");
+            _data.Write("usage.json", System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, Dictionary<string, AdapterUsage>>
+            {
+                [day] = new() { ["Intel[R] Wi-Fi 6"] = new() { Down = 5_000_000, Up = 400_000 }, ["Mobile Broadband Adapter"] = new() { Down = 900_000, Up = 90_000 } },
+            }));
+            using var rig = MakeRig();
+            var snap = Snap(battery: true);
+            rig.Cfg.FullNetUsage = NetUsageMode.Total;
+            var total = Render(rig, snap);
+            rig.Cfg.FullNetUsage = NetUsageMode.ByType;
+            var byType = Render(rig, snap);
+            Assert.NotEqual(total, byType);
+            Assert.Equal(byType, Render(rig, snap));
+        });
+
+    [Fact]
     public void Overzicht_geeft_twee_keer_precies_hetzelfde_beeld()
         => UiThread.Run(() =>
         {

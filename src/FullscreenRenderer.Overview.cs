@@ -120,17 +120,37 @@ public sealed partial class FullscreenRenderer
         Graph(g, new RectangleF(r.X + 210, r.Y + 44, r.Width - 226, 92), new[] { (_c.History.NetDown, Accent), (_c.History.NetUp, Green) }, 0, Rate, false);
 
         float y = r.Y + 150;
-        foreach (var (label, u) in new[]
+        if (Cfg.FullNetUsage == NetUsageMode.ByType && _c.Usage.KindsInUse() is { Count: > 0 } kinds)
         {
-            (Loc.T("Session"), _c.Usage.Session(null)), (Loc.T("Today"), _c.Usage.Today(null)),
-            (Loc.T("Yesterday"), _c.Usage.Yesterday(null)), (Loc.T("7 days"), _c.Usage.Week(null)),
-            (Loc.T("This month"), _c.Usage.Month(null)),
-        })
-        {
-            T(g, label, _f, Dim, r.X + 16, y);
-            TR(g, $"↓ {Metrics.FormatBytes(u.Down)}    ↑ {Metrics.FormatBytes(u.Up)}", _f, TextCol, r.Right - 16, y);
-            y += 24;
+            // Per soort verbinding: vandaag en deze maand (sessie niet: past niet bij vier soorten onder elkaar).
+            var now = DateTime.Now;
+            foreach (var kind in kinds)
+            {
+                var today = _c.Usage.SumKind(now, now, kind);
+                var month = _c.Usage.SumKind(new DateTime(now.Year, now.Month, 1), now, kind);
+                T(g, NetKindName(kind), _fb, TextCol, r.X + 16, y);
+                y += 26;
+                foreach (var (label, u) in new[] { (Loc.T("Today"), today), (Loc.T("This month"), month) })
+                {
+                    T(g, label, _f, Dim, r.X + 32, y);
+                    TR(g, $"↓ {Metrics.FormatBytes(u.Down)}    ↑ {Metrics.FormatBytes(u.Up)}", _f, TextCol, r.Right - 16, y);
+                    y += 24;
+                }
+                y += 6;
+            }
         }
+        else
+            foreach (var (label, u) in new[]
+            {
+                (Loc.T("Session"), _c.Usage.Session(null)), (Loc.T("Today"), _c.Usage.Today(null)),
+                (Loc.T("Yesterday"), _c.Usage.Yesterday(null)), (Loc.T("7 days"), _c.Usage.Week(null)),
+                (Loc.T("This month"), _c.Usage.Month(null)),
+            })
+            {
+                T(g, label, _f, Dim, r.X + 16, y);
+                TR(g, $"↓ {Metrics.FormatBytes(u.Down)}    ↑ {Metrics.FormatBytes(u.Up)}", _f, TextCol, r.Right - 16, y);
+                y += 24;
+            }
         if (Cfg.MonthlyLimitGb > 0)
         {
             var mu = _c.Usage.Month(Cfg.NetworkAdapter);
@@ -151,6 +171,14 @@ public sealed partial class FullscreenRenderer
             y += 48;
         }
     }
+
+    private static string NetKindName(NetKind kind) => kind switch
+    {
+        NetKind.WiFi => "Wi-Fi",   // nolang
+        NetKind.Mobile => Loc.T("Mobile"),
+        NetKind.Ethernet => "Ethernet",   // nolang
+        _ => Loc.T("Other@@net-kind"),
+    };
 
     private void TileDisk(Graphics g, RectangleF r)
     {

@@ -1,8 +1,23 @@
+<div align="center">
+
 # TaskbarStats
 
-**Talen / Languages:** [English](README.md) · **Nederlands** · [Deutsch](README.de.md)
+**Een lichtgewicht Windows-systeemmonitor: CPU, GPU, geheugen, netwerk, schijf, FPS en temperaturen, vlak naast de klok van de taakbalk.**
 
-![TaskbarStats live in the taskbar, and FPS on top of a game](docs/tour/promo/hero-loop-en.gif)
+<a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Download de Windows-installer" src="https://img.shields.io/badge/Download%20de%20Windows-installer-0A84FF?style=for-the-badge&logo=windows&logoColor=white"></a>
+
+<sub>Open de pagina en download <code>TaskbarStats-Setup-&lt;versie&gt;.exe</code> onder <em>Assets</em>, en start hem. Geen account nodig.</sub>
+
+<a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ericbruggema/TaskbarStats?label=latest&color=0A84FF"></a>
+<a href="https://github.com/ericbruggema/TaskbarStats/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ericbruggema/TaskbarStats/actions/workflows/ci.yml/badge.svg"></a>
+<img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white">
+<img alt="MIT" src="https://img.shields.io/badge/license-MIT-lightgrey">
+
+[English](README.md) · **Nederlands** · [Deutsch](README.de.md)
+
+<img alt="TaskbarStats live in the taskbar, and FPS on top of a game" src="docs/tour/promo/hero-loop-en.gif">
+
+</div>
 
 Een lichtgewicht CPU / GPU / geheugen / netwerk / schijf / batterij / temperatuur-monitor die naast het
 systeemvak van de Windows-taakbalk zweeft — zoals TrafficMonitor, maar met waarden die

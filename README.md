@@ -6,6 +6,8 @@
 
 <a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Download the Windows installer" src="https://img.shields.io/badge/Download%20the%20Windows%20installer-0A84FF?style=for-the-badge&logo=windows&logoColor=white"></a>
 
+<a href="https://taskbarstats.com"><img alt="Website: taskbarstats.com" src="https://img.shields.io/badge/Website-taskbarstats.com-1F2937?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+
 <sub>Open the page and download <code>TaskbarStats-Setup-&lt;version&gt;.exe</code> under <em>Assets</em>, then run it. No account needed.</sub>
 
 <a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ericbruggema/TaskbarStats?label=latest&color=0A84FF"></a>

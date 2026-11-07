@@ -175,6 +175,7 @@ public sealed partial class WidgetForm : Form
             Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value);
         }
         TrySetTaskbarOwner();
+        Diag.Info("position", $"Start: widget op {Location.X},{Location.Y} ({Width}x{Height}), vastplakken={(_cfg.StickToTray ? "aan" : "uit")}, vergrendeld={(_cfg.LockPosition ? "ja" : "nee")}, taakbalk {(_ownerHwnd != IntPtr.Zero ? "gevonden" : "nog niet gevonden")}, systeemvak {(TaskbarHost.TryGetTrayRect(out var tr) ? $"{tr.Left},{tr.Top} {tr.Width}x{tr.Height}" : "nog niet gevonden")}");
         Tick();
         if (!_cfg.WelcomeShown) BeginInvoke(new Action(ShowWelcome));
         SyncDashboard();
@@ -200,10 +201,21 @@ public sealed partial class WidgetForm : Form
 
     // Maak het widget een 'owned window' van de taakbalk: het blijft dan altijd boven
     // de taakbalk, ook wanneer je die aanwijst (geen knipperen/verdwijnen meer).
+    // Wordt elke 200 ms herhaald (goedkoop): bij autostart bestaat de taakbalk soms nog niet als wij al draaien, en na een
+    // herstart van Verkenner is het taakbalkvenster een ander; een eenmalige poging bij het starten liet het widget dan
+    // voorgoed zonder eigenaar (achter de taakbalk, of naast een systeemvak dat al verplaatst was).
+    private IntPtr _ownerHwnd;
+
     private void TrySetTaskbarOwner()
     {
+        if (!IsHandleCreated) return;
         var tb = FindWindow("Shell_TrayWnd", null);
-        if (tb != IntPtr.Zero) SetWindowLongPtr(Handle, GWLP_HWNDPARENT, tb);
+        if (tb == IntPtr.Zero || tb == _ownerHwnd) return;
+        SetWindowLongPtr(Handle, GWLP_HWNDPARENT, tb);
+        if (_ownerHwnd != IntPtr.Zero) Diag.Info("position", "Taakbalkvenster is vervangen (Verkenner herstart?): widget opnieuw eigendom van de taakbalk");
+        _ownerHwnd = tb;
+        _lastRaise = 0;          // meteen weer bovenop zetten als er iets overheen staat
+        FollowTray(true);        // nieuwe taakbalk = het systeemvak kan elders staan
     }
 
     private const int GWLP_HWNDPARENT = -8;
@@ -249,10 +261,12 @@ public sealed partial class WidgetForm : Form
     {
         _samplerThread = new Thread(() =>
         {
-            long lastUsage = 0;
+            long lastUsage = 0, lastPlugins = 0;
             while (!_stopSampler.IsSet)
             {
                 long t0 = Environment.TickCount64;
+                // Staat er een plugin aan en draait de (niet-verhoogde) plugin-host niet? Dan starten (hooguit eens per 2 minuten).
+                if (t0 - lastPlugins >= 30_000) { lastPlugins = t0; try { PluginHost.Maintain(); } catch (Exception dex) { Diag.Swallow(dex); } }
                 // Niemand kijkt (widget verborgen, geen dashboard/fullscreen): zeldzamer meten (meldingen blijven werken).
                 try { _metrics.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
                 if (t0 - lastUsage >= 5000) { lastUsage = t0; try { _usage.Sample(); } catch (Exception dex) { Diag.Swallow(dex); } }
@@ -357,6 +371,7 @@ public sealed partial class WidgetForm : Form
             sb.AppendLine($"Ping  {ps.Host}  {ps.LastText}");
             if (ps.Count > 1) sb.AppendLine($"   {ps.Details}");
         }
+        AppendPluginTooltip(sb);
 
         if (_hover || forceProcs)
         {
@@ -401,6 +416,7 @@ public sealed partial class WidgetForm : Form
     {
         if (!_cfg.Notifications || _hidden || Cadence.Active || Metrics.DemoActive) return;   // tijdens een themavoorbeeld zijn de waarden verzonnen
         long now = Environment.TickCount64;
+        PluginAlerts();
 
         void crit(string name, double v)
         {
@@ -477,6 +493,7 @@ public sealed partial class WidgetForm : Form
             ShowWindow(Handle, hide ? SW_HIDE : SW_SHOWNOACTIVATE);
             if (!hide) Render();
         }
+        TrySetTaskbarOwner();
         KeepOnTop();
     }
 
@@ -937,21 +954,29 @@ public sealed partial class WidgetForm : Form
     {
         HideTip();
         if (e.Button == MouseButtons.Middle) { RunMouseAction(_cfg.MiddleClickAction); return; }
-        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 11500); }
+        if (e.Button == MouseButtons.Left) { _dragging = !_cfg.LockPosition; _dragMoved = false; _dragStart = e.Location; if (Cadence.Hit(0, 10, 4000)) Cadence.Go(2, 11500); }
         else if (e.Button == MouseButtons.Right) { _dragging = false; _menu.Show(this, e.Location); }
     }
     private void OnMouseUp(object? s, MouseEventArgs e)
     {
-        if (_dragging) { _dragging = false; _cfg.Save(); }
+        if (_dragging) { _dragging = false; if (_dragMoved) _cfg.Save(); _dragMoved = false; }
     }
+    private bool _dragMoved;   // de muis is echt versleept (voorbij de sleepdrempel), niet alleen geklikt
     private void OnMouseMove(object? s, MouseEventArgs e)
     {
-        if (_dragging)
+        if (!_dragging) return;
+        // MouseUp gemist (bv. een dubbelklik die een ander venster opent): niet blijven slepen en het vastplakken niet kwijtraken.
+        if ((Control.MouseButtons & MouseButtons.Left) == 0) { _dragging = false; _dragMoved = false; return; }
+        if (!_dragMoved)
         {
-            if (_cfg.StickToTray) _cfg.StickToTray = false;   // zelf verplaatst: niet meer vastplakken
-            Location = new Point(Location.X + e.X - _dragStart.X, Location.Y + e.Y - _dragStart.Y);
-            _cfg.FloatX = Location.X; _cfg.FloatY = Location.Y;
+            // Een klik met een licht trillende muis is geen verslepen: anders ging het vastplakken aan het systeemvak stilletjes uit.
+            var d = SystemInformation.DragSize;
+            if (Math.Abs(e.X - _dragStart.X) < d.Width && Math.Abs(e.Y - _dragStart.Y) < d.Height) return;
+            _dragMoved = true;
         }
+        if (_cfg.StickToTray) { _cfg.StickToTray = false; Diag.Info("position", "Vastplakken uitgezet: widget is verslepen"); }   // zelf verplaatst: niet meer vastplakken
+        Location = new Point(Location.X + e.X - _dragStart.X, Location.Y + e.Y - _dragStart.Y);
+        _cfg.FloatX = Location.X; _cfg.FloatY = Location.Y;
     }
 
     // ---------- Menu ----------
@@ -1186,6 +1211,7 @@ public sealed partial class WidgetForm : Form
     {
         WinThemeUnhook();
         _cfg.Save();
+        Diag.EndSession();   // Windows beëindigt het proces bij afsluiten/herstarten soms vóór ProcessExit: dan bleef elke start "onnet"
         _timer.Stop();
         _topTimer.Stop();
         _menuTimer.Stop();

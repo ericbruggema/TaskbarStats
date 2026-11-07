@@ -125,6 +125,7 @@ public sealed class CreditsForm : Form
 
         L(K.Head, Loc.T("Idea, design and testing"));
         L(K.Text, "Eric Bruggema");
+        L(K.Text, "taskbarstats.com");   // nolang
         L(K.Text, "linkedin.com/in/eric-bruggema-28a81a186");   // nolang
         L(K.Text, "facebook.com/eric.bruggema");   // nolang
         L(K.Text, "github.com/ericbruggema/TaskbarStats");   // nolang

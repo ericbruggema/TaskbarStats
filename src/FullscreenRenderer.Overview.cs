@@ -8,7 +8,7 @@ public sealed partial class FullscreenRenderer
     private void DrawOverview(Graphics g)
     {
         float top = 76;
-        var visible = Tiles.Order(_c.Cfg.FullOrder).Where(id => Tiles.FullOn(_c.Cfg, id));
+        var visible = Tiles.Order(_c.Cfg.FullOrder).Where(id => Tiles.FullOn(_c.Cfg, id) && (id != "plugins" || PluginView.Any(_snap.Plugins)));
         var cells = Tiles.FullCells(visible, CW, CH, top, M);
         if (cells.Count == 0)
         {
@@ -36,6 +36,7 @@ public sealed partial class FullscreenRenderer
             case "batt": TileBattery(g, r); break;
             case "sys": TileSystem(g, r); break;
             case "proc": TileProcs(g, r); break;
+            case "plugins": TilePlugins(g, r); break;
         }
     }
 
@@ -265,6 +266,26 @@ public sealed partial class FullscreenRenderer
         KeyValue(g, r.X + 16, y, r.Width - 32, Loc.T("Memory@@ram"), SizeStr(m.MemTotalBytes)); y += 24;
         if (m.CpuTempC is double c) { KeyValue(g, r.X + 16, y, r.Width - 32, "CPU", $"{c:0}°C"); y += 24; }
         if (m.GpuTempC is double t) KeyValue(g, r.X + 16, y, r.Width - 32, "GPU", $"{t:0}°C");
+    }
+
+    /// <summary>Smalle strook onderaan met de plugin-waarden (de eerste zes); de rest staat op de detailpagina.</summary>
+    private void TilePlugins(Graphics g, RectangleF r)
+    {
+        var d = _snap.Plugins;
+        const int Max = 6;
+        Card(g, "plugins", r, Loc.T("Plugins"), d.Values.Count > Max ? Loc.T("+{0} more", d.Values.Count - Max) : null);
+        float cw = (r.Width - 32) / Max;
+        int i = 0;
+        foreach (var v in d.Values.Take(Max))
+        {
+            float x = r.X + 16 + i++ * cw, w = cw - 20;
+            var col = PluginView.ColorOf(_c.Cfg, v, Accent, TextCol);
+            T(g, Trunc(v.Label, 24), _fs, Dim, x, r.Y + 44);
+            T(g, Trunc(PluginView.Text(v), 18), _fh, col, x, r.Y + 62);
+            if (v.Percent is double pct) Bar(g, x, r.Y + 92, w, pct, col, 6);
+        }
+        if (d.Values.Count == 0 && PluginView.Problems(d).FirstOrDefault() is { } p)
+            T(g, Trunc(p.Title + ": " + p.Message, 150), _f, Orange, r.X + 16, r.Y + 52);
     }
 
     private void TileProcs(Graphics g, RectangleF r)

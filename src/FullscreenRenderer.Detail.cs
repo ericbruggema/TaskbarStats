@@ -18,6 +18,7 @@ public sealed partial class FullscreenRenderer
             case "disk": DetailDisk(g, R); break;
             case "sys": DetailSys(g, R); break;
             case "proc": DetailProcs(g, R); break;
+            case "plugins": DetailPlugins(g, R); break;
             case "spec": DetailSpecs(g, R); break;
         }
     }
@@ -296,6 +297,50 @@ public sealed partial class FullscreenRenderer
             ry += 10;
             T(g, Loc.T("All disk sensors"), _fs, Dim, rx, ry);
             SensorList(g, rx, ry + 22, rw, Math.Max(3, (int)((R.Bottom - 20 - (ry + 22)) / 24)), stRows);
+        }
+    }
+
+    /// <summary>Alle plugin-waarden per plugin, in twee kolommen; met de toestand van de plugin (fout, laatst bijgewerkt).</summary>
+    private void DetailPlugins(Graphics g, RectangleF R)
+    {
+        var d = _snap.Plugins;
+        Card(g, null, R, Loc.T("Plugins — details"), $"{d.Values.Count} {Loc.T("values")}");
+        float colW = (R.Width - 64) / 2, top = R.Y + 56, bottom = R.Bottom - 16;
+        int col = 0;
+        float y = top;
+        float X() => R.X + 16 + col * (colW + 32);
+        void Need(float h) { if (y + h > bottom && col == 0) { col = 1; y = top; } }
+
+        foreach (var grp in d.Values.GroupBy(v => v.Plugin))
+        {
+            var st = d.Statuses.FirstOrDefault(s => s.Plugin == grp.Key);
+            Need(34 + 46);
+            T(g, Trunc(grp.First().PluginTitle, 30), _fb, Accent, X(), y);
+            if (st is not null) TR(g, PluginView.Age(st.UpdatedUtc), _fs, Dim, X() + colW, y + 2);
+            y += 28;
+            if (st is { Status: "error" })
+            {
+                T(g, Trunc(st.Message, 70), _fs, Orange, X(), y);
+                y += 22;
+            }
+            foreach (var v in grp)
+            {
+                Need(46);
+                var c = PluginView.ColorOf(_c.Cfg, v, Accent, TextCol);
+                T(g, Trunc(v.Label, 34), _f, Dim, X(), y);
+                TR(g, Trunc(PluginView.Text(v), 28), _fb, c, X() + colW, y);
+                if (v.Percent is double pct) Bar(g, X(), y + 24, colW, pct, c, 6);
+                else if (v.Detail.Length > 0) T(g, Trunc(v.Detail, 80), _fs, Dim, X(), y + 22);
+                y += 46;
+            }
+            y += 10;
+        }
+        foreach (var p in PluginView.Problems(d))
+        {
+            Need(52);
+            T(g, Trunc(p.Title, 30), _fb, Accent, X(), y);
+            T(g, Trunc(p.Message, 80), _fs, Orange, X(), y + 26);
+            y += 62;
         }
     }
 

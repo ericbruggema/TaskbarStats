@@ -14,6 +14,7 @@ public static class TaskbarHost
         IntPtr tray = FindWindowEx(tb, IntPtr.Zero, "TrayNotifyWnd", null);
         if (tray == IntPtr.Zero) return false;
         if (!GetWindowRect(tray, out RECT r)) return false;
+        if (r.Right <= r.Left || r.Bottom <= r.Top) return false;   // nog niet ingedeeld (net na het inloggen): geen bruikbare positie
         rect = new Rectangle(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
         return true;
     }

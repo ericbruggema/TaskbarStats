@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- De plugin-host: een aparte, NIET-verhoogde exe naast TaskbarStats.exe. Hij voert de ingeschakelde plugins uit
+       (Claude-gebruik, weer, locatie, uptime, script) en schrijft per plugin een JSON-bestand dat de app alleen leest.
+       Zo draait er nooit plugin-code met administratorrechten. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>TaskbarStats.Plugins</AssemblyName>
+    <RootNamespace>TaskbarStats.Plugins</RootNamespace>
+    <ApplicationIcon>..\..\app.ico</ApplicationIcon>
+    <Version>1.6.8</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>false</TieredPGO>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Alleen bij publish: ingekort en gecomprimeerd (12 MB i.p.v. 41 MB); de code gebruikt geen reflectie-JSON -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TaskbarStats.Plugins.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Standaardconfig per plugin: komt naast de exe (ook bij een single-file publish) en dient als "Standaard herstellen" in de app -->
+    <Content Include="defaults\*.ini" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" LinkBase="defaults" />
+  </ItemGroup>
+
+</Project>

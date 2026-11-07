@@ -164,6 +164,49 @@ Two environment variables let a test copy run next to the real app:
 The app requests administrator rights (`app.manifest`); for automated tests, set `requireAdministrator` to `asInvoker`
 in a temporary copy. See also `CLAUDE.md`.
 
+## Plugins (optional)
+
+Plugins add extra values to the widget, the desktop dashboard and the full-screen view: your **Claude usage** (5-hour and weekly limit), the **weather**, your **location (GPS)**, an **uptime monitor** for websites and servers, and **script / REST** values of your own. They are off by default and installed through an optional Setup step.
+
+![Plugin examples in the widget](docs/screenshots/plugins-widget.png)
+
+| Plugin | Shows | Data from |
+|--------|-------|-----------|
+| Claude usage | % of your 5-hour and weekly limit used and the time until it resets (bar, ring or number; orange/red and a notification near the limit) | The sign-in of Claude Code on your PC (read-only), sent to Anthropic. Undocumented address, see below |
+| Weather | sun/clouds/rain, temperature, humidity, wind, chance of rain | [Open-Meteo](https://open-meteo.com) (free, no key); only coordinates are sent |
+| Location (GPS) | place name, coordinates, accuracy, source (GPS/Wi-Fi/IP), distance from home | Windows location service, otherwise your IP address; the place name via bigdatacloud.net |
+| Uptime monitor | "3/3" up, red plus a notification when something is down | your own list of websites (HTTP), ports (TCP) and devices (ping) |
+| Script / REST | any value you choose | a command (runs as you), a text file or a JSON web address: Home Assistant, a NAS, a price, ... |
+
+**How it works, and why it is safe.** TaskbarStats itself runs as administrator, so it never runs plugin code. The plugins run in a separate helper, `TaskbarStats.Plugins.exe`, started through a scheduled task **without administrator rights**. The helper writes one small JSON file per plugin to `%AppData%\TaskbarStats\plugins\`; TaskbarStats only *reads* them. The helper stops by itself when TaskbarStats is closed or no plugin is on.
+
+**Turn on.** Setup: tick *Install the optional plugins* (silent install: `/TASKS="plugins"`). Then Settings, tab *Plugins*: tick a plugin.
+**Configure.** *Edit config…* opens a simple editor for the plugin's config file (`plugins\<name>.ini`: plain `key = value` lines; the comments explain every option). Changes apply within seconds.
+**Choose what you see.** Under *Values* you pick per value: show in the widget or not, text / bar / ring, and a colour. The widget item *Plugin values* can be moved like any other.
+**Dashboard and full screen.** The *Plugins* tile (turn it on or off under Settings, *Dashboard* / *Fullscreen*) lists all values of the plugins that are on, and only appears when there is something to show. In full screen it is a strip along the bottom; click it for the details page with every value per plugin.
+
+![Plugins tile in the desktop dashboard](docs/screenshots/plugins-dashboard.png)
+![Plugins strip in the full-screen overview](docs/screenshots/plugins-fullscreen.png)
+![Plugins details page in full screen](docs/screenshots/plugins-fullscreen-detail.png)
+
+![The Plugins tab in the settings](docs/screenshots/plugins-settings.png)
+![Choosing which values to show](docs/screenshots/plugins-settings-values.png)
+![The config editor](docs/screenshots/plugins-config-editor.png)
+
+**Claude usage: what to know.** The numbers are the ones Claude Code shows with `/usage`. There is no official public API for them: the plugin asks an *undocumented* Anthropic address, with the Claude Code sign-in (`~/.claude/.credentials.json`, or the `CLAUDE_CODE_OAUTH_TOKEN` environment variable). That address can change or rate-limit you; the plugin then shows the reason and keeps the last values (greyed out). Your token is only sent to api.anthropic.com and never written to a file or log. You must be signed in with the Claude Code CLI (`claude`, then `/login`); the idea comes from [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), no code was copied.
+
+**Your own plugin, in any language.** Write a file `%AppData%\TaskbarStats\plugins\<yourname>.json` in this format (rewrite it whenever the value changes; `ttl` = seconds before the value is shown greyed out as outdated; `level` is `ok`, `warn` or `crit`; `notify: true` gives a notification on `crit`). It appears under *Plugins → Values* automatically. Or use the *Script / REST* plugin and let TaskbarStats's helper run your command or read your URL.
+
+```json
+{
+  "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
+  "items": [
+    { "key": "queue", "label": "Build queue", "short": "Queue", "value": 3, "min": 0, "max": 10,
+      "unit": "", "text": "3 jobs", "detail": "last run 10:31", "level": "ok", "widget": true, "notify": false }
+  ]
+}
+```
+
 ## Installer (Inno Setup)
 
 Install Inno Setup once: `winget install JRSoftware.InnoSetup`
@@ -175,11 +218,19 @@ The installer:
 
 - first shows the Readme (explanation + credits, `installer\Leesmij.txt`) and installs it as well;
 - creates a Start menu group with **TaskbarStats**, **Readme (explanation and credits)** and
-  **Uninstall TaskbarStats**; optionally a desktop shortcut too;
-- on request enables autostart through a scheduled task with highest privileges (no UAC prompt
-  at sign-in; the app requests admin rights and does not start from the Run key);
+  **TaskbarStats Uninstall**, **TaskbarStats on GitHub** and **TaskbarStats website**
+  (https://taskbarstats.com); optionally a desktop shortcut too;
+- asks (Yes/No) before overwriting an existing installation, and says whether it is an update,
+  a reinstall or a downgrade (not with `/SILENT` or `/VERYSILENT`);
+- has a wizard page "Start with Windows" (Yes/No): autostart through a scheduled task with highest
+  privileges (no UAC prompt at sign-in; the app requests admin rights and does not start from the
+  Run key). Default Yes for a new installation, an update keeps the current choice; silent installs
+  use `/AUTOSTART=yes` or `/AUTOSTART=no`;
+- offers the optional plugins (Claude usage, weather, location, uptime, script) as an unchecked extra: `/TASKS="plugins"` when silent;
 - closes a running version when installing/uninstalling;
-- registers an uninstaller (also under Settings → Apps) that removes the task and asks whether
+- clears the Start menu group before every (re)installation, so shortcuts in another language
+  or from an older version do not linger (never when the group would be the Start menu itself);
+- registers an uninstaller (also under Settings → Apps, with links to the website, issues and releases) that removes the task and asks whether
   your settings and usage log (`%AppData%\TaskbarStats`) may be removed too.
 
 The app itself also has "Credits" in the right-click menu: a calmly scrolling end-credits screen with the credits, a few numbers from your own usage (for example how much you have downloaded) and a joke.
@@ -368,6 +419,8 @@ scheduled "at log on" task with highest privileges, so there is no UAC prompt.
 | `src/AppSettings.cs` | Settings (JSON). |
 | `src/TaskbarHost.cs` | Finds the position of the notification area/taskbar. |
 | `src/StartupManager.cs` | Autostart via a scheduled task (highest privileges). |
+| `src/PluginFeed.cs`, `PluginConfig.cs`, `PluginHost.cs`, `SettingsForm.Plugins.cs`, `WidgetRenderer.Plugins.cs` | Plugins in the app: read `plugins\*.json`, edit the `.ini` configs, start/stop the helper (scheduled task, not elevated), Plugins tab, drawing in the widget. |
+| `plugins/TaskbarStats.Plugins/` | The plugin helper (separate, non-elevated exe): `PluginRunner` + the five plugins (`Plugins/*.cs`) + default configs (`defaults/*.ini`). Tests: `tests/TaskbarStats.Plugins.Tests`. |
 | `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Settings window with tabs (applied live), themes (bundled + own JSON files), item ids/order. |
 | `src/LogForm.cs` | Window with the usage log. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welcome screen and About window. |

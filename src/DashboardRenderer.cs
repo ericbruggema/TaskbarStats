@@ -134,6 +134,7 @@ internal sealed class DashboardRenderer : IDisposable
                 case "batt": if (m.BatteryPresent) tiles.Add(new(112, DrawBattery)); break;
                 case "proc": tiles.Add(new(34 + 5 * 18 + 22, DrawProcs)); break;
                 case "sys": tiles.Add(new(122, DrawSystem)); break;
+                case "plugins": if (PluginView.Any(m.Plugins)) tiles.Add(new(PluginsHeight(m.Plugins), DrawPlugins)); break;
             }
         }
 
@@ -428,6 +429,40 @@ internal sealed class DashboardRenderer : IDisposable
         string temps = (m.CpuTempC is double c ? $"CPU {c:0}°C" : "") + (m.GpuTempC is double t ? $"   GPU {t:0}°C" : "");
         if (temps != "") DrawText(g, temps, _f, Dim, r.X + 14, r.Y + 80);
         if (m.ProcessTotal > 0) DrawText(g, $"{Loc.T("Processes")}  {m.ProcessTotal}  ({Loc.T("apps")} {m.ProcessApps}, {Loc.T("background")} {m.ProcessBackground})", _f, Dim, r.X + 14, r.Y + 98);
+    }
+
+    // Plugins (optioneel): de waarden uit plugins\*.json, een regel per waarde (label, waarde, balk bij een percentage).
+    private const int PluginRow = 30, PluginMaxRows = 8;
+
+    private static int PluginsHeight(PluginData d)
+    {
+        int rows = Math.Min(d.Values.Count, PluginMaxRows) + PluginView.Problems(d).Count + (d.Values.Count > PluginMaxRows ? 1 : 0);
+        return 34 + rows * PluginRow + 8;
+    }
+
+    private void DrawPlugins(Graphics g, RectangleF r)
+    {
+        var d = _snap.Plugins;
+        Card(g, r, Loc.T("Plugins"));
+        float y = r.Y + 32;
+        foreach (var v in d.Values.Take(PluginMaxRows))
+        {
+            var col = PluginView.ColorOf(_cfg, v, Accent, TextCol);
+            DrawText(g, Fit(g, v.Label, _f, r.Width - 150), _f, Dim, r.X + 14, y);
+            DrawTextRight(g, PluginView.Text(v), _fb, col, r.Right - 14, y);
+            if (v.Percent is double pct) Bar(g, r.X + 14, y + 20, r.Width - 28, pct, col, 5);
+            y += PluginRow;
+        }
+        if (d.Values.Count > PluginMaxRows)
+        {
+            DrawText(g, Loc.T("+{0} more", d.Values.Count - PluginMaxRows), _fs, Dim, r.X + 14, y);
+            y += PluginRow;
+        }
+        foreach (var p in PluginView.Problems(d))
+        {
+            DrawText(g, Fit(g, p.Title + ": " + p.Message, _fs, r.Width - 28), _fs, Col(_cfg.WarnColor, Color.Orange), r.X + 14, y);
+            y += PluginRow;
+        }
     }
 
     public void Dispose()

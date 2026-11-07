@@ -164,6 +164,49 @@ Twee omgevingsvariabelen laten een testkopie naast de echte app draaien:
 De app vraagt administrator-rechten (`app.manifest`); voor geautomatiseerde tests zet je in een tijdelijke kopie
 `requireAdministrator` op `asInvoker`. Zie ook `CLAUDE.md`.
 
+## Plugins (optioneel)
+
+Plugins voegen extra waarden toe aan het widget, het bureaublad-dashboard en het fullscreen-scherm: je **Claude-verbruik** (5-uurs- en weeklimiet), het **weer**, je **locatie (GPS)**, een **uptime-monitor** voor websites en servers, en **script / REST**-waarden van jezelf. Ze staan standaard uit en worden via een optionele stap in Setup geïnstalleerd.
+
+![Plugin-voorbeelden in het widget](docs/screenshots/plugins-widget.png)
+
+| Plugin | Toont | Gegevens van |
+|--------|-------|--------------|
+| Claude-verbruik | % van je 5-uurs- en weeklimiet verbruikt en de tijd tot die vrijkomt (balk, ring of getal; oranje/rood en een melding bij de limiet) | De aanmelding van Claude Code op je pc (alleen gelezen), verstuurd naar Anthropic. Ongedocumenteerd adres, zie hieronder |
+| Weer | zon/wolken/regen, temperatuur, luchtvochtigheid, wind, kans op regen | [Open-Meteo](https://open-meteo.com) (gratis, zonder sleutel); alleen coördinaten worden verstuurd |
+| Locatie (GPS) | plaatsnaam, coördinaten, nauwkeurigheid, bron (GPS/wifi/IP), afstand tot huis | Windows-locatieservice, anders je IP-adres; de plaatsnaam via bigdatacloud.net |
+| Uptime-monitor | "3/3" actief, rood plus een melding als er iets uitvalt | je eigen lijst websites (HTTP), poorten (TCP) en apparaten (ping) |
+| Script / REST | elke waarde die je kiest | een opdracht (draait als jijzelf), een tekstbestand of een JSON-webadres: Home Assistant, een NAS, een koers, ... |
+
+**Hoe het werkt, en waarom het veilig is.** TaskbarStats zelf draait als administrator en voert daarom nooit plugin-code uit. De plugins draaien in een apart hulpprogramma, `TaskbarStats.Plugins.exe`, dat via een geplande taak **zonder administratorrechten** start. Dat hulpprogramma schrijft per plugin een klein JSON-bestand naar `%AppData%\TaskbarStats\plugins\`; TaskbarStats *leest* die alleen. Het stopt vanzelf als TaskbarStats sluit of er geen plugin aan staat.
+
+**Aanzetten.** Setup: vink *Optionele plugins installeren* aan (stil installeren: `/TASKS="plugins"`). Daarna Instellingen, tabblad *Plugins*: vink een plugin aan.
+**Instellen.** *Config bewerken…* opent een eenvoudige editor voor het configbestand van de plugin (`plugins\<naam>.ini`: gewone regels `sleutel = waarde`; de commentaarregels leggen elke optie uit). Wijzigingen gelden binnen enkele seconden.
+**Kiezen wat je ziet.** Onder *Waarden* kies je per waarde: wel of niet in het widget, tekst / balk / ring en een kleur. Het widget-onderdeel *Plugin-waarden* is te verplaatsen zoals de rest.
+**Dashboard en fullscreen.** De tegel *Plugins* (aan/uit onder Instellingen, *Dashboard* / *Fullscreen*) toont alle waarden van de plugins die aan staan en verschijnt alleen als er iets te tonen is. In fullscreen is het een strook onderaan; klik erop voor de detailpagina met elke waarde per plugin.
+
+![Plugins-tegel in het bureaublad-dashboard](docs/screenshots/plugins-dashboard.png)
+![Plugins-strook in het fullscreen-overzicht](docs/screenshots/plugins-fullscreen.png)
+![Detailpagina Plugins in fullscreen](docs/screenshots/plugins-fullscreen-detail.png)
+
+![Het tabblad Plugins in de instellingen](docs/screenshots/plugins-settings.png)
+![Kiezen welke waarden je ziet](docs/screenshots/plugins-settings-values.png)
+![De configeditor](docs/screenshots/plugins-config-editor.png)
+
+**Claude-verbruik: wat je moet weten.** De cijfers zijn die van `/usage` in Claude Code. Daar is geen officiële publieke API voor: de plugin vraagt een *ongedocumenteerd* adres van Anthropic, met de aanmelding van Claude Code (`~/.claude/.credentials.json`, of de omgevingsvariabele `CLAUDE_CODE_OAUTH_TOKEN`). Dat adres kan veranderen of je afremmen; de plugin toont dan de reden en laat de laatste waarden (vervaagd) staan. Je token gaat alleen naar api.anthropic.com en wordt nooit in een bestand of log gezet. Je moet aangemeld zijn met de Claude Code-CLI (`claude`, dan `/login`); het idee komt van [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), er is geen code overgenomen.
+
+**Je eigen plugin, in elke taal.** Schrijf een bestand `%AppData%\TaskbarStats\plugins\<jounaam>.json` in dit formaat (schrijf het opnieuw als de waarde verandert; `ttl` = seconden voordat de waarde vervaagd als verouderd getoond wordt; `level` is `ok`, `warn` of `crit`; `notify: true` geeft een melding bij `crit`). Het verschijnt vanzelf onder *Plugins → Waarden*. Of gebruik de plugin *Script / REST* en laat het hulpprogramma je opdracht uitvoeren of je URL lezen.
+
+```json
+{
+  "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
+  "items": [
+    { "key": "queue", "label": "Build queue", "short": "Queue", "value": 3, "min": 0, "max": 10,
+      "unit": "", "text": "3 jobs", "detail": "last run 10:31", "level": "ok", "widget": true, "notify": false }
+  ]
+}
+```
+
 ## Installer (Inno Setup)
 
 Eenmalig Inno Setup installeren: `winget install JRSoftware.InnoSetup`
@@ -175,11 +218,19 @@ De installer:
 
 - toont eerst het Leesmij (uitleg + credits, `installer\Leesmij.txt`) en installeert het mee;
 - maakt een Startmenu-groep met **TaskbarStats**, **Leesmij (uitleg en credits)** en
-  **TaskbarStats verwijderen**; optioneel ook een bureaubladsnelkoppeling;
-- zet op verzoek autostart aan via een geplande taak met hoogste rechten (geen UAC-melding
-  bij het inloggen; de app vraagt admin-rechten en start niet vanuit de Run-sleutel);
+  **TaskbarStats verwijderen**, **TaskbarStats op GitHub** en **TaskbarStats website**
+  (https://taskbarstats.com); optioneel ook een bureaubladsnelkoppeling;
+- vraagt (Ja/Nee) voor het overschrijven van een bestaande installatie en zegt of het een update,
+  een herinstallatie of een oudere versie is (niet bij `/SILENT` of `/VERYSILENT`);
+- heeft een wizardpagina "Meestarten met Windows" (Ja/Nee): autostart via een geplande taak met
+  hoogste rechten (geen UAC-melding bij het inloggen; de app vraagt admin-rechten en start niet
+  vanuit de Run-sleutel). Standaard Ja bij een nieuwe installatie, een update behoudt de huidige
+  keuze; stille installaties gebruiken `/AUTOSTART=yes` of `/AUTOSTART=no`;
+- biedt de optionele plugins (Claude-verbruik, weer, locatie, uptime, script) aan als niet-aangevinkte extra: `/TASKS="plugins"` bij stil installeren;
 - sluit een draaiende versie af bij installeren/verwijderen;
-- registreert een uninstaller (ook in Instellingen → Apps) die de taak verwijdert en vraagt of
+- veegt de Startmenu-groep leeg vóór elke (her)installatie, zodat snelkoppelingen in een andere
+  taal of van een oudere versie niet blijven staan (nooit als de groep het Startmenu zelf zou zijn);
+- registreert een uninstaller (ook in Instellingen → Apps, met links naar de website, issues en releases) die de taak verwijdert en vraagt of
   je instellingen en verbruikslog (`%AppData%\TaskbarStats`) ook weg mogen.
 
 De app zelf heeft ook "Credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje.
@@ -367,6 +418,8 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/AppSettings.cs` | Instellingen (JSON). |
 | `src/TaskbarHost.cs` | Zoekt de positie van het systeemvak/de taakbalk. |
 | `src/StartupManager.cs` | Autostart via een geplande taak (hoogste rechten). |
+| `src/PluginFeed.cs`, `PluginConfig.cs`, `PluginHost.cs`, `SettingsForm.Plugins.cs`, `WidgetRenderer.Plugins.cs` | Plugins in de app: `plugins\*.json` lezen, de `.ini`-configs bewerken, het hulpprogramma starten/stoppen (geplande taak, niet verhoogd), tabblad Plugins, tekenen in het widget. |
+| `plugins/TaskbarStats.Plugins/` | Het plugin-hulpprogramma (aparte, niet-verhoogde exe): `PluginRunner` + de vijf plugins (`Plugins/*.cs`) + standaardconfigs (`defaults/*.ini`). Tests: `tests/TaskbarStats.Plugins.Tests`. |
 | `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Instellingenvenster met tabbladen (live toegepast), thema's (meegeleverd + eigen JSON-bestanden), onderdelen-ids/volgorde. |
 | `src/LogForm.cs` | Venster met het verbruikslog. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |

@@ -611,7 +611,7 @@ public sealed partial class Metrics : IDisposable
             if (_gpuQuery is not null)
                 foreach (var (inst, v) in _gpuQuery.Read())
                 {
-                    if (ExtractEngineType(inst) is not { } engine) continue;
+                    if (ExtractEngineType(inst) is not { } engine || !double.IsFinite(v)) continue;
                     var luid = ExtractLuid(inst) ?? "";
                     if (!IsRealGpu(luid)) continue;
                     var key = (luid, engine);

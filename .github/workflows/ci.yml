@@ -18,5 +18,7 @@ jobs:
         run: dotnet build -c Release
       - name: Test
         run: dotnet test tests\TaskbarStats.Tests -c Release
+      - name: Test plugin-host
+        run: dotnet test tests\TaskbarStats.Plugins.Tests -c Release
       - name: Taalcontrole (strikt)
         run: dotnet run --project tools\LangTool -c Release -- check --strict

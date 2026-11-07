@@ -178,6 +178,9 @@ internal sealed partial class WidgetRenderer : IDisposable
                 case "cpufreq": case "diskbusy": case "disktemp": case "mobotemp": case "procs": case "fps":
                     { int ew = DrawExtraItem(g, x, id); if (ew > 0) x += ew + gap; }
                     break;
+                case "plugins":
+                    { int pw = DrawPlugins(g, x); if (pw > 0) x += pw + gap; }
+                    break;
             }
         }
         return x;
@@ -280,13 +283,21 @@ internal sealed partial class WidgetRenderer : IDisposable
         return DrawTextCell(g, x, "PING", txt, "999 ms", col);
     }
 
-    private int DrawMetric(Graphics g, int x, string label, double v, DisplayStyle style, Color? baseColor = null) => style switch
+    // GDI+ geeft bij een NaN-hoek of een rechthoek zonder breedte een misleidende OutOfMemoryException (stond in diag.log bij
+    // DrawGauge/DrawArc): waarden dus altijd eerst begrenzen.
+    private static double Sane(double v) => double.IsFinite(v) ? v : 0;
+
+    private int DrawMetric(Graphics g, int x, string label, double v, DisplayStyle style, Color? baseColor = null)
     {
-        DisplayStyle.Gauge => DrawGauge(g, x, label, v, baseColor),
-        DisplayStyle.Bar   => DrawBar(g, x, label, v, baseColor),
-        DisplayStyle.Graph => DrawGraph(g, x, label, v),
-        _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, EffectiveText())),
-    };
+        v = Sane(v);
+        return style switch
+        {
+            DisplayStyle.Gauge => DrawGauge(g, x, label, v, baseColor),
+            DisplayStyle.Bar   => DrawBar(g, x, label, v, baseColor),
+            DisplayStyle.Graph => DrawGraph(g, x, label, v),
+            _                  => DrawTextCell(g, x, label, Pct(v), PctTemplate, ThresholdColor(v, EffectiveText())),
+        };
+    }
 
     /// <summary>Kleur van de GPU-meter/-balk: bij 2+ echte GPU's de eigen kleur van de adapter die nu getoond wordt
     /// (zie Metrics.GpuColorIndex/AppSettings.GpuColors), zodat je in "automatisch" ziet welke van de twee het is.
@@ -306,7 +317,7 @@ internal sealed partial class WidgetRenderer : IDisposable
     private int DrawTempTag(Graphics g, int x, double t, Color textCol)
         => 4 + DrawDigital(g, x + 4, $"{t:0}°", "100°", ThresholdColor(t, textCol));
 
-    private int DrawGauge(Graphics g, int x, string label, double v, Color? baseColor = null)
+    private int DrawGauge(Graphics g, int x, string label, double v, Color? baseColor = null, Color? exact = null)
     {
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
@@ -321,9 +332,12 @@ internal sealed partial class WidgetRenderer : IDisposable
 
         var rect = new Rectangle(gx + inset, gy + inset, d - 2 * inset, d - 2 * inset);
         var bg = GdiCache.Pen(EffectiveTrack(Color.FromArgb(80, 80, 80)), pw);
-        var fg = GdiCache.Pen(ThresholdColor(v, baseColor ?? EffectiveAccent()), pw);
-        g.DrawArc(bg, rect, 0, 360);
-        g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(v, 0, 100) / 100.0));
+        var fg = GdiCache.Pen(exact ?? ThresholdColor(v, baseColor ?? EffectiveAccent()), pw);
+        if (rect.Width > pw && rect.Height > pw)   // net na het inloggen kan de taakbalkhoogte nog (bijna) 0 zijn: GDI+ meldt dan "Out of memory"
+        {
+            g.DrawArc(bg, rect, 0, 360);
+            g.DrawArc(fg, rect, -90, (float)(360.0 * Math.Clamp(v, 0, 100) / 100.0));
+        }
         var txt = $"{v:0}";
         var sz = g.MeasureString(txt, _fontSmall);
         var tb = GdiCache.Brush(EffectiveText());
@@ -331,7 +345,7 @@ internal sealed partial class WidgetRenderer : IDisposable
         return cellW;
     }
 
-    private int DrawBar(Graphics g, int x, string label, double v, Color? baseColor = null)
+    private int DrawBar(Graphics g, int x, string label, double v, Color? baseColor = null, Color? exact = null)
     {
         label = Cadence.L(label);
         bool above = _cfg.LabelsAbove;
@@ -344,7 +358,7 @@ internal sealed partial class WidgetRenderer : IDisposable
         int by = above ? top + (h - bh) / 2 : (Height - bh) / 2;
         var rect = new Rectangle(bx, by, bw, bh);
         var bg = GdiCache.Brush(EffectiveTrack(Color.FromArgb(70, 70, 70)));
-        var fg = GdiCache.Brush(ThresholdColor(v, baseColor ?? EffectiveAccent()));
+        var fg = GdiCache.Brush(exact ?? ThresholdColor(v, baseColor ?? EffectiveAccent()));
         g.FillRectangle(bg, rect);
         g.FillRectangle(fg, new Rectangle(rect.X, rect.Y, (int)(bw * Math.Clamp(v, 0, 100) / 100.0), bh));
         var pen = GdiCache.Pen(EffectiveTrack(Color.FromArgb(110, 110, 110)));

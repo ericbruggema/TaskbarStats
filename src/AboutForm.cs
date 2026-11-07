@@ -120,6 +120,7 @@ public sealed class AboutForm : Form
         • Installer: Inno Setup.
 
         CREDITS
+        • Website — https://taskbarstats.com
         • Idea, design and testing: Eric Bruggema — https://www.linkedin.com/in/eric-bruggema-28a81a186/ · https://www.facebook.com/eric.bruggema
         • Built with Claude Code (Anthropic) — https://claude.com/claude-code
         • LibreHardwareMonitorLib (MPL-2.0) — https://github.com/LibreHardwareMonitor/LibreHardwareMonitor

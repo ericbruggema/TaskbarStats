@@ -94,6 +94,7 @@ public sealed partial class FullscreenForm : Form
         _tourPages.Add(null);
         foreach (var id in Tiles.Order(Cfg.FullOrder).Where(i => Tiles.FullOn(Cfg, i)))
         {
+            if (id == "plugins" && !PluginView.Any(_c.Metrics.Current.Plugins)) continue;
             string page = id == "batt" ? "sys" : id;
             if (!_tourPages.Contains(page)) _tourPages.Add(page);
         }

@@ -49,7 +49,7 @@ public class FullscreenRendererTests : IDisposable
     public void Dispose() { _metrics.Dispose(); _data.Dispose(); }
 
     // ---------- opzet ----------
-    private static MetricsSnapshot Snap(bool battery = false, bool sensors = false, bool gpu = false) => new()
+    private static MetricsSnapshot Snap(bool battery = false, bool sensors = false, bool gpu = false, PluginData? plugins = null) => new()
     {
         RawCpu = 42, RawMem = 61, RawGpu = 30, RawDown = 2.5e6, RawUp = 3e5,
         RawCores = new double[] { 10, 20, 30, 40, 50, 60, 70, 95 }, RawCpuTemp = 55, RawGpuTemp = 62,
@@ -61,6 +61,7 @@ public class FullscreenRendererTests : IDisposable
         VramUsedPerLuid = gpu ? new Dictionary<string, double> { [FakeLuid] = 2e9 } : new Dictionary<string, double>(),
         DiskPerDisk = new Dictionary<string, (double, double)> { ["0 C:"] = (3e6, 1e6) },
         Sensors = sensors ? FakeSensors() : Array.Empty<SensorInfo>(),
+        Plugins = plugins ?? PluginData.Empty,
     };
 
     private const string FakeLuid = "0x00000000_0x0000F00D";
@@ -181,6 +182,27 @@ public class FullscreenRendererTests : IDisposable
             var byType = Render(rig, snap);
             Assert.NotEqual(total, byType);
             Assert.Equal(byType, Render(rig, snap));
+        });
+
+    [Fact]
+    public void Overzicht_toont_de_pluginstrook_alleen_met_data_en_klikken_opent_de_detailpagina()
+        => UiThread.Run(() =>
+        {
+            using var rig = MakeRig();
+            var snap = Snap(battery: true);
+            var withPlugins = Snap(battery: true, plugins: PluginTilesTests.Data(8));
+            string a = Render(rig, snap), b = Render(rig, withPlugins);
+            Assert.NotEqual(a, b);
+            Assert.Equal("plugins", rig.R.HitAt(new Point(900, 1080 - 16 - 60)));
+            Assert.Equal(b, Render(rig, withPlugins));   // stabiel
+            rig.Cfg.FullHidden = new List<string> { "plugins" };
+            Assert.Equal(a, Render(rig, withPlugins));   // uitgezet in de instellingen = zoals zonder data
+            rig.Cfg.FullHidden = null;
+            rig.V.Detail = "plugins";
+            string d1 = Render(rig, withPlugins);
+            Assert.NotEqual(b, d1);
+            Assert.NotEqual(d1, Render(rig, Snap(battery: true, plugins: PluginTilesTests.Data(2))));
+            Assert.NotEqual(d1, Render(rig, Snap(battery: true, plugins: PluginTilesTests.Data(8, error: true))));   // foutmelding in de kop
         });
 
     [Fact]

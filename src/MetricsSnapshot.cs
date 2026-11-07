@@ -72,6 +72,8 @@ public sealed class MetricsSnapshot
     public IReadOnlyDictionary<string, (double read, double write)> DiskPerDisk { get; init; } = new Dictionary<string, (double, double)>();
     /// <summary>Alle sensoren; alleen gevuld zolang het fullscreen-scherm ze vraagt.</summary>
     public IReadOnlyList<SensorInfo> Sensors { get; init; } = Array.Empty<SensorInfo>();
+    /// <summary>Waarden van de (optionele) plugins, gelezen uit plugins\*.json (zie <see cref="PluginFeed"/>).</summary>
+    public PluginData Plugins { get; init; } = PluginData.Empty;
 }
 
 public sealed partial class Metrics
@@ -127,6 +129,7 @@ public sealed partial class Metrics
             NetPerAdapter = _netRates, GpuPerLuid = _gpuRates, GpuEnginePerLuid = _gpuEngines, VramUsedPerLuid = _vramRates, DiskPerDisk = _diskRates,
             GpuColorIndex = GpuColorIndex,
             Sensors = _sensors,
+            Plugins = PluginFeed.Current,
         };
     }
 }

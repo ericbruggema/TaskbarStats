@@ -25,6 +25,9 @@ internal static class Diag
     public static string Dir => AppPaths.DataDir;
     public static string LogPath => Path.Combine(Dir, "diag.log");
 
+    /// <summary>Informatieregel in het logbestand (voor gebeurtenissen die je bij een melding wilt kunnen terugzien, niet voor elke tik).</summary>
+    public static void Info(string area, string message) => Write("INFO", area, message);
+
     /// <summary>Legt een waarschuwing vast (een keer per tekst).</summary>
     public static void Warn(string area, string message)
     {
@@ -60,8 +63,9 @@ internal static class Diag
         Write("ERROR", area, ex.ToString());
     }
 
-    private static void Write(string level, string area, string message)
+    private static void Write(string level, string area, string message, string? dir = null)
     {
+        string logPath = dir is null ? LogPath : Path.Combine(dir, "diag.log");
         string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {level,-9} [{area}] {message.Replace("\r", "").Replace("\n", "\n    ")}";
         lock (Gate)
         {
@@ -69,10 +73,10 @@ internal static class Diag
             while (Recent.Count > 60) Recent.Dequeue();
             try
             {
-                Directory.CreateDirectory(Dir);
-                var fi = new FileInfo(LogPath);
-                if (fi.Exists && fi.Length > MaxLog) { File.Copy(LogPath, LogPath + ".old", true); File.Delete(LogPath); }
-                File.AppendAllText(LogPath, line + Environment.NewLine, Encoding.UTF8);
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                var fi = new FileInfo(logPath);
+                if (fi.Exists && fi.Length > MaxLog) { File.Copy(logPath, logPath + ".old", true); File.Delete(logPath); }
+                File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
             }
             catch { /* het logbestand mag de app nooit hinderen */ }
         }
@@ -97,6 +101,7 @@ internal static class Diag
     public static void BeginSession()
     {
         PreviousCrash = null; PreviousUnclean = false;
+        _sessionDir = Dir; _ended = false;
         try
         {
             Directory.CreateDirectory(Dir);
@@ -121,12 +126,27 @@ internal static class Diag
         }
         catch (Exception ex) { Write("WARN", "session", "Sessiebewaking mislukt: " + ex.Message); }
         Write("INFO", "session", "Start " + Version + (Environment.GetCommandLineArgs().Contains("--restarted") ? " (na een herstart)" : ""));
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => EndSession();
+        if (!_exitHooked) { _exitHooked = true; AppDomain.CurrentDomain.ProcessExit += (_, _) => EndSession(); }
     }
 
+    private static string? _sessionDir;
+    private static bool _exitHooked, _ended;
+
+    /// <summary>
+    /// Sessie netjes afsluiten (sessiebestand weg + logregel). Eenmalig per sessie, en naar de map van die sessie: een tweede
+    /// aanroep (ProcessExit na het sluiten van het venster) doet niets meer, en een testproces schrijft niet in de echte datamap.
+    /// </summary>
     internal static void EndSession()
     {
-        try { File.Delete(SessionPath); Write("INFO", "session", "Normaal afgesloten"); } catch { }
+        if (_ended || _sessionDir is null) return;
+        _ended = true;
+        try
+        {
+            if (!Directory.Exists(_sessionDir)) return;
+            File.Delete(Path.Combine(_sessionDir, "session.lock"));
+            Write("INFO", "session", "Normaal afgesloten", _sessionDir);
+        }
+        catch (Exception dex) { Swallow(dex); }
     }
 
     /// <summary>Onthoudt voor de volgende start dat deze sessie is gecrasht (fatale fout).</summary>
@@ -146,8 +166,12 @@ internal static class Diag
                 "/c:10", "/rd:true", "/f:xml" }) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
             if (p is null) return null;
-            string xml = p.StandardOutput.ReadToEnd();
-            if (!p.WaitForExit(8000)) { try { p.Kill(); } catch { } return null; }
+            // De uitvoer asynchroon lezen: met ReadToEnd() vóór WaitForExit(8000) was de timeout een dode letter en kon een trage
+            // gebeurtenislogservice (net na het inloggen) de start van de hele app ongelimiteerd ophouden.
+            var output = p.StandardOutput.ReadToEndAsync();
+            if (!p.WaitForExit(4000)) { try { p.Kill(); } catch (Exception kex) { Swallow(kex); } Write("WARN", "session", "Gebeurtenislogboek reageerde niet binnen 4 s; overgeslagen."); return null; }
+            if (!output.Wait(1000)) return null;
+            string xml = output.Result;
             if (string.IsNullOrWhiteSpace(xml)) return null;
             var doc = XDocument.Parse("<r>" + xml + "</r>");
             foreach (var ev in doc.Root!.Elements())

@@ -54,7 +54,7 @@ public sealed partial class SettingsForm : Form
 
     private string Snap() => JsonSerializer.Serialize(_c);
 
-    /// <summary>Kiest een hoofdtabblad (0 Widget, 1 Kleuren, 2 Dashboard, 3 Fullscreen, 4 Thema's, 5 Algemeen).</summary>
+    /// <summary>Kiest een hoofdtabblad (0 Widget, 1 Kleuren, 2 Dashboard, 3 Fullscreen, 4 Thema's, 5 Algemeen, 6 Plugins).</summary>
     public void SelectTab(int index) => _tabs.SelectedIndex = Math.Clamp(index, 0, _tabs.TabPages.Count - 1);
 
     // ---------- opbouw ----------
@@ -70,6 +70,7 @@ public sealed partial class SettingsForm : Form
         _tabs.TabPages.Add(FullTab());
         _tabs.TabPages.Add(ThemesTab());
         _tabs.TabPages.Add(GeneralTab());
+        _tabs.TabPages.Add(PluginsTab());
         _tabs.SelectedIndex = Math.Clamp(select, 0, _tabs.TabPages.Count - 1);
         RestoreSubs();
         ResumeLayout();
@@ -249,6 +250,7 @@ public sealed partial class SettingsForm : Form
         "gputemp" => _c.ShowGpuTemp,
         "ping" => _c.ShowPing,
         "cpufreq" or "diskbusy" or "disktemp" or "mobotemp" or "procs" or "fps" => FmtItemOn(id),
+        "plugins" => _c.ShowPlugins,
         _ => true,
     };
 

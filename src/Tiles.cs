@@ -3,7 +3,7 @@ namespace TaskbarStats;
 /// <summary>De hoofdonderdelen van het bureaublad-dashboard en het fullscreen-scherm: ids, namen, volgorde en zichtbaarheid.</summary>
 public static class Tiles
 {
-    public static readonly string[] All = { "cpu", "gpu", "mem", "net", "disk", "batt", "proc", "sys" };
+    public static readonly string[] All = { "cpu", "gpu", "mem", "net", "disk", "batt", "proc", "sys", "plugins" };
 
     public static string Name(string id) => id switch
     {
@@ -15,11 +15,12 @@ public static class Tiles
         "batt" => Loc.T("Battery"),
         "proc" => Loc.T("Top programs"),
         "sys" => Loc.T("System"),
+        "plugins" => Loc.T("Plugins"),
         _ => id,
     };
 
     /// <summary>Onderdelen van het taakbalk-widget in de standaardvolgorde (net = upload/download, space = schijfruimte).</summary>
-    public static readonly string[] WidgetAll = { "net", "ping", "disk", "cpu", "gpu", "mem", "batt", "space", "cputemp", "gputemp", "cpufreq", "diskbusy", "disktemp", "mobotemp", "procs", "fps" };
+    public static readonly string[] WidgetAll = { "net", "ping", "disk", "cpu", "gpu", "mem", "batt", "space", "cputemp", "gputemp", "cpufreq", "diskbusy", "disktemp", "mobotemp", "procs", "fps", "plugins" };
 
     public static string WidgetName(string id) => id switch
     {
@@ -39,6 +40,7 @@ public static class Tiles
         "mobotemp" => Loc.T("Motherboard temperature"),
         "procs" => Loc.T("Running processes"),
         "fps" => Loc.T("FPS (experimental)"),
+        "plugins" => Loc.T("Plugin values (optional)"),
         _ => id,
     };
 
@@ -62,7 +64,7 @@ public static class Tiles
     public static bool DashOn(AppSettings c, string id) => id switch
     {
         "cpu" => c.DashCpu, "gpu" => c.DashGpu, "mem" => c.DashMem, "net" => c.DashNet,
-        "disk" => c.DashDisks, "batt" => c.DashBattery, "proc" => c.DashProcs, "sys" => c.DashSystem, _ => false,
+        "disk" => c.DashDisks, "batt" => c.DashBattery, "proc" => c.DashProcs, "sys" => c.DashSystem, "plugins" => c.DashPlugins, _ => false,
     };
 
     public static void SetDashOn(AppSettings c, string id, bool on)
@@ -72,6 +74,7 @@ public static class Tiles
             case "cpu": c.DashCpu = on; break; case "gpu": c.DashGpu = on; break; case "mem": c.DashMem = on; break;
             case "net": c.DashNet = on; break; case "disk": c.DashDisks = on; break; case "batt": c.DashBattery = on; break;
             case "proc": c.DashProcs = on; break; case "sys": c.DashSystem = on; break;
+            case "plugins": c.DashPlugins = on; break;
         }
     }
 
@@ -85,6 +88,9 @@ public static class Tiles
         c.FullHidden = h.Count == 0 ? null : h;
     }
 
+    /// <summary>Hoogte van de plugin-strook onderaan het fullscreen-overzicht (logische pixels op het 1920×1080-canvas).</summary>
+    public const float PluginStripHeight = 128f;
+
     /// <summary>
     /// Indeling van het fullscreen-overzicht: rijen van 4 kolomeenheden (CPU is 2 breed; batterij en systeem delen een cel).
     /// Wordt gebruikt door het scherm zelf en door het voorbeeld in de instellingen.
@@ -92,6 +98,9 @@ public static class Tiles
     public static List<(string[] ids, RectangleF r)> FullCells(IEnumerable<string> visible, float width, float height, float top, float margin)
     {
         var ids = visible.ToList();
+        // "plugins" is een smalle strook onderaan over de hele breedte; de andere tegels delen de rest
+        bool strip = ids.Remove("plugins");
+        float stripH = strip ? PluginStripHeight + margin : 0;
         var cells = new List<string[]>();
         bool bsDone = false;
         foreach (var id in ids)
@@ -105,6 +114,7 @@ public static class Tiles
             else cells.Add(new[] { id });
         }
         var result = new List<(string[], RectangleF)>();
+        if (strip) result.Add((new[] { "plugins" }, new RectangleF(margin, height - margin - PluginStripHeight, width - 2 * margin, PluginStripHeight)));
         if (cells.Count == 0) return result;
 
         static int Span(string[] c) => c[0] == "cpu" ? 2 : 1;
@@ -117,7 +127,7 @@ public static class Tiles
                 if (used + Span(c) <= 4) { row.Add(c); used += Span(c); left.Remove(c); }
             rows.Add(row);
         }
-        float avail = height - margin - top;
+        float avail = height - margin - top - stripH;
         float firstRow = 500f * avail / (1080f - 16 - 76);
         float[] heights = rows.Count == 1 ? new[] { avail }
             : rows.Count == 2 ? new[] { firstRow, avail - firstRow - margin }

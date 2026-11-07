@@ -164,6 +164,49 @@ Zwei Umgebungsvariablen lassen eine Testkopie neben der echten App laufen:
 Die App verlangt Administratorrechte (`app.manifest`); für automatisierte Tests setzt du in einer temporären Kopie
 `requireAdministrator` auf `asInvoker`. Siehe auch `CLAUDE.md`.
 
+## Plugins (optional)
+
+Plugins fügen dem Widget, dem Desktop-Dashboard und der Vollbildansicht zusätzliche Werte hinzu: deine **Claude-Nutzung** (5-Stunden- und Wochenlimit), das **Wetter**, deinen **Standort (GPS)**, einen **Uptime-Monitor** für Webseiten und Server sowie eigene **Skript-/REST**-Werte. Sie sind standardmäßig aus und werden über einen optionalen Schritt im Setup installiert.
+
+![Plugin-Beispiele im Widget](docs/screenshots/plugins-widget.png)
+
+| Plugin | Zeigt | Daten von |
+|--------|-------|-----------|
+| Claude-Nutzung | % deines 5-Stunden- und Wochenlimits verbraucht und die Zeit bis zum Zurücksetzen (Balken, Ring oder Zahl; orange/rot und eine Benachrichtigung am Limit) | Die Anmeldung von Claude Code auf deinem PC (nur gelesen), an Anthropic gesendet. Nicht dokumentierte Adresse, siehe unten |
+| Wetter | Sonne/Wolken/Regen, Temperatur, Luftfeuchtigkeit, Wind, Regenwahrscheinlichkeit | [Open-Meteo](https://open-meteo.com) (kostenlos, ohne Schlüssel); nur Koordinaten werden gesendet |
+| Standort (GPS) | Ortsname, Koordinaten, Genauigkeit, Quelle (GPS/WLAN/IP), Entfernung von zu Hause | Windows-Standortdienst, sonst deine IP-Adresse; der Ortsname über bigdatacloud.net |
+| Uptime-Monitor | „3/3“ erreichbar, rot plus Benachrichtigung bei einem Ausfall | deine eigene Liste von Webseiten (HTTP), Ports (TCP) und Geräten (Ping) |
+| Skript / REST | jeder Wert deiner Wahl | ein Befehl (läuft als du), eine Textdatei oder eine JSON-Webadresse: Home Assistant, ein NAS, ein Kurs, ... |
+
+**So funktioniert es, und warum es sicher ist.** TaskbarStats selbst läuft als Administrator und führt deshalb nie Plugin-Code aus. Die Plugins laufen in einem separaten Hilfsprogramm, `TaskbarStats.Plugins.exe`, das über eine geplante Aufgabe **ohne Administratorrechte** startet. Es schreibt pro Plugin eine kleine JSON-Datei nach `%AppData%\TaskbarStats\plugins\`; TaskbarStats *liest* sie nur. Es beendet sich von selbst, wenn TaskbarStats geschlossen wird oder kein Plugin aktiv ist.
+
+**Einschalten.** Setup: *Optionale Plugins installieren* ankreuzen (stille Installation: `/TASKS="plugins"`). Danach Einstellungen, Tab *Plugins*: ein Plugin ankreuzen.
+**Einstellen.** *Konfiguration bearbeiten…* öffnet einen einfachen Editor für die Konfigurationsdatei des Plugins (`plugins\<name>.ini`: einfache Zeilen `Schlüssel = Wert`; die Kommentare erklären jede Option). Änderungen gelten innerhalb weniger Sekunden.
+**Auswählen, was du siehst.** Unter *Werte* wählst du pro Wert: im Widget zeigen oder nicht, Text / Balken / Ring und eine Farbe. Das Widget-Element *Plugin-Werte* lässt sich wie alle anderen verschieben.
+**Dashboard und Vollbild.** Die Kachel *Plugins* (ein-/ausschalten unter Einstellungen, *Dashboard* / *Fullscreen*) listet alle Werte der eingeschalteten Plugins und erscheint nur, wenn es etwas anzuzeigen gibt. Im Vollbild ist sie ein Streifen am unteren Rand; ein Klick öffnet die Detailseite mit jedem Wert pro Plugin.
+
+![Plugins-Kachel im Desktop-Dashboard](docs/screenshots/plugins-dashboard.png)
+![Plugins-Streifen in der Vollbild-Übersicht](docs/screenshots/plugins-fullscreen.png)
+![Detailseite Plugins im Vollbild](docs/screenshots/plugins-fullscreen-detail.png)
+
+![Der Tab Plugins in den Einstellungen](docs/screenshots/plugins-settings.png)
+![Auswählen, welche Werte angezeigt werden](docs/screenshots/plugins-settings-values.png)
+![Der Konfigurationseditor](docs/screenshots/plugins-config-editor.png)
+
+**Claude-Nutzung: was du wissen solltest.** Die Zahlen sind die von `/usage` in Claude Code. Dafür gibt es keine offizielle öffentliche API: Das Plugin fragt eine *nicht dokumentierte* Anthropic-Adresse ab, mit der Anmeldung von Claude Code (`~/.claude/.credentials.json` oder die Umgebungsvariable `CLAUDE_CODE_OAUTH_TOKEN`). Diese Adresse kann sich ändern oder dich bremsen; das Plugin zeigt dann den Grund und behält die letzten Werte (ausgegraut). Dein Token geht nur an api.anthropic.com und wird nie in eine Datei oder ein Protokoll geschrieben. Du musst mit der Claude-Code-CLI angemeldet sein (`claude`, dann `/login`); die Idee stammt von [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), es wurde kein Code übernommen.
+
+**Dein eigenes Plugin, in jeder Sprache.** Schreibe eine Datei `%AppData%\TaskbarStats\plugins\<deinname>.json` in diesem Format (schreibe sie neu, wenn sich der Wert ändert; `ttl` = Sekunden, bevor der Wert ausgegraut als veraltet angezeigt wird; `level` ist `ok`, `warn` oder `crit`; `notify: true` löst bei `crit` eine Benachrichtigung aus). Sie erscheint automatisch unter *Plugins → Werte*. Oder nutze das Plugin *Skript / REST* und lasse das Hilfsprogramm deinen Befehl ausführen oder deine URL lesen.
+
+```json
+{
+  "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
+  "items": [
+    { "key": "queue", "label": "Build queue", "short": "Queue", "value": 3, "min": 0, "max": 10,
+      "unit": "", "text": "3 jobs", "detail": "last run 10:31", "level": "ok", "widget": true, "notify": false }
+  ]
+}
+```
+
 ## Installer (Inno Setup)
 
 Inno Setup einmalig installieren: `winget install JRSoftware.InnoSetup`
@@ -175,11 +218,19 @@ Der Installer:
 
 - zeigt zuerst die Liesmich (Erklärung + Credits, `installer\Leesmij.txt`) und installiert sie mit;
 - legt eine Startmenü-Gruppe mit **TaskbarStats**, **Leesmij (Erklärung und Credits)** und
-  **TaskbarStats deinstallieren** an; optional auch eine Desktop-Verknüpfung;
-- schaltet auf Wunsch den Autostart über eine geplante Aufgabe mit höchsten Rechten ein (keine UAC-Meldung
-  bei der Anmeldung; die App verlangt Administratorrechte und startet nicht über den Run-Schlüssel);
+  **TaskbarStats deinstallieren**, **TaskbarStats auf GitHub** und **TaskbarStats Webseite**
+  (https://taskbarstats.com); optional auch eine Desktop-Verknüpfung;
+- fragt (Ja/Nein), bevor eine vorhandene Installation überschrieben wird, und sagt, ob es ein Update,
+  eine Neuinstallation oder eine ältere Version ist (nicht bei `/SILENT` oder `/VERYSILENT`);
+- hat eine Assistentenseite „Mit Windows starten“ (Ja/Nein): Autostart über eine geplante Aufgabe mit
+  höchsten Rechten (keine UAC-Meldung bei der Anmeldung; die App verlangt Administratorrechte und
+  startet nicht über den Run-Schlüssel). Standard Ja bei einer Neuinstallation, ein Update behält die
+  aktuelle Wahl; stille Installationen verwenden `/AUTOSTART=yes` oder `/AUTOSTART=no`;
+- bietet die optionalen Plugins (Claude-Nutzung, Wetter, Standort, Uptime, Skript) als nicht angekreuztes Extra an: `/TASKS="plugins"` bei stiller Installation;
 - beendet eine laufende Version beim Installieren/Deinstallieren;
-- registriert einen Uninstaller (auch unter Einstellungen → Apps), der die Aufgabe entfernt und fragt, ob
+- leert die Startmenü-Gruppe vor jeder (Neu-)Installation, damit Verknüpfungen in einer anderen
+  Sprache oder von einer älteren Version nicht übrig bleiben (nie, wenn die Gruppe das Startmenü selbst wäre);
+- registriert einen Uninstaller (auch unter Einstellungen → Apps, mit Links zu Webseite, Issues und Releases), der die Aufgabe entfernt und fragt, ob
   deine Einstellungen und das Nutzungsprotokoll (`%AppData%\TaskbarStats`) ebenfalls gelöscht werden dürfen.
 
 Die App selbst hat außerdem „Credits“ im Rechtsklickmenü: ein ruhig scrollender Abspann mit den Credits, ein paar Zahlen aus deiner eigenen Nutzung (zum Beispiel, wie viel du heruntergeladen hast) und einem Scherz.
@@ -368,6 +419,8 @@ geplante Aufgabe „bei Anmeldung“ mit höchsten Rechten an, sodass keine UAC-
 | `src/AppSettings.cs` | Einstellungen (JSON). |
 | `src/TaskbarHost.cs` | Ermittelt die Position des Infobereichs/der Taskleiste. |
 | `src/StartupManager.cs` | Autostart über eine geplante Aufgabe (höchste Rechte). |
+| `src/PluginFeed.cs`, `PluginConfig.cs`, `PluginHost.cs`, `SettingsForm.Plugins.cs`, `WidgetRenderer.Plugins.cs` | Plugins in der App: `plugins\*.json` lesen, die `.ini`-Konfigurationen bearbeiten, das Hilfsprogramm starten/stoppen (geplante Aufgabe, nicht erhöht), Tab Plugins, Zeichnen im Widget. |
+| `plugins/TaskbarStats.Plugins/` | Das Plugin-Hilfsprogramm (separate, nicht erhöhte Exe): `PluginRunner` + die fünf Plugins (`Plugins/*.cs`) + Standardkonfigurationen (`defaults/*.ini`). Tests: `tests/TaskbarStats.Plugins.Tests`. |
 | `src/SettingsForm.cs`, `src/Themes.cs`, `src/Tiles.cs` | Einstellungsfenster mit Tabs (live angewendet), Designs (mitgeliefert + eigene JSON-Dateien), Komponenten-IDs/Reihenfolge. |
 | `src/LogForm.cs` | Fenster mit dem Nutzungsprotokoll. |
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Willkommensbildschirm und Über-Fenster. |

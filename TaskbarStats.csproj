@@ -11,17 +11,17 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>1.6.7</Version>
+    <Version>1.6.8</Version>
     <!-- Zuinig: geen extra achtergrond-GC-thread, minder opstart-optimalisatie, geheugen krap houden -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Hulpprogramma's en tests zijn eigen projecten: hun bestanden horen niet in de app -->
-    <Compile Remove="tools\**;tests\**" />
-    <EmbeddedResource Remove="tools\**;tests\**" />
-    <None Remove="tools\**;tests\**" />
+    <!-- Hulpprogramma's, tests en de plugin-host (plugins\) zijn eigen projecten: hun bestanden horen niet in de app -->
+    <Compile Remove="tools\**;tests\**;plugins\**" />
+    <EmbeddedResource Remove="tools\**;tests\**;plugins\**" />
+    <None Remove="tools\**;tests\**;plugins\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="TaskbarStats.Tests" />
+    <InternalsVisibleTo Include="TaskbarStats.Plugins.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -32,6 +32,24 @@ public class CrashTests : IDisposable
     }
 
     [Fact]
+    public void EndSession_logt_maar_een_keer_per_sessie()
+    {
+        Diag.BeginSession();
+        Diag.EndSession();
+        Diag.EndSession();   // bv. FormClosing en daarna ProcessExit
+        Assert.Equal(1, LogText().Split("Normaal afgesloten").Length - 1);
+    }
+
+    [Fact]
+    public void Afsluiten_bij_het_sluiten_van_het_venster_laat_geen_sessiebestand_achter()
+    {
+        Diag.BeginSession();
+        Diag.EndSession();   // WidgetForm.OnFormClosing: Windows beeindigt het proces bij afsluiten soms voor ProcessExit
+        Diag.BeginSession();
+        Assert.False(Diag.PreviousUnclean);   // dus geen onnodige gebeurtenislogboek-zoektocht bij elke Windows-start
+    }
+
+    [Fact]
     public void Niet_netjes_afsluiten_zonder_crashvlag_wordt_gelogd_maar_niet_als_crash_gemeld()
     {
         Diag.BeginSession();          // sessie 1 eindigt zonder EndSession (Taakbeheer, stroomuitval)

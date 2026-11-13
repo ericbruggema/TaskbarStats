@@ -3,6 +3,9 @@
 | What | Where |
 |------|-------|
 | Project overview, features, settings | [README.md](../README.md) (English) · [Nederlands](../README.nl.md) · [Deutsch](../README.de.md) |
+| Manuals (PDF, 20 pages): guide, installation, settings, tips and tricks | [Nederlands](TaskbarStats-Handleiding.pdf) · [English](TaskbarStats-Manual-en.pdf) |
+| Promo flyer (PDF, 2 pages, short and punchy) | [Nederlands](TaskbarStats-Promo-nl.pdf) · [English](TaskbarStats-Promo-en.pdf) |
+| Rebuild the PDFs (needs Python, reportlab, Pillow) | `python docs/handleiding/make_handleiding.py`, `make_manual_en.py`, `make_promo.py` |
 | Full recreation plan (build it yourself with Claude) | [PLAN.md](PLAN.md) |
 | Screenshots (widget, settings, dashboard, fullscreen, themes) | [screenshots/](screenshots/) |
 | Instructions for Claude / contributors | [CLAUDE.md](../CLAUDE.md) |

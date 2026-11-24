@@ -118,8 +118,12 @@ PLUGINS (OPTIONEEL)
 Extra waarden in widget, dashboard en fullscreen: Claude-verbruik (5-uurs- en weeklimiet), weer,
 locatie (GPS), uptime-monitor voor websites/servers en eigen script/REST-
 waarden. Aanvinken bij de installatie ("Optionele plugins"), daarna aanzetten
-bij Instellingen > Plugins. Ze draaien in een apart hulpprogramma ZONDER
-administratorrechten; TaskbarStats zelf leest alleen de resultaten.
+bij Instellingen > Plugins > "Plugin toevoegen": een plugin bestaat pas als je
+hem toevoegt (kies uit de galerij of importeer een recept) en recepten draaien
+pas nadat je hebt goedgekeurd wat ze mogen. Handboek: docs/plugins.nl.md.
+Claude-verbruik: log eenmalig in via een terminal (typ "claude", dan "/login");
+een setup-token werkt niet.
+De plugins draaien in een apart hulpprogramma ZONDER administratorrechten; TaskbarStats zelf leest alleen de resultaten.
 
 WAAROM ADMINISTRATOR?
 De app vraagt administrator-rechten. Die zijn nodig om de temperatuur-
@@ -145,6 +149,9 @@ PROBLEEMOPLOSSING
   menu als het buiten beeld staat.
 - Geen temperatuur: start de app als administrator (standaard). Ontbreekt de CPU-sensor bij jouw processor, dan gebruikt de app de thermal zone van Windows.
 - GPU-waarde lijkt niet te kloppen: kies onder "GPU-bron" een vaste GPU.
+- Iets gecrasht of een foutmelding? Elke fout wordt op je eigen pc bewaard (er wordt niets verstuurd): Instellingen > Algemeen >
+  Back-up > "Logs en crashrapporten", of Start menu > "TaskbarStats logs en crashrapporten" (de map %AppData%\TaskbarStats, ook als de app zelf
+  niet start). Stuur het crashrapport of de zip mee als je een probleem meldt.
 
 
 ENGLISH
@@ -185,7 +192,10 @@ PLUGINS (OPTIONAL)
 Extra values in the widget, dashboard and full screen: Claude usage (5-hour and weekly limit), weather,
 location (GPS), uptime monitor for websites/servers and your own script/REST
 values. Tick "Optional plugins" in Setup, then turn them on under
-Settings > Plugins. They run in a separate helper WITHOUT administrator
+Settings > Plugins > "Add plugin": a plugin only exists after you add it (pick
+from the gallery or import a recipe) and recipes only run after you approve
+what they may do. Handbook: docs/plugins.md. Claude usage: sign in once in a
+terminal (type "claude", then "/login"); a setup-token does not work. They run in a separate helper WITHOUT administrator
 rights; TaskbarStats itself only reads the results.
 
 ADMINISTRATOR
@@ -199,6 +209,10 @@ YOUR DATA
   %AppData%\TaskbarStats\settings.json   - settings
   %AppData%\TaskbarStats\usage.json      - daily network usage
 Traffic while the app is not running is not counted.
+  %AppData%\TaskbarStats\diag.log          - log; crash reports are in the folder 'crashes'
+Every error and crash is saved here as a plain text file (nothing is sent anywhere). Read it in the app
+(Settings > General > Backup > "Logs and crash reports") or from the Start menu ("TaskbarStats logs and
+crash reports"), also when the app itself does not start. Send the crash report or the zip when you report a problem.
 
 UNINSTALL
 Start menu > TaskbarStats > "Uninstall TaskbarStats", or Settings > Apps.
@@ -240,8 +254,12 @@ You will be asked whether to also remove your settings and log.
  Vrij te gebruiken en aan te passen; laat de credits staan a.u.b.
  Free to use and modify; please keep the credits.
 
+ Vind je het leuk? Geef het project een ster op GitHub (knop Star rechtsboven):
+ Like it? Please give the project a star on GitHub (Star button, top right):
+ https://github.com/ericbruggema/TaskbarStats
+
  Website: https://taskbarstats.com
  LinkedIn: https://www.linkedin.com/in/eric-bruggema-28a81a186/
  Facebook: https://www.facebook.com/eric.bruggema
 
- Versie / Version 1.6.8
+ Versie / Version 1.7.0

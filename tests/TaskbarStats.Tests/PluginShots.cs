@@ -159,6 +159,130 @@ public class PluginShots : IDisposable
     private static FlowLayoutPanel? ScrollPanel(Control root)
         => FindTabs(root)?.SelectedTab?.Controls.OfType<FlowLayoutPanel>().FirstOrDefault();
 
+    /// <summary>Het logvenster (docs\screenshots\logs-window.png) met een verzonnen fout; geen echte gegevens.</summary>
+    [Fact]
+    public void MakeLogsScreenshot()
+    {
+        var dir = OutDir;
+        if (dir is null) return;
+        Directory.CreateDirectory(dir);
+        string oldLang = Loc.Lang;
+        Loc.Lang = "nl";
+        try
+        {
+            Diag.ResetForTests();
+            string log = string.Join("\n", new[]
+            {
+                "2026-11-22 09:12:01 INFO      [session] Start 1.7.0",
+                "2026-11-22 09:12:03 INFO      [position] start Left=1204 Top=1032",
+                "2026-11-22 09:41:27 SWALLOWED [Metrics.ReadFan:212] InvalidOperationException: Sensor niet beschikbaar",
+                "2026-11-22 10:05:44 ERROR     [UI] System.InvalidOperationException: Sequence contains no elements",
+                "2026-11-22 10:05:44 INFO      [crash] Crashrapport opgeslagen: crash-20261122-100544-error.txt",
+                "2026-11-22 11:30:12 INFO      [session] Normaal afgesloten",
+            });
+            _data.Write("diag.log", log + "\n");
+            _data.Write(Path.Combine("plugins", "host.log"), "2026-11-22 09:12:05.113 INFO  host 1.7.0 started, pid 5120, elevated=False\n");
+            // een verzonnen rapport met vaste naam en tijd (geen echte gegevens, de afbeelding hangt niet van de dag af)
+            Directory.CreateDirectory(Diag.CrashDir);
+            string report = string.Join("\n", new[]
+            {
+                "TaskbarStats crash report - https://github.com/ericbruggema/TaskbarStats",
+                "Kind: UI error (the app kept running)",
+                "Time: 2026-11-22 10:05:44 +01:00",
+                "Version: 1.7.0",
+                "Windows: 10.0.26200.0 (X64), .NET 8.0.11",
+                "Administrator: True",
+                "Culture: nl-NL / nl-NL",
+                "Uptime: 0.00:53:12, memory 61 MB, threads 21, handles 402",
+                "Command line: ",
+                "",
+                "--- error ---",
+                "System.InvalidOperationException: Sequence contains no elements",
+                "   at System.Linq.ThrowHelper.ThrowNoElementsException()",
+                "   at TaskbarStats.WidgetRenderer.DrawCell(Graphics g, Item item)",
+                "   at TaskbarStats.WidgetRenderer.Render(WidgetRenderContext ctx, Int32 width, Single dpi)",
+                "   at TaskbarStats.WidgetForm.Tick()",
+                "",
+                "--- last log lines ---",
+            }) + "\n" + log.Split('\n')[2] + "\n" + log.Split('\n')[3] + "\n";
+            string reportPath = Path.Combine(Diag.CrashDir, "crash-20261122-100544-error.txt");
+            File.WriteAllText(reportPath, report);
+            File.SetLastWriteTime(reportPath, new DateTime(2026, 11, 22, 10, 5, 44));
+            File.SetLastWriteTime(Path.Combine(_data.Dir, "diag.log"), new DateTime(2026, 11, 22, 11, 30, 12));
+            File.SetLastWriteTime(Path.Combine(_data.Dir, "plugins", "host.log"), new DateTime(2026, 11, 22, 9, 12, 5));
+            var shot = Sta(() =>
+            {
+                var f = new LogsForm();
+                foreach (var l in f.Controls.OfType<Label>()) if (l.Text.Contains("tsstats-")) l.Text = @"%AppData%\TaskbarStats";   // niet het tijdelijke testpad (met gebruikersnaam) in beeld
+                ShowOffscreen(f); var s = Shot(f); f.Close(); f.Dispose(); return s;
+            });
+            shot.Save(Path.Combine(dir, "logs-window.png"));
+            shot.Dispose();
+        }
+        finally { Loc.Lang = oldLang; Diag.ResetForTests(); }
+    }
+
+    /// <summary>Over, aftiteling en het tabblad Back-up van de instellingen (docs\screenshots\about.png, credits.png, settings-backup.png), Engelse UI, geen echte gegevens.</summary>
+    [Fact]
+    public void MakeCoreScreenshots()
+    {
+        var dir = OutDir;
+        if (dir is null) return;
+        Directory.CreateDirectory(dir);
+        string oldLang = Loc.Lang;
+        Loc.Lang = "en";
+        try
+        {
+            var about = Sta(() =>
+            {
+                var f = new AboutForm(() => { });
+                ShowOffscreen(f); var s = Shot(f); f.Close(); f.Dispose(); return s;
+            });
+            about.Save(Path.Combine(dir, "about.png")); about.Dispose();
+
+            var credits = Sta(() =>
+            {
+                var m = new Metrics();
+                var f = new CreditsForm(Cfg(), new UsageTracker(_data.Dir), m);
+                ShowOffscreen(f);
+                var fy = typeof(CreditsForm).GetField("_y", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+                var fp = typeof(CreditsForm).GetField("_paused", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+                var ft = typeof(CreditsForm).GetField("_total", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+                fp.SetValue(f, true);                  // de bewegende aftiteling stilzetten op een vaste plek
+                fy.SetValue(f, 20f);
+                f.Invalidate(); for (int i = 0; i < 4; i++) { Application.DoEvents(); Thread.Sleep(50); }
+                var top = Shot(f);
+                float total = (float)ft.GetValue(f)!;
+                fy.SetValue(f, -(total - 300f));       // het slot: de oproep om een ster te geven
+                f.Invalidate(); for (int i = 0; i < 4; i++) { Application.DoEvents(); Thread.Sleep(50); }
+                var end = Shot(f);
+                f.Close(); f.Dispose(); (m as IDisposable)?.Dispose();
+                return (top, end);
+            });
+            credits.top.Save(Path.Combine(dir, "credits.png"));
+            credits.end.Save(Path.Combine(dir, "credits-star.png"));
+            credits.top.Dispose(); credits.end.Dispose();
+
+            var backup = Sta(() =>
+            {
+                var f = new SettingsForm(Cfg(), new SettingsHost { Apply = () => { }, ResetDash = () => { }, ResetWidget = () => { }, ShowLog = () => { }, Drives = () => new() })
+                { Size = new Size(780, 600) };
+                ShowOffscreen(f);
+                f.SelectTab(5);   // Algemeen
+                for (int i = 0; i < 6; i++) { Application.DoEvents(); Thread.Sleep(60); }
+                var outer = FindTabs(f);
+                var inner = outer?.SelectedTab is { } page ? FindTabs(page) : null;
+                if (inner is not null) inner.SelectedIndex = inner.TabPages.Count - 1;   // laatste subtabblad = Back-up
+                for (int i = 0; i < 6; i++) { Application.DoEvents(); Thread.Sleep(60); }
+                var s = Shot(f);
+                f.Close(); f.Dispose();
+                return s;
+            });
+            backup.Save(Path.Combine(dir, "settings-backup.png")); backup.Dispose();
+        }
+        finally { Loc.Lang = oldLang; }
+    }
+
     [Fact]
     public void MakeScreenshots()
     {
@@ -254,6 +378,13 @@ public class PluginShots : IDisposable
                 _data.Write("plugins/claude.json", Claude(62, 41));
                 _data.Write("plugins/weather.json", Weather());
                 _data.Write("plugins/location.json", Location());
+                // een toegevoegd, goedgekeurd recept (sjabloon 'Service status page') met verzonnen uitkomst
+                string tplDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "plugins", "TaskbarStats.Plugins", "templates");
+                PluginRegistry.Add("github-status", File.ReadAllText(Path.Combine(tplDir, "service-status.ini")));
+                PluginConfig.Write("github-status", PluginConfig.WithEnabled(PluginConfig.Read("github-status"), true));
+                PluginRegistry.Approve("github-status", PluginConfig.Read("github-status"));
+                _data.Write("plugins/github-status.json", File_("github-status", "Service status", "ok", 1, "",
+                    Item("status", "GitHub status", "GitHub", 1, "", "OK", "GitHub: All Systems Operational", "ok")));
                 PluginFeed.Reset();
 
                 var cfg = Cfg();
@@ -286,6 +417,40 @@ public class PluginShots : IDisposable
                 });
                 ed.Save(Path.Combine(dir, "plugins-config-editor.png"));
                 ed.Dispose();
+
+                // ---- galerij, goedkeuring, geheimen, recept-editor ----
+                string shipped = PluginRegistry.TemplatesDir;
+                bool copied = !Directory.Exists(shipped);
+                if (copied)
+                {
+                    Directory.CreateDirectory(shipped);
+                    foreach (var f in Directory.GetFiles(tplDir, "*.ini")) File.Copy(f, Path.Combine(shipped, Path.GetFileName(f)));
+                }
+                try
+                {
+                    TaskbarStats.Plugins.Secrets.Set(AppPaths.DataDir, "homeassistant", "demo-not-a-real-secret-1");
+                    TaskbarStats.Plugins.Secrets.Set(AppPaths.DataDir, "github", "demo-not-a-real-secret-2");
+                    string dockerIni = File.ReadAllText(Path.Combine(tplDir, "docker-running.ini"));
+                    var forms = new (string, Func<Form>)[]
+                    {
+                        ("plugins-gallery.png", () => { var g = new PluginGalleryForm { Size = new Size(880, 620) }; g.SelectTemplate("pihole"); return g; }),
+                        ("plugins-approve.png", () => new PluginApproveForm("Docker", dockerIni)),
+                        ("plugins-secrets.png", () => new PluginSecretsForm()),
+                        ("plugins-recipe-editor.png", () => new PluginConfigForm("github-status") { Size = new Size(820, 700) }),
+                        ("plugins-help-recipes.png", () => { var h = new PluginHelpForm(); h.SelectTab(1); return h; }),
+                        ("plugins-help-formulas.png", () => { var h = new PluginHelpForm(); h.SelectTab(2); return h; }),
+                    };
+                    foreach (var (file, make) in forms)
+                    {
+                        var shot = Sta(() => { var f = make(); ShowOffscreen(f); var s = Shot(f); f.Close(); f.Dispose(); return s; });
+                        shot.Save(Path.Combine(dir, file));
+                        shot.Dispose();
+                    }
+                }
+                finally
+                {
+                    if (copied) { try { Directory.Delete(shipped, true); } catch (IOException) { } }
+                }
             }
             finally
             {

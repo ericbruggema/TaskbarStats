@@ -23,7 +23,7 @@
   <ItemGroup>
     <!-- De plugin-host (WinExe) en de app (voor het contract: wat de host schrijft, moet de app kunnen lezen) -->
     <ProjectReference Include="..\..\plugins\TaskbarStats.Plugins\TaskbarStats.Plugins.csproj" />
-    <ProjectReference Include="..\..\TaskbarStats.csproj" />
+    <ProjectReference Include="..\..\TaskbarStats.csproj" Aliases="app" />
   </ItemGroup>
 
 </Project>

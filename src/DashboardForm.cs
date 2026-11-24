@@ -76,6 +76,17 @@ public sealed partial class DashboardForm : Form
         ApplySettings();
     }
 
+    /// <summary>De schermen zijn veranderd (andere resolutie, monitor erbij of eraf): zelfde afstand tot dezelfde rand, binnen het beeld.</summary>
+    internal void RemapAfterDisplayChange(IReadOnlyList<ScreenInfo> before, IReadOnlyList<ScreenInfo> after)
+    {
+        if (!IsHandleCreated || _dragging) return;
+        var p = ScreenMap.Remap(Bounds, before, after, workArea: true);
+        if (p == Location) return;
+        Location = p;
+        Cfg.DashX = p.X; Cfg.DashY = p.Y;
+        Cfg.Save();
+    }
+
     public void ResetPosition()
     {
         Cfg.DashX = null; Cfg.DashY = null;

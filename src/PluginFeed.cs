@@ -10,7 +10,7 @@ namespace TaskbarStats;
 public sealed record PluginValue(
     string Plugin, string PluginTitle, string Key, string Label, string? Short, double? Value, double Min, double Max, string Unit,
     string Text, string Detail, string Level, string Color, bool WidgetHint, bool Notify,
-    string Status, string Message, DateTime UpdatedUtc, int TtlSec)
+    string Status, string Message, DateTime UpdatedUtc, int TtlSec, DateTime? ResetUtc = null)
 {
     /// <summary>Vaste sleutel voor instellingen en meldingen: "plugin/sleutel".</summary>
     public string Id => Plugin + "/" + Key;
@@ -78,24 +78,29 @@ public static class PluginFeed
         var dir = Path.Combine(dataDir, "plugins");
         if (!Directory.Exists(dir)) return "";
         var sb = new System.Text.StringBuilder();
-        foreach (var f in Directory.EnumerateFiles(dir, "*.json").OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
-        {
-            var fi = new FileInfo(f);
+        // ook de configbestanden: een toegevoegde of verwijderde plugin en aan/uit veranderen wat er te zien is.
+        // Eén mapaanroep: de FileInfo-objecten komen met hun tijdstip en grootte uit de lijst zelf (geen aparte aanroep per bestand).
+        foreach (var fi in new DirectoryInfo(dir).EnumerateFiles().Where(f => f.Extension.Equals(".json", StringComparison.OrdinalIgnoreCase) || f.Extension.Equals(".ini", StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
             sb.Append(fi.Name).Append(':').Append(fi.LastWriteTimeUtc.Ticks).Append(':').Append(fi.Length).Append(';');
-        }
         return sb.ToString();
     }
 
-    /// <summary>Leest alle plugin-bestanden in <c>&lt;datamap&gt;\plugins</c>. Ongeldige of half geschreven bestanden worden overgeslagen.</summary>
+    /// <summary>
+    /// Leest de uitvoerbestanden in <c>&lt;datamap&gt;\plugins</c> van de TOEGEVOEGDE plugins die aan staan (zie <see cref="PluginRegistry"/>): een
+    /// JSON-bestand zonder configbestand, of van een plugin die uit staat, wordt genegeerd. Ongeldige of half geschreven bestanden worden overgeslagen.
+    /// </summary>
     internal static PluginData Read(string dataDir)
     {
         var dir = Path.Combine(dataDir, "plugins");
         if (!Directory.Exists(dir)) return PluginData.Empty;
         var values = new List<PluginValue>();
         var statuses = new List<PluginStatus>();
-        var files = Directory.EnumerateFiles(dir, "*.json")
-            .OrderBy(f => PluginCatalog.OrderOf(Path.GetFileNameWithoutExtension(f)))
-            .ThenBy(f => f, StringComparer.OrdinalIgnoreCase);
+        // elk configbestand wordt maar één keer gelezen (de tekst komt mee uit het register)
+        var files = PluginRegistry.Entries(dataDir)
+            .Where(e => PluginConfig.IsEnabledIn(e.Text))
+            .Select(e => Path.Combine(dir, e.Id + ".json"))
+            .Where(File.Exists);
         foreach (var file in files)
         {
             try
@@ -147,11 +152,17 @@ public static class PluginFeed
                 string? shortLabel = it.TryGetProperty("short", out var sh) && sh.ValueKind == JsonValueKind.String ? sh.GetString() : null;
                 vals.Add(new PluginValue(plugin, title, key, label, shortLabel, value, Num(it, "min", 0), Num(it, "max", 100), unit, text,
                     Str(it, "detail", ""), Str(it, "level", "").ToLowerInvariant(), Str(it, "color", ""),
-                    Bool(it, "widget", true), Bool(it, "notify", false), status, message, updated, ttl));
+                    Bool(it, "widget", true), Bool(it, "notify", false), status, message, updated, ttl, ResetOf(it)));
             }
         }
         return (new PluginStatus(plugin, title, status, message, updated, ttl), vals);
     }
+
+    /// <summary>Het tijdstip waarop de waarde vanzelf terugkeert (<c>reset</c>, ISO 8601), of null.</summary>
+    private static DateTime? ResetOf(JsonElement it)
+        => it.TryGetProperty("reset", out var r) && r.ValueKind == JsonValueKind.String
+           && DateTime.TryParse(r.GetString(), System.Globalization.CultureInfo.InvariantCulture,
+               System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var dt) ? dt : null;
 
     private static string Str(JsonElement e, string name, string def)
         => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;

@@ -8,7 +8,7 @@ namespace TaskbarStats.Plugins;
 
 internal static class Program
 {
-    public const string Version = "1.6.8";
+    public const string Version = "1.7.0";
 
     [DllImport("kernel32.dll")] private static extern bool AttachConsole(int pid);
 
@@ -20,6 +20,14 @@ internal static class Program
     internal static HttpClient CreateHttp()
     {
         var http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = TimeSpan.FromSeconds(30) };
+        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("TaskbarStats-Plugins", Version));
+        return http;
+    }
+
+    /// <summary>Client voor recepten: volgt een omleiding niet zelf (het recept doet dat alleen naar dezelfde host).</summary>
+    internal static HttpClient CreateStrictHttp()
+    {
+        var http = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("TaskbarStats-Plugins", Version));
         return http;
     }
@@ -38,17 +46,21 @@ internal static class Program
         string dataDir = Arg(args, "--data") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TaskbarStats");
         Directory.CreateDirectory(Path.Combine(dataDir, "plugins"));
         HostLog.Path = Path.Combine(dataDir, "plugins", "host.log");
+        // Elke fout die de host zou stoppen (of een achtergrondtaak) komt met volledige stack in host.log en als rapport in <datamap>\crashes.
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => HostLog.WriteCrash("FATAL error (the plugin host stopped)", e.ExceptionObject as Exception, e.ExceptionObject?.ToString());
+        TaskScheduler.UnobservedTaskException += (_, e) => { HostLog.WriteCrash("Background task error (the host kept running)", e.Exception); e.SetObserved(); };
 
         var plugins = AllPlugins();
         using var http = CreateHttp();
-        var runner = new PluginRunner(dataDir, plugins, http, Arg(args, "--defaults"));
+        using var httpStrict = CreateStrictHttp();
+        var runner = new PluginRunner(dataDir, plugins, http, httpStrict: httpStrict);
 
         // Eenmalig draaien (diagnose en tests): resultaat als JSON naar --out of naar de console.
         string? once = Arg(args, "--once");
         if (once is not null)
         {
-            var p = plugins.FirstOrDefault(x => string.Equals(x.Id, once, StringComparison.OrdinalIgnoreCase));
-            if (p is null) return Report(args, $"unknown plugin '{once}'", 1);
+            var p = runner.Resolve(once);
+            if (p is null) return Report(args, $"unknown plugin '{once}' (it needs a configuration file {once}.ini in the plugins folder)", 1);
             var r = await runner.RunPluginAsync(p, true, CancellationToken.None);
             var json = r is null ? "" : OutputFile.Render(p.Id, p.Title, r, r.Error ? "error" : "ok", 0, DateTimeOffset.Now);
             return Report(args, json, r is { Error: true } ? 2 : 0);
@@ -66,11 +78,16 @@ internal static class Program
         var idleSince = DateTime.UtcNow;
         var appGoneSince = (DateTime?)null;
         long lastCheck = 0;
+        string? lastTickError = null;   // dezelfde fout elke 1,5 s zou host.log en de crashmap vullen
 
         while (!stop.WaitOne(0))
         {
             try { runner.Tick(cts.Token); }
-            catch (Exception ex) { HostLog.Write("ERROR", "tick: " + Fmt.Scrub(ex.Message)); }
+            catch (Exception ex)
+            {
+                string sig = ex.GetType().Name + ex.Message;
+                if (sig != lastTickError) { lastTickError = sig; HostLog.WriteCrash("Plugin run error (the host kept running)", ex); }
+            }
 
             if (Environment.TickCount64 - lastCheck > 15_000)
             {

@@ -42,6 +42,10 @@ internal static class Program
         new Thread(() => { while (showEvent.WaitOne()) ShowRequested?.Invoke(); }) { IsBackground = true, Name = "show-request" }.Start();
 
         Diag.Init();
+        // Iets hoger dan gewone programma's: zit de processor vol, dan krijgt de UI-thread toch tijd (zij gebruikt zelf ~2% van een kern).
+        // Zonder dit liet een volle processor het widget soms vastlopen ("reageert niet"). De meet-thread blijft BelowNormal.
+        try { using var me = System.Diagnostics.Process.GetCurrentProcess(); me.PriorityClass = System.Diagnostics.ProcessPriorityClass.AboveNormal; }
+        catch (Exception pex) { Diag.Swallow(pex); }
         Diag.BeginSession();   // meldt (in het log en aan het widget) als de vorige sessie is gecrasht
         ApplicationConfiguration.Initialize();
         var settings = AppSettings.Load();

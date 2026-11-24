@@ -8,6 +8,10 @@
 
 <a href="https://taskbarstats.com"><img alt="Webseite: taskbarstats.com" src="https://img.shields.io/badge/Webseite-taskbarstats.com-1F2937?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Gib TaskbarStats einen Stern auf GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Stern%20vergeben&color=F5C518&labelColor=1F2937"></a>
+
+**Gefällt dir TaskbarStats? Gib ihm bitte einen ⭐ auf GitHub.** Klicke oben rechts auf der Projektseite auf *Star*. Das dauert eine Sekunde und hilft anderen, das Programm zu finden.
+
 <sub>Seite öffnen, unter <em>Assets</em> <code>TaskbarStats-Setup-&lt;Version&gt;.exe</code> herunterladen und starten. Kein Konto nötig.</sub>
 
 <a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ericbruggema/TaskbarStats?label=latest&color=0A84FF"></a>
@@ -82,7 +86,8 @@ Live ansehen: [For gamers (51 s, Englisch)](https://github.com/ericbruggema/Task
 ![Instellingen: widget, subtabblad Geavanceerd](docs/screenshots/settings-widget-geavanceerd.png)
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
-![Instellingen: algemeen](docs/screenshots/settings-general.png)
+![Einstellungen: Allgemein](docs/screenshots/settings-general.png)
+![Einstellungen: Sicherung, Datenordner und Logs](docs/screenshots/settings-backup.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
 Einige Designs haben einen eigenen **Hintergrund**, der im Code gezeichnet wird (also keine Dateien): Matrix (fallende Zeichen), Neon (Raster), Sonnenuntergang (Sonne), Wald (Tannenwald mit Glühwürmchen), Ozean (Wellen), Liebe (Herzen, groß und klein), Dracula (Sterne), Amber, CGA und Game Boy (Bildröhren-Zeilen). Das Design setzt ihn gleichzeitig auf Widget, Dashboard und Vollbild; ein Design ohne Hintergrund entfernt ein solches Muster wieder (dein eigenes Bild bleibt bestehen). Im JSON eines Designs stehen `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines`, `hearts` oder `forest`) und `BackgroundOpacity` (5–100).
@@ -180,7 +185,9 @@ Plugins fügen dem Widget, dem Desktop-Dashboard und der Vollbildansicht zusätz
 
 **So funktioniert es, und warum es sicher ist.** TaskbarStats selbst läuft als Administrator und führt deshalb nie Plugin-Code aus. Die Plugins laufen in einem separaten Hilfsprogramm, `TaskbarStats.Plugins.exe`, das über eine geplante Aufgabe **ohne Administratorrechte** startet. Es schreibt pro Plugin eine kleine JSON-Datei nach `%AppData%\TaskbarStats\plugins\`; TaskbarStats *liest* sie nur. Es beendet sich von selbst, wenn TaskbarStats geschlossen wird oder kein Plugin aktiv ist.
 
-**Einschalten.** Setup: *Optionale Plugins installieren* ankreuzen (stille Installation: `/TASKS="plugins"`). Danach Einstellungen, Tab *Plugins*: ein Plugin ankreuzen.
+**Hinzufügen, genehmigen, einschalten.** Plugins existieren erst, wenn du sie hinzufügst. Setup: *Optionale Plugins installieren* ankreuzen (stille Installation: `/TASKS="plugins"`). Danach Einstellungen, Tab *Plugins*, **Plugin hinzufügen…**: wähle eins aus der Galerie (5 eingebaute und 13 fertige *Rezepte*) oder importiere eine Rezeptdatei. Ein nicht hinzugefügtes Plugin ist nirgends zu sehen; *Entfernen…* löscht es wieder. Hake das Plugin an, um es einzuschalten.
+
+**Du genehmigst, was ein Plugin darf.** Bevor ein Rezept (oder das Script-Plugin) läuft, siehst du genau, welche Internetadressen es kontaktiert, welche Dateien es liest, welche Befehle es startet und welche Geheimnisse es nutzt. Es läuft erst, nachdem du auf *Erlauben* drückst, und du wirst erneut gefragt, wenn du es so änderst, dass es mehr kann. API-Schlüssel liegen in einem verschlüsselten Tresor (*Geheimnisse…*), nie in einem Rezept.
 **Einstellen.** *Konfiguration bearbeiten…* öffnet einen einfachen Editor für die Konfigurationsdatei des Plugins (`plugins\<name>.ini`: einfache Zeilen `Schlüssel = Wert`; die Kommentare erklären jede Option). Änderungen gelten innerhalb weniger Sekunden.
 **Auswählen, was du siehst.** Unter *Werte* wählst du pro Wert: im Widget zeigen oder nicht, Text / Balken / Ring und eine Farbe. Das Widget-Element *Plugin-Werte* lässt sich wie alle anderen verschieben.
 **Dashboard und Vollbild.** Die Kachel *Plugins* (ein-/ausschalten unter Einstellungen, *Dashboard* / *Fullscreen*) listet alle Werte der eingeschalteten Plugins und erscheint nur, wenn es etwas anzuzeigen gibt. Im Vollbild ist sie ein Streifen am unteren Rand; ein Klick öffnet die Detailseite mit jedem Wert pro Plugin.
@@ -192,12 +199,21 @@ Plugins fügen dem Widget, dem Desktop-Dashboard und der Vollbildansicht zusätz
 ![Der Tab Plugins in den Einstellungen](docs/screenshots/plugins-settings.png)
 ![Auswählen, welche Werte angezeigt werden](docs/screenshots/plugins-settings-values.png)
 ![Der Konfigurationseditor](docs/screenshots/plugins-config-editor.png)
+![Die Galerie](docs/screenshots/plugins-gallery.png)
+![Was ein Rezept darf: du genehmigst es](docs/screenshots/plugins-approve.png)
+![Ein Rezept im Editor](docs/screenshots/plugins-recipe-editor.png)
+![Vollständige Rezeptbeispiele in der App](docs/screenshots/plugins-help-recipes.png)
+![Formeln mit ihrem Ergebnis](docs/screenshots/plugins-help-formulas.png)
 
-**Claude-Nutzung: was du wissen solltest.** Die Zahlen sind die von `/usage` in Claude Code. Dafür gibt es keine offizielle öffentliche API: Das Plugin fragt eine *nicht dokumentierte* Anthropic-Adresse ab, mit der Anmeldung von Claude Code (`~/.claude/.credentials.json` oder die Umgebungsvariable `CLAUDE_CODE_OAUTH_TOKEN`). Diese Adresse kann sich ändern oder dich bremsen; das Plugin zeigt dann den Grund und behält die letzten Werte (ausgegraut). Dein Token geht nur an api.anthropic.com und wird nie in eine Datei oder ein Protokoll geschrieben. Du musst mit der Claude-Code-CLI angemeldet sein (`claude`, dann `/login`); die Idee stammt von [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), es wurde kein Code übernommen.
+**Hilfe und Beispiele in der App.** *Einstellungen, Plugins, Hilfe und Beispiele…* (auch eine Schaltfläche im Rezept-Editor) erklärt, wie Plugins funktionieren, und zeigt vollständige Rezepte mit der Antwort, die sie lesen, und dem, was du siehst, dazu eine Liste von Formeln mit ihrem Ergebnis. Kopiere ein Beispiel oder füge es direkt in den Editor ein. Jedes Beispiel wird von den Tests ausgeführt: Was dort steht, ist, was du bekommst.
 
-**Dein eigenes Plugin, in jeder Sprache.** Schreibe eine Datei `%AppData%\TaskbarStats\plugins\<deinname>.json` in diesem Format (schreibe sie neu, wenn sich der Wert ändert; `ttl` = Sekunden, bevor der Wert ausgegraut als veraltet angezeigt wird; `level` ist `ok`, `warn` oder `crit`; `notify: true` löst bei `crit` eine Benachrichtigung aus). Sie erscheint automatisch unter *Plugins → Werte*. Oder nutze das Plugin *Skript / REST* und lasse das Hilfsprogramm deinen Befehl ausführen oder deine URL lesen.
+**Claude-Nutzung: was du wissen solltest.** Die Zahlen sind die von `/usage` in Claude Code. **Einrichten: einmalig in einem Terminal anmelden. Gib `claude` ein, dann `/login`, und melde dich mit deinem Claude-Abo an.** Das Plugin liest diese Anmeldung danach selbst (nur lesend, `~/.claude/.credentials.json`); sonst ist nichts einzustellen. Für diese Zahlen gibt es keine offizielle öffentliche API: Das Plugin fragt eine *nicht dokumentierte* Anthropic-Adresse ab. Diese Adresse kann sich ändern oder dich bremsen; das Plugin zeigt dann den Grund und behält die letzten Werte (ausgegraut). Dein Token geht nur an api.anthropic.com und landet nie in einem Protokoll oder einer Ausgabedatei. Ein Token von `claude setup-token` funktioniert **nicht**: Der Server lehnt es ab, weil ihm die Berechtigung `user:profile` fehlt. Für Fortgeschrittene: `token =` in `claude.ini` (oder die Umgebungsvariable `CLAUDE_CODE_OAUTH_TOKEN`) akzeptiert ein Zugriffstoken, das diese Berechtigung hat; es ist im Editor verborgen, steht aber als Klartext in deiner eigenen `claude.ini` – gib die Datei also nicht weiter. Die Idee stammt von [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), es wurde kein Code übernommen.
 
-```json
+**Schreibe selbst ein Plugin ohne Programmieren.** Ein *Rezept* ist eine kleine Textdatei: woher die Daten kommen (eine Webadresse, eine Datei oder ein Befehl) und pro Wert eine Formel und ein Text. Zum Beispiel `value = ads_percentage_today` und `format = {value:0.0}%`. Die Formelsprache kann nur rechnen; sie berührt keine Dateien, kein Netzwerk und keine Befehle. Vorlagen für Pi-hole, Home Assistant, GitHub, Krypto-Kurse, Wechselkurse, Statusseiten, Luftqualität, Docker, freien Speicherplatz und mehr. *Speichern und testen* zeigt das Ergebnis direkt im Editor. Sogar das Claude-Plugin gibt es als Rezept. **Handbuch: [docs/plugins.de.md](docs/plugins.de.md).**
+
+**Dein eigenes Programm.** Lieber ein eigenes Programm? Füge die Vorlage *Eigenes Skript schreibt die Werte* hinzu; dein Skript schreibt eine kleine JSON-Datei und TaskbarStats zeigt sie an (Handbuch, Kapitel 11).
+
+**Benachrichtigungen.** Eine Warnung kommt **einmal** pro Problem (gemerkt, auch nach einem Neustart), auf Wunsch alle 30 Min. / 1 Std. / 4 Std. wiederholt. Bei der Claude-Nutzung erhältst du außerdem kurz vor dem Zurücksetzen eines Limits eine Benachrichtigung (Standard 5 Minuten, einstellbar).
 {
   "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
   "items": [
@@ -236,6 +252,8 @@ Der Installer:
 Die App selbst hat außerdem „Credits“ im Rechtsklickmenü: ein ruhig scrollender Abspann mit den Credits, ein paar Zahlen aus deiner eigenen Nutzung (zum Beispiel, wie viel du heruntergeladen hast) und einem Scherz.
 
 ![Leesmij en credits](docs/screenshots/credits.png)
+![Über: Version, Stern-Schaltfläche, Diagnose und Logs](docs/screenshots/about.png)
+![Das Ende des Abspanns: die Bitte um einen Stern](docs/screenshots/credits-star.png)
 
 Name, Credits oder Text anpassen: `installer\Leesmij.txt`, `CreditsForm.cs` und `#define Publisher` in der `.iss`-Datei.
 
@@ -244,7 +262,7 @@ Name, Credits oder Text anpassen: `installer\Leesmij.txt`, `CreditsForm.cs` und 
 Starte `TaskbarStats.exe`. Das Widget erscheint als schwebendes, immer im Vordergrund liegendes Fenster
 direkt links vom Infobereich. Es ist ein Besitzer-Fenster der Taskleiste und bleibt daher
 darüber. Ziehe es mit der **linken Maustaste**, um es zu verschieben (die Position wird
-beim Loslassen gespeichert); in den Einstellungen (Tab Allgemein) und im Menü gibt es „An den Infobereich anheften“: Dann bleibt das Widget am Infobereich und folgt ihm, wenn er sich verschiebt (Ziehen schaltet das wieder aus).
+beim Loslassen gespeichert); in den Einstellungen (Tab Allgemein) und im Menü gibt es „An den Infobereich anheften“: Dann bleibt das Widget am Infobereich und folgt ihm, wenn er sich verschiebt (Ziehen schaltet das wieder aus). **Bildschirmwechsel** (Anmeldung über VNC/RDP: erst 1024x768, dann die echte Auflösung; Monitor hinzugefügt oder entfernt; andere Skalierung): Widget und Dashboard behalten denselben Abstand zum selben Bildschirmrand und bleiben im Bild, und ein am Infobereich angeheftetes Widget folgt ihm wieder (direkt nach dem Wechsel geprüft und noch zweimal, während sich die Taskleiste einstellt).
 
 Ein **Rechtsklick** auf das Widget öffnet ein kurzes Menü:
 
@@ -383,7 +401,9 @@ anpassbar: `FontFamily`, `FontSize`, `WidgetHeight`, `TrayGap`, Farben und Schwe
 
 **Sicherung und portabler Betrieb**: Unter Einstellungen → *Allgemein* → *Sicherung* exportierst du alle Einstellungen in eine JSON-Datei, importierst sie wieder (zum Beispiel auf einem anderen PC) oder setzt alles auf die Standardwerte zurück (Designs und das Nutzungsprotokoll bleiben erhalten). Für den **portablen Betrieb** (zum Beispiel auf einem USB-Stick) legst du eine leere Datei `portable.txt` neben `TaskbarStats.exe` an: Einstellungen, Designs, Sprachdateien und Logs liegen dann im Ordner `data` daneben, und es wird nichts in `%AppData%` geschrieben.
 
-**Wenn etwas schiefgeht**: Fehler werden in `diag.log` im Datenordner festgehalten (nur auf deinem eigenen PC, es wird nichts versendet). Ein Fehler in einem Timer oder einer Zeichenroutine lässt die App weiterlaufen; ein fataler Fehler in einem Hintergrund-Thread startet die App einmal neu. Unter *Über TaskbarStats* kopiert die Schaltfläche *Diagnose kopieren* Version, Windows, Bildschirme und die letzten Logzeilen (ohne Benutzer- oder Computernamen), um sie in eine Fehlermeldung einzufügen. **Absturzmeldung**: Ist die App beim letzten Mal abgestürzt, meldet sie das beim nächsten Start mit einer Ballonmeldung (klicke darauf für den Über-Bildschirm mit *Diagnose kopieren*). Ein Absturz wird am Flag des Fehlerfangnetzes erkannt oder, bei einem harten Absturz, an einem „Application Error“ im Windows-Ereignisprotokoll (mit dem Fehlercode in `diag.log`). Beenden über den Task-Manager oder ein Stromausfall wird nur ins Protokoll geschrieben, nicht als Absturz gemeldet. Startest du die App ein zweites Mal, öffnet die laufende App ihre Einstellungen.
+**Wenn etwas schiefgeht**: Fehler werden in `diag.log` im Datenordner festgehalten (nur auf deinem eigenen PC, es wird nichts versendet). Ein Fehler in einem Timer oder einer Zeichenroutine lässt die App weiterlaufen; ein fataler Fehler in einem Hintergrund-Thread startet die App einmal neu. Unter *Über TaskbarStats* kopiert die Schaltfläche *Diagnose kopieren* Version, Windows, Bildschirme und die letzten Logzeilen (ohne Benutzer- oder Computernamen), um sie in eine Fehlermeldung einzufügen. **Absturzberichte**: Jeder abgefangene Fehler (und jeder fatale Fehler) bekommt zusätzlich eine eigene Textdatei im Ordner `crashes` des Datenordners, mit dem vollständigen Fehler samt Ursachen, Version, Windows, Speicher und den letzten Logzeilen (die neuesten 30 bleiben erhalten; auch der Plugin-Host schreibt dort seine eigene `host-crash-*.txt`). Lies sie in der App unter *Einstellungen → Allgemein → Sicherung → Logs und Absturzberichte…* (auch eine Schaltfläche unter *Über*): ansehen, für eine Fehlermeldung kopieren (ohne persönliche Namen), den Ordner öffnen, alles als eine Zip speichern oder die Berichte löschen. Außerhalb des Programms liegen dieselben Dateien im Datenordner (Startmenü → *TaskbarStats logs* oder `%AppData%\TaskbarStats`); ein einfacher Texteditor genügt. **Reagiert das Widget nicht mehr** (Windows zeigt „reagiert nicht“), wird auch das festgehalten: Der Bericht nennt den Schritt, in dem es hing, wie ausgelastet das System war und welche Programme den Prozessor nutzten, und eine Zeile in `diag.log` nennt die Dauer. Langsame Aufrufe (über 0,4 s) stehen als `slow`-Zeilen im Log. Das Widget wartet auf seinem eigenen Thread nie auf den Explorer oder die Laufwerke: Diese Fragen werden in einem Hintergrund-Thread gestellt. **Absturzmeldung**: Ist die App beim letzten Mal abgestürzt, meldet sie das beim nächsten Start mit einer Ballonmeldung (klicke darauf, um die Logs und Absturzberichte zu öffnen); ein Fehler, der die App nicht gestoppt hat, löst eine ähnliche Meldung aus, höchstens alle 10 Minuten. Ein Absturz wird am Flag des Fehlerfangnetzes erkannt oder, bei einem harten Absturz, an einem „Application Error“ im Windows-Ereignisprotokoll (mit dem Fehlercode in `diag.log`). Beenden über den Task-Manager oder ein Stromausfall wird nur ins Protokoll geschrieben, nicht als Absturz gemeldet. Startest du die App ein zweites Mal, öffnet die laufende App ihre Einstellungen.
+
+![Fenster mit Logs und Absturzberichten](docs/screenshots/logs-window.png)
 
 ## Transparenter Hintergrund
 
@@ -426,7 +446,7 @@ geplante Aufgabe „bei Anmeldung“ mit höchsten Rechten an, sodass keine UAC-
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Willkommensbildschirm und Über-Fenster. |
 | `src/Loc.cs`, `lang/*.json` | Übersetzungen: `Loc.T("English text")`, `Loc.P` (Plural) mit einer JSON-Datei pro Sprache (siehe *Sprachen*). |
 | `tools/LangTool` | Prüft, synchronisiert und benennt die Sprachtexte um (Roslyn); läuft bei jedem Build. |
-| `src/Diag.cs`, `src/AppPaths.cs` | Logdatei, Absturz-Fangnetz, Diagnosebericht; wo die Daten liegen (`%AppData%`, `TASKBARSTATS_DATA` oder portabel). |
+| `src/Diag.cs`, `src/Diag.Crash.cs`, `src/LogsForm.cs`, `src/AppPaths.cs` | Logdatei, Absturz-Fangnetz, Absturzberichte (`crashes\`), Logfenster, Diagnosebericht; wo die Daten liegen (`%AppData%`, `TASKBARSTATS_DATA` oder portabel). |
 | `tests/TaskbarStats.Tests` | Automatische Tests (xUnit); `dotnet test tests\TaskbarStats.Tests -c Release`. |
 
 ## Leistung und Threads
@@ -441,6 +461,17 @@ Der UI-Thread macht nur Zeichnen und Menüs; die schwere Arbeit liegt woanders:
 - Das Widget wird nicht alle 200 ms erneut nach oben gesetzt (`SetWindowPos` auf einem Fenster der Taskleiste kann 100+ ms blockieren);
   das geschieht nur, wenn wirklich ein anderes sichtbares Topmost-Fenster darüberliegt.
 - Das Abtasten von Programmen (`ProcessSampler.SampleAsync`) und Netzlaufwerken (`DriveInfo`) läuft im Hintergrund.
+
+## Gefällt es dir? Gib einen Stern ⭐
+
+TaskbarStats ist kostenlos und Open Source, und ein Stern ist der einfachste Weg, Danke zu sagen. Er kostet einen Klick und macht das Projekt für andere leichter auffindbar.
+
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Gib TaskbarStats einen Stern auf GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Stern%20vergeben&color=F5C518&labelColor=1F2937"></a>
+
+1. Öffne die [Projektseite auf GitHub](https://github.com/ericbruggema/TaskbarStats).
+2. Klicke oben rechts auf **Star** (du brauchst ein kostenloses GitHub-Konto).
+
+Danke!
 
 ## Lizenz und Credits
 

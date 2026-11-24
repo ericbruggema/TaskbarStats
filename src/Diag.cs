@@ -13,7 +13,7 @@ namespace TaskbarStats;
 /// Niets wordt verstuurd; het is alleen een bestand op de eigen pc. Bewust "stil falen" (bijv. een sensor die niet bestaat) gaat via
 /// <see cref="Swallow"/>: de fout wordt per plek één keer vastgelegd in plaats van zonder spoor genegeerd.
 /// </summary>
-internal static class Diag
+internal static partial class Diag
 {
     private static readonly object Gate = new();
     private static readonly Dictionary<string, int> Seen = new();
@@ -119,7 +119,10 @@ internal static class Diag
                 crash = Scrub(t.Length > 600 ? t[..600] + "…" : t);
                 try { File.Delete(PendingPath); } catch { }
             }
-            if (PreviousUnclean && crash is null && started is not null) crash = QueryCrashEvent(started.Value);
+            bool fromEventLog = false;
+            if (PreviousUnclean && crash is null && started is not null) { crash = QueryCrashEvent(started.Value); fromEventLog = crash is not null; }
+            // een harde crash (geheugenfout, stack overflow, ...) laat zelf geen rapport achter: leg wat Windows weet vast in een eigen rapport
+            if (fromEventLog) SaveCrashReport("Hard crash (found in the Windows event log)", null, crash, fatal: true);
             if (crash is not null) { PreviousCrash = crash; Write("ERROR", "session", "Vorige sessie is gecrasht: " + crash); }
             else if (PreviousUnclean) Write("WARN", "session", "Vorige sessie is niet normaal afgesloten (Taakbeheer, stroomuitval of afmelden?); geen crash gevonden.");
             File.WriteAllText(SessionPath, DateTime.UtcNow.ToString("o") + Environment.NewLine + Version + Environment.NewLine);
@@ -197,7 +200,7 @@ internal static class Diag
     }
 
     /// <summary>Alleen voor tests: vergeet de toestand van deze sessie.</summary>
-    internal static void ResetForTests() { PreviousCrash = null; PreviousUnclean = false; lock (Gate) { Seen.Clear(); Recent.Clear(); } }
+    internal static void ResetForTests() { PreviousCrash = null; PreviousUnclean = false; lock (Gate) { Seen.Clear(); Recent.Clear(); } ResetCrashStateForTests(); }
 
     // ------------------------------------------------------------------------------------------------ vangnet
 
@@ -205,12 +208,14 @@ internal static class Diag
     public static void Init()
     {
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-        Application.ThreadException += (_, e) => Error("UI", e.Exception);                 // de app draait door; de fout staat in het logbestand
-        TaskScheduler.UnobservedTaskException += (_, e) => { Error("Task", e.Exception); e.SetObserved(); };
+        // Elke fout krijgt een regel in diag.log EN een eigen crashrapport (crashes\*.txt, zie Diag.Crash.cs); de app draait bij een UI-fout door.
+        Application.ThreadException += (_, e) => { Error("UI", e.Exception); SaveCrashReport("UI error (the app kept running)", e.Exception); };
+        TaskScheduler.UnobservedTaskException += (_, e) => { Error("Task", e.Exception); SaveCrashReport("Background task error (the app kept running)", e.Exception); e.SetObserved(); };
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             string text = e.ExceptionObject?.ToString() ?? "?";
             if (e.ExceptionObject is Exception ex) Error("FATAL", ex); else Write("FATAL", "?", text);
+            SaveCrashReport("FATAL error (the app stopped)", e.ExceptionObject as Exception, text, fatal: true);   // eerst het rapport: de herstart hieronder kan het proces direct beëindigen
             MarkCrash(text);
             TryRestart();
         };

@@ -8,6 +8,10 @@
 
 <a href="https://taskbarstats.com"><img alt="Website: taskbarstats.com" src="https://img.shields.io/badge/Website-taskbarstats.com-1F2937?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Give TaskbarStats a star on GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Star%20this%20project&color=F5C518&labelColor=1F2937"></a>
+
+**Like TaskbarStats? Please give it a ⭐ on GitHub.** Click *Star* at the top right of the project page. It takes one second and helps other people find it.
+
 <sub>Open the page and download <code>TaskbarStats-Setup-&lt;version&gt;.exe</code> under <em>Assets</em>, then run it. No account needed.</sub>
 
 <a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ericbruggema/TaskbarStats?label=latest&color=0A84FF"></a>
@@ -83,6 +87,7 @@ Watch it in action: [For gamers (51 s)](https://github.com/ericbruggema/TaskbarS
 ![Settings: dashboard with order](docs/screenshots/settings-dashboard.png)
 ![Settings: fullscreen with a preview of the layout](docs/screenshots/settings-fullscreen.png)
 ![Settings: general](docs/screenshots/settings-general.png)
+![Settings: backup, data folder and logs](docs/screenshots/settings-backup.png)
 ![Settings: themes](docs/screenshots/settings-themes.png)
 
 Some themes have their own **background**, drawn in code (so no files): Matrix (falling characters), Neon (grid), Sunset (sun), Forest (pine forest with fireflies), Ocean (waves), Love (hearts, large and small), Dracula (stars), Amber, CGA and Game Boy (scanlines). The theme applies it to the widget, dashboard and fullscreen at the same time; a theme without a background removes such a pattern again (your own image stays). A theme's JSON contains `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines`, `hearts` or `forest`) and `BackgroundOpacity` (5-100).
@@ -180,7 +185,9 @@ Plugins add extra values to the widget, the desktop dashboard and the full-scree
 
 **How it works, and why it is safe.** TaskbarStats itself runs as administrator, so it never runs plugin code. The plugins run in a separate helper, `TaskbarStats.Plugins.exe`, started through a scheduled task **without administrator rights**. The helper writes one small JSON file per plugin to `%AppData%\TaskbarStats\plugins\`; TaskbarStats only *reads* them. The helper stops by itself when TaskbarStats is closed or no plugin is on.
 
-**Turn on.** Setup: tick *Install the optional plugins* (silent install: `/TASKS="plugins"`). Then Settings, tab *Plugins*: tick a plugin.
+**Add, approve, turn on.** Plugins only exist after you add them. Setup: tick *Install the optional plugins* (silent install: `/TASKS="plugins"`). Then Settings, tab *Plugins*, **Add plugin…**: pick one from the gallery (5 built in and 13 ready-made *recipes*), or import a recipe file. A plugin you have not added is not shown anywhere; *Remove…* deletes it again. Tick the plugin to switch it on.
+
+**You approve what a plugin may do.** Before a recipe (or the Script plugin) runs you see exactly which internet addresses it contacts, which files it reads, which commands it runs and which secrets it uses. It only runs after you press *Allow*, and you are asked again if you change it so it can do more. API keys are kept in an encrypted vault (*Secrets…*), never in a recipe.
 **Configure.** *Edit config…* opens a simple editor for the plugin's config file (`plugins\<name>.ini`: plain `key = value` lines; the comments explain every option). Changes apply within seconds.
 **Choose what you see.** Under *Values* you pick per value: show in the widget or not, text / bar / ring, and a colour. The widget item *Plugin values* can be moved like any other.
 **Dashboard and full screen.** The *Plugins* tile (turn it on or off under Settings, *Dashboard* / *Fullscreen*) lists all values of the plugins that are on, and only appears when there is something to show. In full screen it is a strip along the bottom; click it for the details page with every value per plugin.
@@ -192,12 +199,21 @@ Plugins add extra values to the widget, the desktop dashboard and the full-scree
 ![The Plugins tab in the settings](docs/screenshots/plugins-settings.png)
 ![Choosing which values to show](docs/screenshots/plugins-settings-values.png)
 ![The config editor](docs/screenshots/plugins-config-editor.png)
+![The gallery](docs/screenshots/plugins-gallery.png)
+![What a recipe may do: you approve it](docs/screenshots/plugins-approve.png)
+![A recipe in the editor](docs/screenshots/plugins-recipe-editor.png)
+![Complete recipe examples in the app](docs/screenshots/plugins-help-recipes.png)
+![Formulas with their result](docs/screenshots/plugins-help-formulas.png)
 
-**Claude usage: what to know.** The numbers are the ones Claude Code shows with `/usage`. There is no official public API for them: the plugin asks an *undocumented* Anthropic address, with the Claude Code sign-in (`~/.claude/.credentials.json`, or the `CLAUDE_CODE_OAUTH_TOKEN` environment variable). That address can change or rate-limit you; the plugin then shows the reason and keeps the last values (greyed out). Your token is only sent to api.anthropic.com and never written to a file or log. You must be signed in with the Claude Code CLI (`claude`, then `/login`); the idea comes from [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), no code was copied.
+**Help and examples in the app.** *Settings, Plugins, Help and examples…* (also a button in the recipe editor) explains how plugins work and shows complete recipes with the reply they read and what you see, plus a list of formulas with what each one gives. Copy an example, or put it straight into the editor. Every example is run by the tests, so what it says is what you get.
 
-**Your own plugin, in any language.** Write a file `%AppData%\TaskbarStats\plugins\<yourname>.json` in this format (rewrite it whenever the value changes; `ttl` = seconds before the value is shown greyed out as outdated; `level` is `ok`, `warn` or `crit`; `notify: true` gives a notification on `crit`). It appears under *Plugins → Values* automatically. Or use the *Script / REST* plugin and let TaskbarStats's helper run your command or read your URL.
+**Claude usage: what to know.** The numbers are the ones Claude Code shows with `/usage`. **Setup: sign in once in a terminal. Run `claude`, type `/login` and sign in with your Claude subscription.** The plugin then reads that sign-in by itself (read-only, `~/.claude/.credentials.json`); there is nothing else to configure. There is no official public API for these numbers: the plugin asks an *undocumented* Anthropic address. That address can change or rate-limit you; the plugin then shows the reason and keeps the last values (greyed out). Your token is only sent to api.anthropic.com and never written to a log or output file. A token from `claude setup-token` does **not** work: the server refuses it because it lacks the `user:profile` permission. Advanced: `token =` in `claude.ini` (or the `CLAUDE_CODE_OAUTH_TOKEN` environment variable) accepts an access token that does have that permission; it is hidden in the editor but stored as plain text in your own `claude.ini`, so do not share that file. The idea comes from [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), no code was copied.
 
-```json
+**Write your own plugin without programming.** A *recipe* is a small text file: where to read the data (a web address, a file or a command) and, per value, a formula and a text. For example `value = ads_percentage_today` and `format = {value:0.0}%`. The formula language can only calculate; it cannot touch files, the network or commands. Templates for Pi-hole, Home Assistant, GitHub, crypto prices, exchange rates, service status pages, air quality, Docker, free disk space and more. *Save and test* shows the result right in the editor. Even the Claude plugin exists as a recipe. **Handbook: [docs/plugins.md](docs/plugins.md).**
+
+**Your own program.** Prefer a program of your own? Add the template *Own script writes the values*; your script writes a small JSON file and TaskbarStats shows it (handbook, chapter 11).
+
+**Notifications.** A warning comes **once** per problem (remembered, also after a restart), optionally repeated every 30 min / 1 h / 4 h. For Claude usage you also get a notification shortly before a limit is reset (default 5 minutes, adjustable).
 {
   "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
   "items": [
@@ -236,6 +252,8 @@ The installer:
 The app itself also has "Credits" in the right-click menu: a calmly scrolling end-credits screen with the credits, a few numbers from your own usage (for example how much you have downloaded) and a joke.
 
 ![Readme and credits](docs/screenshots/credits.png)
+![About: version, star button, diagnostics and logs](docs/screenshots/about.png)
+![The end of the credits: the call to give a star](docs/screenshots/credits-star.png)
 
 To change the name, credits or text: `installer\Leesmij.txt`, `CreditsForm.cs` and `#define Publisher` in the `.iss` file.
 
@@ -244,7 +262,7 @@ To change the name, credits or text: `installer\Leesmij.txt`, `CreditsForm.cs` a
 Start `TaskbarStats.exe`. The widget appears as a floating, always-on-top window
 directly to the left of the notification area. It is an owned window of the taskbar, so it stays
 on top of it. Drag with the **left mouse button** to move it (the position is saved
-on release); in the settings (General tab) and in the menu there is "Stick to notification area": the widget then stays against the notification area and follows it when it shifts (dragging turns this off again).
+on release); in the settings (General tab) and in the menu there is "Stick to notification area": the widget then stays against the notification area and follows it when it shifts (dragging turns this off again). **Screen changes** (signing in over VNC/RDP: first 1024x768, then the real resolution; a monitor added or removed; another scaling): the widget and the dashboard keep the same distance to the same screen edge and stay on screen, and a widget that is stuck to the notification area follows it again (checked right after the change and twice more while the taskbar settles).
 
 **Right-click** on the widget opens a short menu:
 
@@ -383,7 +401,9 @@ reinstalls). Changes in the settings are saved immediately. You can also edit th
 
 **Backup and portable**: under Settings → *General* → *Backup* you export all settings to a single JSON file, import them again (for example on another PC) or reset everything to the defaults (themes and the usage log remain). For **portable use** (for example on a USB stick) create an empty file `portable.txt` next to `TaskbarStats.exe`: settings, themes, language files and logs are then in the `data` folder next to it and nothing is written to `%AppData%`.
 
-**When something goes wrong**: errors are recorded in `diag.log` in the data folder (only on your own PC, nothing is sent). An error in a timer or drawing routine lets the app keep running; a fatal error on a background thread restarts the app once. In *About TaskbarStats* the *Copy diagnostics* button copies version, Windows, screens and the last log lines (without user or computer name) to paste into a bug report. **Crash notice**: if the app crashed last time, it says so at the next start with a balloon notification (click it for the About screen with *Copy diagnostics*). A crash is recognized by the flag of the error safety net, or, for a hard crash, by an "Application Error" in the Windows event log (with the error code in `diag.log`). Closing via Task Manager or a power failure is only noted in the log, not reported as a crash. If you start the app a second time, the running app opens its settings.
+**When something goes wrong**: errors are recorded in `diag.log` in the data folder (only on your own PC, nothing is sent). An error in a timer or drawing routine lets the app keep running; a fatal error on a background thread restarts the app once. In *About TaskbarStats* the *Copy diagnostics* button copies version, Windows, screens and the last log lines (without user or computer name) to paste into a bug report. **Crash reports**: every error that is caught (and every fatal error) also gets its own text file in the `crashes` folder of the data folder, with the full error including its causes, version, Windows, memory and the last log lines (the newest 30 are kept; the plugin host writes its own `host-crash-*.txt` there too). Read them in the app under *Settings → General → Backup → Logs and crash reports…* (also a button in *About*): view, copy for a bug report (personal names removed), open the folder, save everything as one zip, or delete the reports. Outside the program the same files are in the data folder (Start menu → *TaskbarStats logs*, or `%AppData%\TaskbarStats`); a plain text editor is enough. **If the widget stops responding** (Windows shows "not responding"), that is recorded too: the report says in which step it was stuck, how busy the system was and which programs were using the processor, and a line in `diag.log` says how long it lasted. Slow calls (over 0.4 s) are logged as `slow` lines. The widget never waits for Explorer or for the disks on its own thread: those questions are asked on a background thread. **Crash notice**: if the app crashed last time, it says so at the next start with a balloon notification (click it to open the logs and crash reports); an error that did not stop the app gives a similar notice, at most once every 10 minutes. A crash is recognized by the flag of the error safety net, or, for a hard crash, by an "Application Error" in the Windows event log (with the error code in `diag.log`). Closing via Task Manager or a power failure is only noted in the log, not reported as a crash. If you start the app a second time, the running app opens its settings.
+
+![Logs and crash reports window](docs/screenshots/logs-window.png)
 
 ## Transparent background
 
@@ -426,7 +446,7 @@ scheduled "at log on" task with highest privileges, so there is no UAC prompt.
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welcome screen and About window. |
 | `src/Loc.cs`, `lang/*.json` | Translations: `Loc.T("English text")`, `Loc.P` (plurals) with one JSON file per language (see *Languages*). |
 | `tools/LangTool` | Checks, synchronizes and renames the language texts (Roslyn); runs on every build. |
-| `src/Diag.cs`, `src/AppPaths.cs` | Log file, crash safety net, diagnostics report; where the data lives (`%AppData%`, `TASKBARSTATS_DATA` or portable). |
+| `src/Diag.cs`, `src/Diag.Crash.cs`, `src/LogsForm.cs`, `src/AppPaths.cs` | Log file, crash safety net, crash reports (`crashes\`), logs window, diagnostics report; where the data lives (`%AppData%`, `TASKBARSTATS_DATA` or portable). |
 | `tests/TaskbarStats.Tests` | Automated tests (xUnit); `dotnet test tests\TaskbarStats.Tests -c Release`. |
 
 ## Performance and threads
@@ -441,6 +461,17 @@ The UI thread only does drawing and menus; the heavy work happens elsewhere:
 - The widget is not put back on top every 200 ms (`SetWindowPos` on a taskbar window can block 100+ ms);
   that only happens when another visible topmost window is really on top of it.
 - Sampling programs (`ProcessSampler.SampleAsync`) and network drives (`DriveInfo`) run in the background.
+
+## Like it? Give it a star ⭐
+
+TaskbarStats is free and open source, and a star is the easiest way to say thanks. It costs you one click and makes the project easier to find for other people.
+
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Give TaskbarStats a star on GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Star%20this%20project&color=F5C518&labelColor=1F2937"></a>
+
+1. Open the [project page on GitHub](https://github.com/ericbruggema/TaskbarStats).
+2. Click **Star** at the top right (you need a free GitHub account).
+
+Thank you!
 
 ## License and credits
 

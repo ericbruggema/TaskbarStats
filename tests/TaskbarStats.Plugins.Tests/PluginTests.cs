@@ -1,3 +1,7 @@
+extern alias app;
+using PluginFeed = app::TaskbarStats.PluginFeed;
+using PluginValue = app::TaskbarStats.PluginValue;
+using WidgetForm = app::TaskbarStats.WidgetForm;
 using System.Net;
 using System.Net.Sockets;
 
@@ -72,6 +76,49 @@ public class ClaudePluginTests
         Assert.Equal("Bearer tok-SECRET-123", h.AuthHeaders.Single());
         Assert.Contains("oauth", h.Betas.Single());
         Assert.DoesNotContain("tok-SECRET-123", OutputFile.Render("claude", "Claude", r, "ok", 300, T.Noon));   // nooit in het uitvoerbestand
+    }
+
+    [Fact]
+    public async Task Run_TokenInTheConfig_WinsOverTheSignInFile_AndNeverLeaksIntoTheOutput()
+    {
+        var dir = T.TempDir();
+        var h = new FakeHandler { Respond = _ => FakeHandler.Json(Usage) };
+        // aanhalingstekens en spaties rond het token worden genegeerd
+        var r = await new ClaudePlugin().RunAsync(T.Ctx($"credentials = {Creds(dir)}\ntoken =  \"sk-ant-oat01-CONFIG_TOKEN-xyz\" \nusage_url = https://usage.test/x", h), CancellationToken.None);
+        Assert.False(r.Error, r.Message);
+        Assert.Equal("Bearer sk-ant-oat01-CONFIG_TOKEN-xyz", h.AuthHeaders.Single());
+        var file = OutputFile.Render("claude", "Claude", r, "ok", 300, T.Noon);
+        Assert.DoesNotContain("CONFIG_TOKEN", file);
+        Assert.DoesNotContain("tok-SECRET-123", file);
+    }
+
+    [Fact]
+    public async Task Run_TokenInTheConfig_WorksWithoutAnySignInFile()
+    {
+        var h = new FakeHandler { Respond = _ => FakeHandler.Json(Usage) };
+        var r = await new ClaudePlugin().RunAsync(T.Ctx("credentials = C:\\nonexistent\\x.json\ntoken = abc123\nusage_url = https://usage.test/x", h), CancellationToken.None);
+        Assert.False(r.Error, r.Message);
+        Assert.Equal("Bearer abc123", h.AuthHeaders.Single());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\"\"")]
+    public void CleanToken_EmptyMeansNotSet(string raw) => Assert.Null(ClaudePlugin.CleanToken(raw));
+
+    [Fact]
+    public async Task Run_RejectedConfigToken_ExplainsWhy_WithoutEchoingTheToken()
+    {
+        var h = new FakeHandler
+        {
+            Respond = _ => FakeHandler.Json("{\"type\":\"error\",\"error\":{\"type\":\"permission_error\",\"message\":\"OAuth token does not meet scope requirement user:profile for sk-ant-oat01-LEAKY\"}}", HttpStatusCode.Forbidden),
+        };
+        var r = await new ClaudePlugin().RunAsync(T.Ctx("token = sk-ant-oat01-LEAKY\nusage_url = https://usage.test/x", h), CancellationToken.None);
+        Assert.True(r.Error);
+        Assert.Contains("token in the config", r.Message);
+        Assert.Contains("scope requirement", r.Message);
+        Assert.DoesNotContain("LEAKY", r.Message);
     }
 
     [Theory]
@@ -467,20 +514,31 @@ public class RunnerTests
         var dir = T.TempDir();
         var plugin = new FakePlugin();
         var clock = T.Noon;
-        var runner = new PluginRunner(dir, new IPlugin[] { plugin }, new HttpClient(new FakeHandler()), T.DefaultsDir(), () => clock);
+        var runner = new PluginRunner(dir, new IPlugin[] { plugin }, new HttpClient(new FakeHandler()), () => clock);
         Directory.CreateDirectory(Path.Combine(dir, "plugins"));
         if (enabled is not null) File.WriteAllText(runner.ConfigPath("fake"), enabled);
         return (runner, plugin, dir, () => clock, d => clock += d);
     }
 
     [Fact]
-    public async Task Disabled_PluginDoesNotRun_AndLeavesNoOutput()
+    public async Task Unregistered_PluginDoesNotRun_AndNothingIsCreated()
     {
-        var (runner, plugin, _, _, _) = Make(null);   // nog geen config: wordt aangemaakt met enabled = false
+        var (runner, plugin, _, _, _) = Make(null);   // geen configbestand = niet geregistreerd = niet bestaand
         await Task.WhenAll(runner.Tick(CancellationToken.None));
         Assert.Equal(0, plugin.Runs);
-        Assert.True(File.Exists(runner.ConfigPath("fake")));
+        Assert.False(File.Exists(runner.ConfigPath("fake")));
         Assert.False(File.Exists(runner.OutputPath("fake")));
+        Assert.Empty(runner.Discover());
+    }
+
+    [Fact]
+    public async Task Disabled_PluginDoesNotRun_AndLeavesNoOutput()
+    {
+        var (runner, plugin, _, _, _) = Make("enabled = false\n");
+        await Task.WhenAll(runner.Tick(CancellationToken.None));
+        Assert.Equal(0, plugin.Runs);
+        Assert.False(File.Exists(runner.OutputPath("fake")));
+        Assert.Single(runner.Discover());   // geregistreerd, maar uit
     }
 
     [Fact]
@@ -547,17 +605,14 @@ public class RunnerTests
     }
 
     [Fact]
-    public async Task MissingConfig_IsCreatedFromTheShippedDefault()
+    public async Task NoConfigFiles_MeansNothingIsCreatedAndNothingRuns()
     {
         var dir = T.TempDir();
-        var runner = new PluginRunner(dir, Program.AllPlugins(), new HttpClient(new FakeHandler()), T.DefaultsDir(), () => T.Noon);
+        var runner = new PluginRunner(dir, Program.AllPlugins(), new HttpClient(new FakeHandler()), () => T.Noon);
         await Task.WhenAll(runner.Tick(CancellationToken.None));
-        foreach (var p in Program.AllPlugins())
-        {
-            Assert.True(File.Exists(runner.ConfigPath(p.Id)), p.Id);
-            Assert.False(File.Exists(runner.OutputPath(p.Id)), p.Id);   // allemaal uit
-        }
+        Assert.Empty(Directory.GetFiles(Path.Combine(dir, "plugins"), "*.ini"));
+        Assert.Empty(Directory.GetFiles(Path.Combine(dir, "plugins"), "*.json"));
+        Assert.Empty(runner.Discover());
         Assert.False(runner.AnyEnabled());
-        Assert.Contains("Claude usage", File.ReadAllText(runner.ConfigPath("claude")));
     }
 }

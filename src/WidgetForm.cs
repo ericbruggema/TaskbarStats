@@ -142,7 +142,8 @@ public sealed partial class WidgetForm : Form
         _menuTimer.Tick += (_, _) => CheckMenuHover();
 
         _notifyHide.Tick += (_, _) => { _notifyHide.Stop(); _notify.Visible = false; };
-        _notify.BalloonTipClicked += (_, _) => { if (_crashNotice) { _crashNotice = false; BeginInvoke(new Action(ShowAbout)); } };
+        _notify.BalloonTipClicked += (_, _) => { if (_crashNotice) { _crashNotice = false; BeginInvoke(new Action(() => LogsForm.Open(null))); } };
+        Diag.CrashSaved += OnCrashSaved;
 
         MouseEnter += (_, _) => { _hover = true; _hoverAt = Environment.TickCount64; _procAt = _hoverAt; _procs.SampleAsync(); };
         MouseLeave += (_, _) => { _hover = false; HideTip(); _procs.Reset(); };
@@ -174,6 +175,9 @@ public sealed partial class WidgetForm : Form
             (_cfg.FloatX, _cfg.FloatY) = ComputeDefaultPosition();
             Location = new Point(_cfg.FloatX!.Value, _cfg.FloatY!.Value);
         }
+        DisplayHook();   // schermwissels (VNC/RDP, monitor erbij/eraf): positie bijwerken, zie WidgetForm.Display.cs
+        _shell = new ShellWatcher(() => _cfg.HideInFullscreen && ShellWatcher.QueryFullscreen(), () => _cfg.HideWithTaskbar && TaskbarHost.IsAutoHiddenNow());
+        _watchdog = UiWatchdog.Start(Handle);
         TrySetTaskbarOwner();
         Diag.Info("position", $"Start: widget op {Location.X},{Location.Y} ({Width}x{Height}), vastplakken={(_cfg.StickToTray ? "aan" : "uit")}, vergrendeld={(_cfg.LockPosition ? "ja" : "nee")}, taakbalk {(_ownerHwnd != IntPtr.Zero ? "gevonden" : "nog niet gevonden")}, systeemvak {(TaskbarHost.TryGetTrayRect(out var tr) ? $"{tr.Left},{tr.Top} {tr.Width}x{tr.Height}" : "nog niet gevonden")}");
         Tick();
@@ -235,18 +239,34 @@ public sealed partial class WidgetForm : Form
         _idle = !Visible && _dash is not { Visible: true } && _full is null;
         _metrics.Ping.Idle = _idle;
         if (_idle) { CheckAlerts(); return; }
+        // Elke stap wordt gemarkeerd (Diag.UiMark): duurt er een stap lang, dan staat die met naam in diag.log, en de bewaker
+        // (UiWatchdog) weet bij een vastloper waar de UI-thread zat.
+        Diag.UiMark("tray");
         FollowTray();
+        Diag.UiMark("history");
         _history.Sample(_snap);
         SampleGraph();
         if (_hover && Environment.TickCount64 - _procAt >= 700) { _procAt = Environment.TickCount64; _procs.SampleAsync(); }
+        Diag.UiMark("drives");
         RefreshDrives(false);
+        Diag.UiMark("alerts");
         CheckAlerts();
+        Diag.UiMark("tooltip");
         if (_menu.Visible) UpdateLiveItems();
         else UpdateTooltip();
+        Diag.UiMark("render");
         Render();
+        Diag.UiMark("dashboard");
         _dash?.Tick();
-        // Ongebruikt geheugen teruggeven aan Windows (de werkset kruipt anders op door het tekenen en de runtime).
-        if (Environment.TickCount64 - _trimAt > 60_000) { _trimAt = Environment.TickCount64; SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1); }
+        Diag.UiMark("trim");
+        // Ongebruikt geheugen teruggeven aan Windows (de werkset kruipt anders op door het tekenen en de runtime). Niet als het
+        // geheugen krap zit: de pagina's die we dan weggeven moeten later van schijf terug, en dat kan de UI-thread seconden ophouden.
+        if (Environment.TickCount64 - _trimAt > 60_000)
+        {
+            _trimAt = Environment.TickCount64;
+            if (_snap.RawMem < 80) { using var me = Process.GetCurrentProcess(); SetProcessWorkingSetSize(me.Handle, -1, -1); }
+        }
+        Diag.UiMark("");
     }
 
     [DllImport("kernel32.dll")] private static extern bool SetProcessWorkingSetSize(IntPtr process, nint min, nint max);
@@ -269,6 +289,8 @@ public sealed partial class WidgetForm : Form
                 if (t0 - lastPlugins >= 30_000) { lastPlugins = t0; try { PluginHost.Maintain(); } catch (Exception dex) { Diag.Swallow(dex); } }
                 // Niemand kijkt (widget verborgen, geen dashboard/fullscreen): zeldzamer meten (meldingen blijven werken).
                 try { _metrics.Update(); } catch (Exception dex) { Diag.Swallow(dex); }
+                long updated = Environment.TickCount64 - t0;
+                if (updated >= 1500) Diag.Slow("meting (sampler-thread)", updated);   // bij een volle processor kan dit oplopen; het widget tekent dan oude waarden
                 if (t0 - lastUsage >= 5000) { lastUsage = t0; try { _usage.Sample(); } catch (Exception dex) { Diag.Swallow(dex); } }
                 int wait = _idle ? 5000 : Math.Max(20, _cfg.RefreshMs - (int)(Environment.TickCount64 - t0));
                 _stopSampler.Wait(wait);
@@ -285,38 +307,37 @@ public sealed partial class WidgetForm : Form
     }
 
     // Schijfruimte verandert langzaam; maximaal elke 5 s opnieuw opvragen (of geforceerd bij het menu).
+    // De vraag zelf (DriveInfo) kan seconden duren bij een drukke of slapende schijf, een USB-station of een netwerkschijf die niet
+    // antwoordt: altijd op de achtergrond, zodat de UI-thread nooit wacht. Loopt de vorige vraag nog, dan wachten we daarop.
     private void RefreshDrives(bool force)
     {
         if (!force && Environment.TickCount64 - _drivesAt < 5000) return;
+        if (_drivesBusy) return;
         _drivesAt = Environment.TickCount64;
-        _fixedDrives = Metrics.GetDriveSpaces();
-        if (_cfg.IncludeNetworkDrives) RefreshNetworkDrives(); else _netDrives = new();
-        _drives = _fixedDrives.Concat(_netDrives).ToList();
-    }
-
-    private List<DriveSpace> _fixedDrives = new(), _netDrives = new();
-    private bool _netDrivesBusy;
-
-    // Netwerkschijven kunnen traag of onbereikbaar zijn: op de achtergrond opvragen zodat de app nooit blokkeert.
-    private void RefreshNetworkDrives()
-    {
-        if (_netDrivesBusy) return;
-        _netDrivesBusy = true;
+        _drivesBusy = true;
+        bool net = _cfg.IncludeNetworkDrives;
         Task.Run(() =>
         {
-            var result = Metrics.GetDriveSpaces(DriveType.Network);
+            long t = Environment.TickCount64;
+            var fixedDrives = Metrics.GetDriveSpaces();
+            var netDrives = net ? Metrics.GetDriveSpaces(DriveType.Network) : new List<DriveSpace>();
+            if (Environment.TickCount64 - t >= 400) Diag.Slow("schijfruimte opvragen", Environment.TickCount64 - t);
             try
             {
                 BeginInvoke(new Action(() =>
                 {
-                    _netDrives = result;
-                    _netDrivesBusy = false;
+                    _fixedDrives = fixedDrives;
+                    _netDrives = netDrives;
                     _drives = _fixedDrives.Concat(_netDrives).ToList();
+                    _drivesBusy = false;
                 }));
             }
-            catch { _netDrivesBusy = false; }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { _drivesBusy = false; }   // venster is al weg
         });
     }
+
+    private List<DriveSpace> _fixedDrives = new(), _netDrives = new();
+    private volatile bool _drivesBusy;
 
     private void UpdateLiveItems()
     {
@@ -469,10 +490,15 @@ public sealed partial class WidgetForm : Form
         long now = Environment.TickCount64;
         if (_alertAt.TryGetValue(key, out long at) && now - at < cooldownMs) return;
         _alertAt[key] = now;
+        ShowBalloon(title, text, ToolTipIcon.Warning);
+    }
+
+    private void ShowBalloon(string title, string text, ToolTipIcon icon)
+    {
         _crashNotice = false;
         _notify.BalloonTipTitle = title;
         _notify.BalloonTipText = text;
-        _notify.BalloonTipIcon = ToolTipIcon.Warning;
+        _notify.BalloonTipIcon = icon;
         _notify.Visible = true;
         _notify.ShowBalloonTip(10000);
         _notifyHide.Stop();
@@ -480,13 +506,18 @@ public sealed partial class WidgetForm : Form
     }
 
     // ---------- Volledig scherm ----------
+    private ShellWatcher? _shell;
+    private UiWatchdog? _watchdog;
+
     private void OnTopTick()
     {
+        Diag.UiMark("ontop");
         CheckTooltip();
         if (_cfg.AutoHeight && Environment.TickCount64 - _heightCheckedAt > 5000) ApplyHeight();
-        bool fs = _cfg.HideInFullscreen && IsFullscreenAppRunning();
+        // Het antwoord van Verkenner komt van de ShellWatcher-thread (laatst bekende waarde): zo wacht de UI-thread nooit op Verkenner.
+        bool fs = _cfg.HideInFullscreen && _shell is { FullscreenApp: true };
         _dash?.SetSuppressed(fs && _cfg.DashFront);
-        bool hide = fs || (_cfg.HideWithTaskbar && TaskbarHost.IsAutoHiddenNow());
+        bool hide = fs || (_cfg.HideWithTaskbar && _shell is { TaskbarAutoHidden: true });
         if (hide != _hidden)
         {
             _hidden = hide;
@@ -495,18 +526,11 @@ public sealed partial class WidgetForm : Form
         }
         TrySetTaskbarOwner();
         KeepOnTop();
-    }
-
-    // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4)
-    private static bool IsFullscreenAppRunning()
-    {
-        try { return SHQueryUserNotificationState(out int st) == 0 && st is 2 or 3 or 4; }
-        catch { return false; }
+        Diag.UiMark("");
     }
 
     private const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4;
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
 
     // Alle tooltip-informatie (plus tijdstip en versie) naar het klembord.
     private void CopyInfo()
@@ -723,20 +747,48 @@ public sealed partial class WidgetForm : Form
         f.ShowDialog(this);
     }
 
-    private bool _crashNotice;   // de huidige ballonmelding is de crashmelding (klik opent Over)
+    private bool _crashNotice;   // de huidige ballonmelding is de crashmelding (klik opent het logvenster)
+    private long _errorNoticeAt;
 
-    /// <summary>Was de vorige sessie gecrasht? Meld dat, met een klik naar het Over-scherm (knop Kopieer diagnose).</summary>
+    /// <summary>Was de vorige sessie gecrasht? Meld dat, met een klik naar het logvenster (crashrapporten).</summary>
     private void ShowCrashNotice()
     {
         if (Diag.PreviousCrash is null) return;
         _crashNotice = true;
         _notify.BalloonTipTitle = Loc.T("TaskbarStats crashed last time");
-        _notify.BalloonTipText = Loc.T("It closed unexpectedly. The details were saved in diag.log. Click here to open About; \"Copy diagnostics\" there helps when you report the problem.");
+        _notify.BalloonTipText = Loc.T("It closed unexpectedly. A crash report was saved. Click here to open the logs and crash reports; they help when you report the problem.");
         _notify.BalloonTipIcon = ToolTipIcon.Error;
         _notify.Visible = true;
         _notify.ShowBalloonTip(15000);
         _notifyHide.Stop();
         _notifyHide.Start();
+    }
+
+    /// <summary>
+    /// Een fout is opgevangen en als rapport bewaard terwijl de app doordraait: meld dat eenmalig (hooguit elke 10 minuten), met een klik naar het
+    /// logvenster. Een fatale fout meldt de volgende start (<see cref="ShowCrashNotice"/>). Kan op elke thread binnenkomen.
+    /// </summary>
+    private void OnCrashSaved(string path, bool fatal)
+    {
+        if (fatal || IsDisposed || !IsHandleCreated) return;
+        try
+        {
+            BeginInvoke(new Action(() =>
+            {
+                long now = Environment.TickCount64;
+                if (_errorNoticeAt != 0 && now - _errorNoticeAt < 600_000) return;
+                _errorNoticeAt = now;
+                _crashNotice = true;
+                _notify.BalloonTipTitle = Loc.T("TaskbarStats hit an error");
+                _notify.BalloonTipText = Loc.T("It kept running and a crash report was saved. Click here to open the logs and crash reports.");
+                _notify.BalloonTipIcon = ToolTipIcon.Warning;
+                _notify.Visible = true;
+                _notify.ShowBalloonTip(10000);
+                _notifyHide.Stop();
+                _notifyHide.Start();
+            }));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { Diag.Swallow(ex); }
     }
 
     // tab: 2 = Dashboard, 3 = Fullscreen (volgorde van de tabbladen in SettingsForm); -1 = het laatst gekozen tabblad
@@ -1211,6 +1263,9 @@ public sealed partial class WidgetForm : Form
     {
         WinThemeUnhook();
         _cfg.Save();
+        Diag.CrashSaved -= OnCrashSaved;
+        _shell?.Dispose(); _watchdog?.Dispose();
+        DisplayUnhook();
         Diag.EndSession();   // Windows beëindigt het proces bij afsluiten/herstarten soms vóór ProcessExit: dan bleef elke start "onnet"
         _timer.Stop();
         _topTimer.Stop();

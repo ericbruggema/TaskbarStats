@@ -5,6 +5,7 @@
 | Project overview, features, settings | [README.md](../README.md) (English) · [Nederlands](../README.nl.md) · [Deutsch](../README.de.md) |
 | Full recreation plan (build it yourself with Claude) | [PLAN.md](PLAN.md) |
 | Screenshots (widget, settings, dashboard, fullscreen, themes) | [screenshots/](screenshots/) |
+| Plugins handbook (add, approve, recipes, formulas, secrets, own programs) | [plugins.md](plugins.md) (English) · [Nederlands](plugins.nl.md) · [Deutsch](plugins.de.md) |
 | Instructions for Claude / contributors | [CLAUDE.md](../CLAUDE.md) |
 
 ## Demo videos (English, 45-60 s)

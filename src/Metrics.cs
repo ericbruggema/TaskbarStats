@@ -106,7 +106,10 @@ public sealed partial class Metrics : IDisposable
     private string? _netFilter;
     private Computer? _lhm;
     private readonly object _lhmLock = new();   // alle LibreHardwareMonitor-toegang (UI zet vlaggen, sampler-thread voert uit)
-    private bool _wantTemps, _wantSensors, _lhmExtended, _lhmDirty;
+    // De vlaggen zijn volatile en worden door de UI-thread ZONDER slot gezet: de sampler-thread houdt _lhmLock vast terwijl hij sensoren
+    // uitleest (dat kan bij een volle processor seconden duren) en de UI-thread mag daar nooit op wachten.
+    private volatile bool _wantTemps, _wantSensors, _lhmDirty;
+    private bool _lhmExtended;
     private long _sensorsAt;
     private volatile SensorInfo[] _sensors = Array.Empty<SensorInfo>();
 
@@ -148,12 +151,18 @@ public sealed partial class Metrics : IDisposable
     private readonly object _cpuLock = new();
     private bool? _cpuUtilityMode;
 
+    private volatile int _cpuModeApplied = -1;   // -1 = nog geen, 0 = % Processor Time, 1 = % Processor Utility
+
     public void SetCpuMode(bool utility)
     {
+        // Ongewijzigd (bijna altijd, bij elke instelling die wordt aangepast): geen slot nemen. De sampler-thread houdt _cpuLock vast
+        // tijdens het uitlezen van de tellers, en de UI-thread mag daar niet op wachten.
+        if (_cpuModeApplied == (utility ? 1 : 0)) return;
         lock (_cpuLock)
         {
             if (_cpuUtilityMode == utility) return;
             _cpuUtilityMode = utility;
+            _cpuModeApplied = utility ? 1 : 0;
             _cpu?.Dispose(); _cpu = null;
             _coreQuery?.Dispose(); _coreQuery = null;
             foreach (var c in _cpuCores) c.Dispose();
@@ -208,13 +217,14 @@ public sealed partial class Metrics : IDisposable
     /// <summary>Temperaturen in het widget (CPU/GPU). Het openen van LibreHardwareMonitor gebeurt op de sampler-thread.</summary>
     public void EnableTemperatures(bool on)
     {
-        lock (_lhmLock) { _wantTemps = on; _lhmDirty = true; }
+        _wantTemps = on; _lhmDirty = true;   // eerst de wens, dan de vlag: de sampler-thread voert het uit (SyncLhm)
     }
 
     /// <summary>Volledige sensorlijst (fullscreen-scherm): zet ook hoofdbord, schijven, geheugen en batterij aan.</summary>
     public void SetSensorsWanted(bool on)
     {
-        lock (_lhmLock) { _wantSensors = on; _lhmDirty = true; if (!on) _sensors = Array.Empty<SensorInfo>(); }
+        _wantSensors = on; _lhmDirty = true;
+        if (!on) _sensors = Array.Empty<SensorInfo>();
     }
 
     // Op de sampler-thread: LibreHardwareMonitor openen/sluiten of uitbreiden als de wensen zijn veranderd.

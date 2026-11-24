@@ -11,7 +11,7 @@
     <AssemblyName>TaskbarStats.Plugins</AssemblyName>
     <RootNamespace>TaskbarStats.Plugins</RootNamespace>
     <ApplicationIcon>..\..\app.ico</ApplicationIcon>
-    <Version>1.6.8</Version>
+    <Version>1.7.0</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
@@ -31,6 +31,8 @@
   <ItemGroup>
     <!-- Standaardconfig per plugin: komt naast de exe (ook bij een single-file publish) en dient als "Standaard herstellen" in de app -->
     <Content Include="defaults\*.ini" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" LinkBase="defaults" />
+    <!-- Sjablonen voor recepten (Instellingen > Plugins > Plugin toevoegen) -->
+    <Content Include="templates\*.ini" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" LinkBase="templates" />
   </ItemGroup>
 
 </Project>

@@ -23,7 +23,7 @@ public sealed class WelcomeForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         ShowInTaskbar = true;
-        ClientSize = new Size(660, 640);
+        ClientSize = new Size(660, 688);
 
         _title.Font = new Font("Segoe UI", 18, FontStyle.Bold);
         _title.AutoSize = true;
@@ -41,21 +41,22 @@ public sealed class WelcomeForm : Form
         int lx = 20;
         foreach (var l in Loc.Available())
         {
-            var b = new Button { Text = l.Name, AutoSize = true, Location = new Point(lx, 594) };
+            var b = new Button { Text = l.Name, AutoSize = true, Location = new Point(lx, 638) };
             b.Click += (_, _) => Apply(l.Code);
             _langs.Add((b, l.Code));
             lx = b.Right + 8;
         }
 
         _close.Size = new Size(130, 34);
-        _close.Location = new Point(510, 590);
+        _close.Location = new Point(510, 634);
         _close.Click += (_, _) => Close();
         AcceptButton = _close;
         CancelButton = _close;
 
         _upd.Checked = checkUpdates;
         _upd.CheckedChanged += (_, _) => setCheckUpdates?.Invoke(_upd.Checked);   // standaard uit: alleen met toestemming
-        Controls.AddRange(new Control[] { _title, _body, _upd, _close });
+        var star = StarLink.CreateButton(new Rectangle(22, 586, 616, 38));
+        Controls.AddRange(new Control[] { _title, _body, _upd, star, _close });
         foreach (var (b, _) in _langs) Controls.Add(b);
         Fill();
         Shown += (_, _) => _close.Focus();
@@ -114,6 +115,9 @@ public sealed class WelcomeForm : Form
         Para(Loc.T("Move it: hold the left mouse button and drag the widget. Place it anywhere; use \"Lock position\" to fix it."), bullet: true);
         Para(Loc.T("Settings: right-click the widget and choose \"Settings…\": looks, colors, layout and themes, all with immediate effect. The menu itself stays open while you pick several options."), bullet: true);
         Para(Loc.T("Dashboard: use the menu (Desktop dashboard) to put a large dashboard on your desktop, and press Ctrl+Alt+F for a fullscreen overview with all the details. Click a tile inside for more, press I for all your PC specifications, or click 3 times on an empty spot (or press space) for an automatic tour; Esc goes back."), bullet: true);
+
+        Heading(Loc.T("Like it? Give it a star"));
+        Para(Loc.T("TaskbarStats is free and open source. A star on GitHub costs you one click (the Star button at the top right of the project page, the yellow button below opens it) and helps other people find the program."));
 
         Para(Loc.T(""));
         Para(Loc.T("You can find this explanation again via \"About TaskbarStats\" in the menu (Welcome screen button)."));

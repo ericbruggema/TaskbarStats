@@ -32,23 +32,16 @@ public sealed partial class WidgetForm
         }
     }
 
-    /// <summary>Een melding als een onderdeel van een plugin op "kritiek" springt en de plugin dat wil (bijvoorbeeld: een site is onbereikbaar,
-    /// of de Claude-limiet is bijna op). Hooguit eens per half uur per onderdeel.</summary>
+    private PluginAlertMemory? _pluginAlerts;
+
+    /// <summary>Plugin-meldingen volgens <see cref="PluginAlertRules"/>: één keer per toestand (ook na een herstart onthouden), en kort voor een limiet die vrijkomt.</summary>
     private void PluginAlerts()
     {
         if (!_cfg.ShowPlugins) return;
-        foreach (var v in _snap.Plugins.Values)
-        {
-            if (!v.Notify || v.Level != "crit" || v.Stale || !_cfg.PluginShown(v)) continue;
-            Alert("plugin:" + v.Id, 30 * 60_000L, v.Label, AlertText(v));
-        }
+        _pluginAlerts ??= new PluginAlertMemory();
+        foreach (var a in PluginAlertRules.Evaluate(_snap.Plugins.Values, _cfg, _pluginAlerts, DateTime.UtcNow))
+            ShowBalloon(a.Title, a.Text, a.Warning ? ToolTipIcon.Warning : ToolTipIcon.Info);
     }
 
-    internal static string AlertText(PluginValue v)
-    {
-        var lines = v.Detail.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var bad = lines.Where(l => l.StartsWith("✕")).ToList();
-        if (bad.Count > 0) return string.Join("\n", bad);
-        return lines.Length > 0 ? lines[0] : v.Text;
-    }
+    internal static string AlertText(PluginValue v) => PluginAlertRules.AlertText(v);
 }

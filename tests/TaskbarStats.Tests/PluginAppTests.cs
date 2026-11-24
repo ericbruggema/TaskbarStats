@@ -9,6 +9,10 @@ public class PluginAppTests : IDisposable
     private readonly TempData _data = new();
     public void Dispose() { PluginFeed.Reset(); _data.Dispose(); }
 
+    /// <summary>Voegt een plugin toe (het configbestand), aan.</summary>
+    private void Reg(string id, bool recipe = false, string extra = "")
+        => _data.Write("plugins/" + id + ".ini", (recipe ? "type = recipe\n" : "") + "enabled = true\n" + extra);
+
     private const string Config = "# Weather\r\nenabled = false\r\ninterval = 900\r\n[Section]\r\nenabled = true\r\n";
 
     // ---------- configbestand ----------
@@ -45,6 +49,34 @@ public class PluginAppTests : IDisposable
     }
 
     [Fact]
+    public void Token_IsMaskedInTheEditor_AndRestoredOnSave()
+    {
+        string file = "enabled = true\r\n# token = commentaar blijft\r\ntoken = sk-ant-oat01-SECRET\r\nwarn = 70\r\n";
+        var shown = PluginConfig.MaskSecrets(file);
+        Assert.DoesNotContain("SECRET", shown);
+        Assert.Contains("token = " + PluginConfig.Masked, shown);
+        Assert.Contains("# token = commentaar blijft", shown);   // commentaar blijft staan
+        Assert.Equal(file, PluginConfig.RestoreSecrets(shown, file));   // onaangeroerd = ongewijzigd opgeslagen
+        // een nieuw token vervangt het oude, leeg maken verwijdert het
+        Assert.Contains("token = sk-ant-new", PluginConfig.RestoreSecrets(shown.Replace(PluginConfig.Masked, "sk-ant-new"), file));
+        Assert.DoesNotContain("SECRET", PluginConfig.RestoreSecrets(shown.Replace(" " + PluginConfig.Masked, ""), file));
+        // een leeg token wordt niet gemaskeerd; stippen zonder bestaand token worden leeg
+        Assert.Equal("token =\r\n", PluginConfig.MaskSecrets("token =\r\n"));
+        Assert.Equal("token =\r\n", PluginConfig.RestoreSecrets("token = " + PluginConfig.Masked + "\r\n", "enabled = true\r\n"));
+    }
+
+    [Fact]
+    public void Token_OldClaudeConfigGetsTheTokenSection_OnlyOnce()
+    {
+        string old = "enabled = true\r\ncredentials = auto\r\n";
+        var up = PluginConfig.WithTokenSection("claude", old);
+        Assert.Contains("token =", up);
+        Assert.StartsWith(old.TrimEnd(), up);
+        Assert.Equal(up, PluginConfig.WithTokenSection("claude", up));
+        Assert.Equal(old, PluginConfig.WithTokenSection("weather", old));
+    }
+
+    [Fact]
     public void Config_Validate()
     {
         Assert.Null(PluginConfig.Validate("# x\r\nenabled = true\r\n[a]\r\nk = v"));
@@ -76,6 +108,10 @@ public class PluginAppTests : IDisposable
     [Fact]
     public void Feed_ReadsFiles_InCatalogOrder_AndSkipsBrokenOnes()
     {
+        Reg("weather"); Reg("claude"); Reg("zzz-mine", recipe: true);
+        _data.Write("plugins/ghost.json", Json("ghost", "ok", "{\"key\":\"g\",\"text\":\"boo\"}"));   // geen configbestand: niet toegevoegd, dus onzichtbaar
+        _data.Write("plugins/off.ini", "type = recipe\nenabled = false\n");                            // wel toegevoegd maar uit
+        _data.Write("plugins/off.json", Json("off", "ok", "{\"key\":\"o\",\"text\":\"zzz\"}"));
         _data.Write("plugins/weather.json", Json("weather", "ok", "{\"key\":\"temp\",\"label\":\"Weather\",\"value\":4,\"text\":\"4°\"}"));
         _data.Write("plugins/claude.json", Json("claude", "ok", "{\"key\":\"five_hour\",\"label\":\"5h\",\"value\":40,\"unit\":\"%\"},{\"key\":\"seven_day\",\"label\":\"7d\",\"value\":10,\"unit\":\"%\"}"));
         _data.Write("plugins/zzz-mine.json", Json("zzz-mine", "ok", "{\"key\":\"x\",\"label\":\"X\",\"text\":\"hello\"}"));
@@ -92,6 +128,7 @@ public class PluginAppTests : IDisposable
     [Fact]
     public void Feed_UsesTheFileNameWhenTheFileHasNoPluginField_AndSkipsItemsWithoutKey()
     {
+        Reg("custom", recipe: true);
         _data.Write("plugins/custom.json", "{\"items\":[{\"label\":\"no key\"},{\"key\":\"a\",\"label\":\"A\",\"text\":\"1\"}]}");
         var d = PluginFeed.Read(_data.Dir);
         Assert.Equal("custom", d.Statuses.Single().Plugin);
@@ -117,6 +154,7 @@ public class PluginAppTests : IDisposable
     {
         PluginFeed.Reset();
         Assert.Empty(PluginFeed.Current.Values);
+        Reg("claude");
         _data.Write("plugins/claude.json", Json("claude", "ok", "{\"key\":\"five_hour\",\"label\":\"5h\",\"value\":40,\"unit\":\"%\"}"));
         PluginFeed.Reset();
         Assert.Single(PluginFeed.Current.Values);

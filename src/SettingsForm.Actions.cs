@@ -121,7 +121,12 @@ public sealed partial class SettingsForm
             try { Directory.CreateDirectory(AppPaths.DataDir); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppPaths.DataDir) { UseShellExecute = true }); }
             catch (Exception ex) { Diag.Swallow(ex); }
         };
-        p.Controls.Add(open);
+        var logs = Btn(Loc.T("Logs and crash reports…"), 200);
+        logs.Click += (_, _) => LogsForm.Open(this);
+        var openLine = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0) };
+        openLine.Controls.AddRange(new Control[] { open, logs });
+        p.Controls.Add(openLine);
+        p.Controls.Add(Note(Loc.T("Errors and crashes are saved as text files in the data folder (crashes and diag.log); nothing is sent anywhere.")));
         p.Controls.Add(Note(AppPaths.Portable
             ? Loc.T("Portable mode: everything is stored in the data folder next to the program.")
             : Loc.T("For portable use (for example on a USB stick), create an empty file named portable.txt next to TaskbarStats.exe and restart; the data then moves to a data folder there.")));

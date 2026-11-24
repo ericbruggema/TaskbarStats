@@ -17,6 +17,12 @@ public sealed partial class AppSettings
     public bool DashPlugins { get; set; } = true;
     public Dictionary<string, PluginItemCfg>? PluginItems { get; set; }
 
+    /// <summary>Een ongewijzigde waarschuwing van een plugin (bijvoorbeeld "limiet bijna op") komt één keer; dit zegt na hoeveel minuten ze toch nog eens
+    /// herhaald wordt zolang de toestand gelijk blijft. 0 = nooit herhalen (alleen melden als er iets verandert).</summary>
+    public int PluginAlertRepeatMin { get; set; } = 0;
+    /// <summary>Meld dat een limiet (of ander terugkerend onderdeel) bijna is teruggezet, zoveel minuten van tevoren; 0 = uit. Alleen als de waarde al op "waarschuwing" of hoger stond.</summary>
+    public int PluginResetNotifyMin { get; set; } = 5;
+
     public bool PluginShown(PluginValue v)
         => PluginItems is not null && PluginItems.TryGetValue(v.Id, out var c) && c.Show is bool b ? b : v.WidgetHint;
 

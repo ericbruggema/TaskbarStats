@@ -147,6 +147,11 @@ public sealed class CreditsForm : Form
         foreach (var s in Stats(usage, metrics)) L(K.Text, s);
         L(K.Gap, ""); L(K.Gap, "");
 
+        L(K.Head, Loc.T("Enjoyed the show?"));
+        L(K.Text, Loc.T("Give TaskbarStats a star on GitHub ★"));
+        L(K.Text, "github.com/ericbruggema/TaskbarStats");   // nolang
+        L(K.Gap, ""); L(K.Gap, "");
+
         L(K.Big, Loc.T("— THE END —"));
         L(K.Gap, "");
         var j = Jokes[Random.Shared.Next(Jokes.Length)];

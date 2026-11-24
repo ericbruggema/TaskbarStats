@@ -1,11 +1,15 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TaskbarStats.Plugins;
 
 /// <summary>
-/// Voert de plugins uit volgens hun eigen configbestand (<c>plugins\&lt;id&gt;.ini</c>) en schrijft het resultaat naar
-/// <c>plugins\&lt;id&gt;.json</c>. Een plugin die uit staat (<c>enabled = false</c>) wordt niet uitgevoerd en laat geen bestand achter.
-/// Een wijziging van het configbestand werkt direct (de host kijkt naar de tijdstempel).
+/// Voert de GEREGISTREERDE plugins uit. Een plugin bestaat pas als zijn configbestand <c>plugins\&lt;id&gt;.ini</c> bestaat: de gebruiker
+/// voegt hem toe in de app (Instellingen &gt; Plugins &gt; Plugin toevoegen) en kan hem daar weer verwijderen. Zonder configbestand
+/// draait er niets en is er niets te zien. De meegeleverde plugins hebben hun eigen code (id = bestandsnaam); andere bestanden zijn
+/// recepten (<c>type = recipe</c>) of eigen bronnen (<c>type = external</c>, de host voert niets uit: een eigen script schrijft het JSON-bestand).
+/// Een plugin die uit staat (<c>enabled = false</c>) wordt niet uitgevoerd en laat geen uitvoerbestand achter. Recepten en het script-plugin
+/// draaien pas na goedkeuring van wat ze mogen (<see cref="Caps"/>). Een wijziging van het configbestand werkt direct (tijdstempel).
 /// </summary>
 internal sealed class PluginRunner
 {
@@ -16,64 +20,113 @@ internal sealed class PluginRunner
         public bool Running;
         public List<PluginItem> LastGood = new();
         public int Failures;
+        public bool Unapproved;
     }
 
-    private readonly IReadOnlyList<IPlugin> _plugins;
+    internal static readonly Regex IdRe = new("^[A-Za-z0-9_-]{1,40}$", RegexOptions.CultureInvariant);
+    private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase) { "approved", "secrets", "host", "cache", "templates", "defaults" };
+
+    private readonly IReadOnlyList<IPlugin> _builtIns;
     private readonly HttpClient _http;
+    private readonly HttpClient? _httpStrict;
     private readonly Func<DateTimeOffset> _now;
-    private readonly Dictionary<string, State> _state = new();
+    private readonly Dictionary<string, State> _state = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
 
     public string DataDir { get; }
     public string PluginsDir { get; }
-    public string DefaultsDir { get; }
+    /// <summary>Tests en <c>--once</c> zetten dit uit; de gewone host controleert altijd.</summary>
+    public bool RequireApproval { get; set; } = true;
 
-    public PluginRunner(string dataDir, IReadOnlyList<IPlugin> plugins, HttpClient http, string? defaultsDir = null, Func<DateTimeOffset>? now = null)
+    public PluginRunner(string dataDir, IReadOnlyList<IPlugin> builtIns, HttpClient http, Func<DateTimeOffset>? now = null, HttpClient? httpStrict = null)
     {
         DataDir = dataDir;
         PluginsDir = Path.Combine(dataDir, "plugins");
-        DefaultsDir = defaultsDir ?? Path.Combine(AppContext.BaseDirectory, "defaults");
-        _plugins = plugins;
+        _builtIns = builtIns;
         _http = http;
+        _httpStrict = httpStrict;
         _now = now ?? (() => DateTimeOffset.Now);
         Directory.CreateDirectory(PluginsDir);
-        foreach (var p in plugins) _state[p.Id] = new State();
     }
 
     public string ConfigPath(string id) => Path.Combine(PluginsDir, id + ".ini");
     public string OutputPath(string id) => Path.Combine(PluginsDir, id + ".json");
 
-    /// <summary>Zet het standaardconfigbestand neer als de gebruiker er nog geen heeft.</summary>
-    public void EnsureConfig(IPlugin p)
+    /// <summary>Wat we van één configbestand weten; hergebruikt zolang het bestand (tijdstip en grootte) niet verandert.</summary>
+    private sealed record Scanned(DateTime Stamp, long Length, IPlugin? Plugin, bool Enabled);
+
+    private readonly Dictionary<string, Scanned> _scanCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// De geregistreerde plugins die de host moet uitvoeren (meegeleverde met een configbestand, en recepten), met het tijdstip van hun configbestand
+    /// en of ze aan staan. Een configbestand wordt alleen opnieuw ingelezen als het veranderd is: de host kijkt elke 1,5 s, en dat hoeft niet
+    /// elke keer alle bestanden te parsen.
+    /// </summary>
+    private List<(IPlugin Plugin, DateTime Stamp, bool Enabled)> Scan()
     {
-        var path = ConfigPath(p.Id);
-        if (File.Exists(path)) return;
-        var def = Path.Combine(DefaultsDir, p.Id + ".ini");
-        string text = File.Exists(def) ? File.ReadAllText(def, Encoding.UTF8) : $"# {p.Title}\nenabled = false\n";
-        File.WriteAllText(path, text, new UTF8Encoding(false));
+        var res = new List<(IPlugin, DateTime, bool)>();
+        FileInfo[] files;
+        try { files = new DirectoryInfo(PluginsDir).EnumerateFiles("*.ini").OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray(); }
+        catch (IOException) { return res; }
+        foreach (var fi in files)
+        {
+            string id = Path.GetFileNameWithoutExtension(fi.Name);
+            if (!IdRe.IsMatch(id) || Reserved.Contains(id)) continue;
+            Scanned? sc;
+            lock (_lock) _scanCache.TryGetValue(id, out sc);
+            if (sc is null || sc.Stamp != fi.LastWriteTimeUtc || sc.Length != fi.Length)
+            {
+                IPlugin? plugin = _builtIns.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+                bool enabled;
+                try
+                {
+                    var cfg = IniFile.Load(fi.FullName);
+                    enabled = cfg.Enabled;
+                    if (plugin is null && string.Equals(cfg.Str("type", ""), "recipe", StringComparison.OrdinalIgnoreCase))
+                        plugin = new RecipePlugin(id, cfg.Str("title", id));
+                }
+                catch (IOException) { continue; }   // net half geschreven of vergrendeld: de volgende ronde opnieuw
+                sc = new Scanned(fi.LastWriteTimeUtc, fi.Length, plugin, enabled);
+                lock (_lock) _scanCache[id] = sc;
+            }
+            if (sc.Plugin is not null) res.Add((sc.Plugin, sc.Stamp, sc.Enabled));
+        }
+        return res;
     }
 
-    public bool AnyEnabled()
+    /// <summary>De geregistreerde plugins die de host moet uitvoeren.</summary>
+    public List<IPlugin> Discover() => Scan().Select(s => s.Plugin).ToList();
+
+    /// <summary>Zoekt één plugin op id (voor <c>--once</c>): meegeleverd, of een recept als het configbestand er is.</summary>
+    public IPlugin? Resolve(string id)
     {
-        foreach (var p in _plugins)
+        var built = _builtIns.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (built is not null) return built;
+        if (!IdRe.IsMatch(id) || !File.Exists(ConfigPath(id))) return null;
+        var cfg = IniFile.Load(ConfigPath(id));
+        return string.Equals(cfg.Str("type", ""), "recipe", StringComparison.OrdinalIgnoreCase) ? new RecipePlugin(id, cfg.Str("title", id)) : null;
+    }
+
+    public bool AnyEnabled() => Scan().Any(s => s.Enabled);
+
+    private State StateOf(string id)
+    {
+        lock (_lock)
         {
-            EnsureConfig(p);
-            if (IniFile.Load(ConfigPath(p.Id)).Enabled) return true;
+            if (!_state.TryGetValue(id, out var st)) _state[id] = st = new State();
+            return st;
         }
-        return false;
     }
 
     /// <summary>Eén rondje: start elke plugin die aan de beurt is (op de achtergrond). Geeft de gestarte taken terug (tests wachten erop).</summary>
     public List<Task> Tick(CancellationToken ct)
     {
         var started = new List<Task>();
-        foreach (var p in _plugins)
+        var scan = Scan();
+        CleanUpRemoved(scan.Select(s => s.Plugin).ToList());
+        foreach (var (p, stamp, _) in scan)
         {
-            State st;
-            lock (_lock) st = _state[p.Id];
-            EnsureConfig(p);
-            var path = ConfigPath(p.Id);
-            DateTime stamp = File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
+            var st = StateOf(p.Id);
             lock (_lock)
             {
                 if (st.Running) continue;
@@ -91,24 +144,57 @@ internal sealed class PluginRunner
         return started;
     }
 
-    /// <summary>Voert één plugin uit en schrijft het resultaat. <paramref name="ignoreEnabled"/>: voor <c>--once</c> en tests.</summary>
+    /// <summary>Een plugin waarvan het configbestand weg is (verwijderd in de app of met de hand): uitvoerbestand weg, status vergeten.</summary>
+    private void CleanUpRemoved(List<IPlugin> found)
+    {
+        List<string> gone;
+        lock (_lock) gone = _state.Keys.Where(id => !found.Any(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))).ToList();
+        foreach (var id in gone)
+        {
+            try { if (File.Exists(OutputPath(id))) File.Delete(OutputPath(id)); }
+            catch (IOException) { }
+            lock (_lock) _state.Remove(id);
+            HostLog.Write("INFO", $"{id}: removed");
+        }
+    }
+
+    /// <summary>Voert één plugin uit en schrijft het resultaat. <paramref name="ignoreEnabled"/>: voor <c>--once</c> en tests (geen aan/uit en geen goedkeuring).</summary>
     public async Task<PluginResult?> RunPluginAsync(IPlugin p, bool ignoreEnabled, CancellationToken ct)
     {
-        EnsureConfig(p);
         var cfg = IniFile.Load(ConfigPath(p.Id));
-        State st;
-        lock (_lock) st = _state[p.Id];
+        var st = StateOf(p.Id);
         int interval = cfg.Int("interval", p.DefaultIntervalSec, 10, 86400);
         var now = _now();
 
         if (!cfg.Enabled && !ignoreEnabled)
         {
             try { if (File.Exists(OutputPath(p.Id))) File.Delete(OutputPath(p.Id)); } catch (IOException) { }
-            lock (_lock) { st.LastGood = new(); st.Failures = 0; st.NextRun = now.AddSeconds(2); }
+            lock (_lock) { st.LastGood = new(); st.Failures = 0; st.NextRun = now.AddSeconds(2); st.Unapproved = false; }
             return null;
         }
 
-        var ctx = new PluginContext { Config = cfg, Http = _http, DataDir = DataDir, Now = _now };
+        // Recepten en het script-plugin: alleen uitvoeren als de gebruiker precies deze lijst (adressen, bestanden, opdrachten) heeft goedgekeurd.
+        if (RequireApproval && !ignoreEnabled && Caps.NeedsApproval(p.Id, cfg))
+        {
+            string hash = Caps.Compute(cfg).Hash();
+            if (!Approvals.IsApproved(DataDir, p.Id, hash))
+            {
+                var denied = PluginResult.Fail("Needs your approval. Open TaskbarStats > Settings > Plugins and choose 'Review and approve'.");
+                bool first;
+                lock (_lock) { first = !st.Unapproved; st.Unapproved = true; st.NextRun = _now().AddSeconds(30); }
+                if (first) HostLog.Write("WARN", $"{p.Id}: waiting for approval");
+                OutputFile.WriteAtomic(OutputPath(p.Id), OutputFile.Render(p.Id, p.Title, denied, "error", interval, _now()));
+                return denied;
+            }
+            lock (_lock) st.Unapproved = false;
+        }
+
+        var ctx = new PluginContext
+        {
+            Config = cfg, Http = _http, HttpStrictClient = _httpStrict, DataDir = DataDir, Now = _now,
+            // een recept krijgt alleen de geheimen die het zelf noemt ({secret:naam}, dezelfde lijst die de gebruiker heeft goedgekeurd)
+            Secrets = p is RecipePlugin ? Secrets.LoadAll(DataDir, Caps.Compute(cfg).Secrets) : new Dictionary<string, string>(),
+        };
         PluginResult result;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(cfg.Int("timeout", 25, 3, 300)));
@@ -161,6 +247,41 @@ internal static class HostLog
                 if (fi.Exists && fi.Length > 200_000) File.Move(Path, Path + ".old", true);
                 File.AppendAllText(Path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {level,-5} {msg}{Environment.NewLine}");
             }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    /// <summary>Map met de crashrapporten: dezelfde als die van de app (<c>&lt;datamap&gt;\crashes</c>), zodat het logvenster van de app ze toont.</summary>
+    public static string? CrashDir => Path is null ? null : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(Path)!)!, "crashes");
+
+    /// <summary>
+    /// Bewaart een fout van de host als crashrapport (<c>host-crash-*.txt</c>, met de volledige stack) en zet hem ook in host.log.
+    /// Mag nooit zelf een fout geven; tokens worden eruit gehaald.
+    /// </summary>
+    public static void WriteCrash(string kind, Exception? ex, string? raw = null)
+    {
+        try
+        {
+            string detail = Fmt.Scrub(ex is AggregateException ag ? ag.Flatten().ToString() : ex?.ToString() ?? raw ?? "(no details)");
+            Write("ERROR", kind + ": " + detail);
+            string? dir = CrashDir;
+            if (dir is null) return;
+            Directory.CreateDirectory(dir);
+            string file = System.IO.Path.Combine(dir, $"host-crash-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            for (int i = 2; File.Exists(file); i++) file = System.IO.Path.Combine(dir, $"host-crash-{DateTime.Now:yyyyMMdd-HHmmss}-{i}.txt");
+            var sb = new StringBuilder();
+            sb.AppendLine("TaskbarStats plugin host crash report");
+            sb.AppendLine("Kind: " + kind);
+            sb.AppendLine("Time: " + DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"));
+            sb.AppendLine("Version: " + Program.Version + ", pid " + Environment.ProcessId);
+            sb.AppendLine("Windows: " + Environment.OSVersion.Version + ", " + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+            sb.AppendLine();
+            sb.AppendLine("--- error ---");
+            sb.AppendLine(detail);
+            File.WriteAllText(file, sb.ToString(), new UTF8Encoding(false));
+            foreach (var old in new DirectoryInfo(dir).EnumerateFiles("host-crash-*.txt").OrderByDescending(f => f.LastWriteTimeUtc).Skip(15))
+                try { old.Delete(); } catch (IOException) { }
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

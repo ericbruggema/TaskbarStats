@@ -8,6 +8,10 @@
 
 <a href="https://taskbarstats.com"><img alt="Website: taskbarstats.com" src="https://img.shields.io/badge/Website-taskbarstats.com-1F2937?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Geef TaskbarStats een ster op GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Geef%20een%20ster&color=F5C518&labelColor=1F2937"></a>
+
+**Vind je TaskbarStats leuk? Geef het alsjeblieft een ⭐ op GitHub.** Klik op *Star* rechtsboven op de projectpagina. Het kost één seconde en helpt anderen het te vinden.
+
 <sub>Open de pagina en download <code>TaskbarStats-Setup-&lt;versie&gt;.exe</code> onder <em>Assets</em>, en start hem. Geen account nodig.</sub>
 
 <a href="https://github.com/ericbruggema/TaskbarStats/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ericbruggema/TaskbarStats?label=latest&color=0A84FF"></a>
@@ -83,6 +87,7 @@ Bekijk het in actie: [For gamers (51 s, Engels)](https://github.com/ericbruggema
 ![Instellingen: dashboard met volgorde](docs/screenshots/settings-dashboard.png)
 ![Instellingen: fullscreen met voorbeeld van de indeling](docs/screenshots/settings-fullscreen.png)
 ![Instellingen: algemeen](docs/screenshots/settings-general.png)
+![Instellingen: back-up, gegevensmap en logs](docs/screenshots/settings-backup.png)
 ![Instellingen: thema's](docs/screenshots/settings-themes.png)
 
 Sommige thema's hebben een eigen **achtergrond**, in code getekend (dus geen bestanden): Matrix (vallende tekens), Neon (raster), Sunset (zon), Forest (dennenbos met vuurvliegjes), Ocean (golven), Love (hartjes, groot en klein), Dracula (sterren), Amber, CGA en Game Boy (beeldbuislijntjes). Het thema zet die op widget, dashboard en fullscreen tegelijk; een thema zonder achtergrond haalt zo'n patroon weer weg (je eigen afbeelding blijft staan). In de JSON van een thema staan `Background` (`matrix`, `grid`, `stars`, `sunset`, `waves`, `scanlines`, `hearts` of `forest`) en `BackgroundOpacity` (5-100).
@@ -180,7 +185,9 @@ Plugins voegen extra waarden toe aan het widget, het bureaublad-dashboard en het
 
 **Hoe het werkt, en waarom het veilig is.** TaskbarStats zelf draait als administrator en voert daarom nooit plugin-code uit. De plugins draaien in een apart hulpprogramma, `TaskbarStats.Plugins.exe`, dat via een geplande taak **zonder administratorrechten** start. Dat hulpprogramma schrijft per plugin een klein JSON-bestand naar `%AppData%\TaskbarStats\plugins\`; TaskbarStats *leest* die alleen. Het stopt vanzelf als TaskbarStats sluit of er geen plugin aan staat.
 
-**Aanzetten.** Setup: vink *Optionele plugins installeren* aan (stil installeren: `/TASKS="plugins"`). Daarna Instellingen, tabblad *Plugins*: vink een plugin aan.
+**Toevoegen, goedkeuren, aanzetten.** Plugins bestaan pas als je ze toevoegt. Setup: vink *Optionele plugins installeren* aan (stil installeren: `/TASKS="plugins"`). Daarna Instellingen, tabblad *Plugins*, **Plugin toevoegen…**: kies er een uit de galerij (5 ingebouwde en 13 kant-en-klare *recepten*), of importeer een receptbestand. Een plugin die je niet hebt toegevoegd is nergens te zien; *Verwijderen…* haalt hem weer weg. Vink de plugin aan om hem aan te zetten.
+
+**Jij keurt goed wat een plugin mag.** Voordat een recept (of de Script-plugin) draait zie je precies welke internetadressen hij benadert, welke bestanden hij leest, welke opdrachten hij start en welke geheimen hij gebruikt. Hij draait pas nadat je op *Toestaan* drukt, en je wordt opnieuw gevraagd als je hem aanpast zodat hij meer kan. API-sleutels staan in een versleutelde kluis (*Geheimen…*), nooit in een recept.
 **Instellen.** *Config bewerken…* opent een eenvoudige editor voor het configbestand van de plugin (`plugins\<naam>.ini`: gewone regels `sleutel = waarde`; de commentaarregels leggen elke optie uit). Wijzigingen gelden binnen enkele seconden.
 **Kiezen wat je ziet.** Onder *Waarden* kies je per waarde: wel of niet in het widget, tekst / balk / ring en een kleur. Het widget-onderdeel *Plugin-waarden* is te verplaatsen zoals de rest.
 **Dashboard en fullscreen.** De tegel *Plugins* (aan/uit onder Instellingen, *Dashboard* / *Fullscreen*) toont alle waarden van de plugins die aan staan en verschijnt alleen als er iets te tonen is. In fullscreen is het een strook onderaan; klik erop voor de detailpagina met elke waarde per plugin.
@@ -192,12 +199,21 @@ Plugins voegen extra waarden toe aan het widget, het bureaublad-dashboard en het
 ![Het tabblad Plugins in de instellingen](docs/screenshots/plugins-settings.png)
 ![Kiezen welke waarden je ziet](docs/screenshots/plugins-settings-values.png)
 ![De configeditor](docs/screenshots/plugins-config-editor.png)
+![De galerij](docs/screenshots/plugins-gallery.png)
+![Wat een recept mag: jij keurt het goed](docs/screenshots/plugins-approve.png)
+![Een recept in de editor](docs/screenshots/plugins-recipe-editor.png)
+![Complete receptvoorbeelden in de app](docs/screenshots/plugins-help-recipes.png)
+![Formules met hun resultaat](docs/screenshots/plugins-help-formulas.png)
 
-**Claude-verbruik: wat je moet weten.** De cijfers zijn die van `/usage` in Claude Code. Daar is geen officiële publieke API voor: de plugin vraagt een *ongedocumenteerd* adres van Anthropic, met de aanmelding van Claude Code (`~/.claude/.credentials.json`, of de omgevingsvariabele `CLAUDE_CODE_OAUTH_TOKEN`). Dat adres kan veranderen of je afremmen; de plugin toont dan de reden en laat de laatste waarden (vervaagd) staan. Je token gaat alleen naar api.anthropic.com en wordt nooit in een bestand of log gezet. Je moet aangemeld zijn met de Claude Code-CLI (`claude`, dan `/login`); het idee komt van [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), er is geen code overgenomen.
+**Hulp en voorbeelden in de app.** *Instellingen, Plugins, Hulp en voorbeelden…* (ook een knop in de receptbewerker) legt uit hoe plugins werken en toont complete recepten met het antwoord dat ze lezen en wat je ziet, plus een lijst formules met wat elke oplevert. Kopieer een voorbeeld, of zet het direct in de editor. Elk voorbeeld wordt door de tests uitgevoerd, dus wat er staat is wat je krijgt.
 
-**Je eigen plugin, in elke taal.** Schrijf een bestand `%AppData%\TaskbarStats\plugins\<jounaam>.json` in dit formaat (schrijf het opnieuw als de waarde verandert; `ttl` = seconden voordat de waarde vervaagd als verouderd getoond wordt; `level` is `ok`, `warn` of `crit`; `notify: true` geeft een melding bij `crit`). Het verschijnt vanzelf onder *Plugins → Waarden*. Of gebruik de plugin *Script / REST* en laat het hulpprogramma je opdracht uitvoeren of je URL lezen.
+**Claude-verbruik: wat je moet weten.** De cijfers zijn die van `/usage` in Claude Code. **Instellen: log eenmalig in via een terminal. Typ `claude`, daarna `/login` en log in met je Claude-abonnement.** De plugin leest die aanmelding daarna zelf (alleen lezen, `~/.claude/.credentials.json`); er hoeft niets anders ingesteld te worden. Voor deze cijfers is geen officiële publieke API: de plugin vraagt een *ongedocumenteerd* adres van Anthropic. Dat adres kan veranderen of je afremmen; de plugin toont dan de reden en laat de laatste waarden (vervaagd) staan. Je token gaat alleen naar api.anthropic.com en komt nooit in een log of uitvoerbestand. Een token van `claude setup-token` werkt **niet**: de server weigert het omdat het recht `user:profile` ontbreekt. Voor gevorderden: `token =` in `claude.ini` (of de omgevingsvariabele `CLAUDE_CODE_OAUTH_TOKEN`) accepteert een toegangstoken dat dat recht wel heeft; het is verborgen in de editor maar staat als gewone tekst in je eigen `claude.ini`, deel dat bestand dus niet. Het idee komt van [Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) (MIT), er is geen code overgenomen.
 
-```json
+**Schrijf zelf een plugin zonder te programmeren.** Een *recept* is een klein tekstbestand: waar de gegevens vandaan komen (een webadres, een bestand of een opdracht) en per waarde een formule en een tekst. Bijvoorbeeld `value = ads_percentage_today` en `format = {value:0.0}%`. De formuletaal kan alleen rekenen; ze raakt geen bestanden, netwerk of opdrachten aan. Sjablonen voor Pi-hole, Home Assistant, GitHub, crypto-koersen, wisselkoersen, statuspagina's, luchtkwaliteit, Docker, vrije schijfruimte en meer. *Opslaan en testen* toont het resultaat meteen in de editor. Zelfs de Claude-plugin bestaat als recept. **Handboek: [docs/plugins.nl.md](docs/plugins.nl.md).**
+
+**Je eigen programma.** Liever een eigen programma? Voeg het sjabloon *Eigen script schrijft de waarden* toe; je script schrijft een klein JSON-bestand en TaskbarStats toont het (handboek, hoofdstuk 11).
+
+**Meldingen.** Een waarschuwing komt **één keer** per probleem (onthouden, ook na een herstart), eventueel herhaald elke 30 min / 1 u / 4 u. Bij het Claude-verbruik krijg je ook een melding kort voordat een limiet wordt teruggezet (standaard 5 minuten, instelbaar).
 {
   "plugin": "mytool", "title": "My tool", "updated": "2026-11-07T10:00:00Z", "ttl": 600, "status": "ok",
   "items": [
@@ -236,6 +252,8 @@ De installer:
 De app zelf heeft ook "Credits" in het rechtermuisknop-menu: een rustig scrollende aftiteling met de credits, een paar cijfers uit je eigen verbruik (bijvoorbeeld hoeveel je hebt gedownload) en een grapje.
 
 ![Leesmij en credits](docs/screenshots/credits.png)
+![Over: versie, sterknop, diagnose en logs](docs/screenshots/about.png)
+![Het einde van de aftiteling: de oproep om een ster te geven](docs/screenshots/credits-star.png)
 
 Aanpassen van naam, credits of tekst: `installer\Leesmij.txt`, `CreditsForm.cs` en `#define Publisher` in het `.iss`-bestand.
 
@@ -244,7 +262,7 @@ Aanpassen van naam, credits of tekst: `installer\Leesmij.txt`, `CreditsForm.cs` 
 Start `TaskbarStats.exe`. Het widget verschijnt als zwevend, altijd-bovenliggend venster
 direct links van het systeemvak. Het is eigenaar-venster van de taakbalk, dus het blijft
 erboven staan. Sleep met de **linkermuisknop** om het te verplaatsen (de positie wordt
-bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "Vastplakken aan systeemvak": dan blijft het widget tegen het systeemvak staan en volgt het als dat verschuift (verslepen zet dit weer uit).
+bij loslaten bewaard); in de instellingen (tab Algemeen) en in het menu staat "Vastplakken aan systeemvak": dan blijft het widget tegen het systeemvak staan en volgt het als dat verschuift (verslepen zet dit weer uit). **Schermwissels** (inloggen via VNC/RDP: eerst 1024x768, dan de echte resolutie; een monitor erbij of eraf; andere schaling): het widget en het dashboard behouden dezelfde afstand tot dezelfde schermrand en blijven in beeld, en een widget dat aan het systeemvak vastgeplakt is volgt dat weer (direct na de wissel gecontroleerd en nog twee keer terwijl de taakbalk zich instelt).
 
 **Rechtermuisknop** op het widget opent een kort menu:
 
@@ -382,7 +400,9 @@ passen: `FontFamily`, `FontSize`, `WidgetHeight`, `TrayGap`, kleuren en drempels
 
 **Back-up en portable**: bij Instellingen → *Algemeen* → *Backup* exporteer je alle instellingen naar één JSON-bestand, importeer je ze weer (bijvoorbeeld op een andere pc) of zet je alles terug naar de standaardwaarden (thema's en het verbruikslog blijven). Voor **portable gebruik** (bijvoorbeeld op een USB-stick) maak je een leeg bestand `portable.txt` naast `TaskbarStats.exe`: instellingen, thema's, taalbestanden en logs staan dan in de map `data` daarnaast en er wordt niets in `%AppData%` geschreven.
 
-**Als er iets misgaat**: fouten worden vastgelegd in `diag.log` in de gegevensmap (alleen op je eigen pc, er wordt niets verstuurd). Een fout in een timer of tekenroutine laat de app doordraaien; een fatale fout op een achtergrondthread start de app één keer opnieuw op. In *Over TaskbarStats* kopieert de knop *Kopieer diagnose* versie, Windows, schermen en de laatste logregels (zonder gebruikers- of computernaam) om in een bugmelding te plakken. **Crashmelding**: is de app de vorige keer gecrasht, dan meldt hij dat bij de volgende start met een ballonmelding (klik erop voor het Over-scherm met *Kopieer diagnose*). Een crash wordt herkend aan de vlag van het foutvangnet, of bij een harde crash aan een "Application Error" in het Windows-gebeurtenislogboek (met de foutcode in `diag.log`). Afsluiten via Taakbeheer of stroomuitval wordt alleen in het logboek gezet, niet als crash gemeld. Start je de app een tweede keer, dan opent de draaiende app zijn instellingen.
+**Als er iets misgaat**: fouten worden vastgelegd in `diag.log` in de gegevensmap (alleen op je eigen pc, er wordt niets verstuurd). Een fout in een timer of tekenroutine laat de app doordraaien; een fatale fout op een achtergrondthread start de app één keer opnieuw op. In *Over TaskbarStats* kopieert de knop *Kopieer diagnose* versie, Windows, schermen en de laatste logregels (zonder gebruikers- of computernaam) om in een bugmelding te plakken. **Crashrapporten**: elke opgevangen fout (en elke fatale fout) krijgt ook een eigen tekstbestand in de map `crashes` van de gegevensmap, met de volledige fout inclusief oorzaken, versie, Windows, geheugen en de laatste logregels (de nieuwste 30 blijven bewaard; de pluginhost schrijft daar ook zijn eigen `host-crash-*.txt`). Lees ze in de app onder *Instellingen → Algemeen → Back-up → Logs en crashrapporten…* (ook een knop in *Over*): bekijken, kopiëren voor een bugmelding (persoonlijke namen eruit), de map openen, alles als één zip bewaren of de rapporten verwijderen. Buiten het programma staan dezelfde bestanden in de gegevensmap (Startmenu → *TaskbarStats logs*, of `%AppData%\TaskbarStats`); een gewone teksteditor is genoeg. **Reageert het widget niet meer** (Windows toont "reageert niet"), dan wordt ook dat vastgelegd: het rapport zegt in welke stap het zat, hoe druk het systeem was en welke programma's de processor gebruikten, en een regel in `diag.log` zegt hoe lang het duurde. Trage aanroepen (meer dan 0,4 s) komen als `slow`-regels in het log. Het widget wacht op zijn eigen thread nooit op Verkenner of de schijven: die vragen worden op een achtergrondthread gesteld. **Crashmelding**: is de app de vorige keer gecrasht, dan meldt hij dat bij de volgende start met een ballonmelding (klik erop om de logs en crashrapporten te openen); een fout die de app niet stopte geeft een vergelijkbare melding, hooguit eens per 10 minuten. Een crash wordt herkend aan de vlag van het foutvangnet, of bij een harde crash aan een "Application Error" in het Windows-gebeurtenislogboek (met de foutcode in `diag.log`). Afsluiten via Taakbeheer of stroomuitval wordt alleen in het logboek gezet, niet als crash gemeld. Start je de app een tweede keer, dan opent de draaiende app zijn instellingen.
+
+![Venster met logs en crashrapporten](docs/screenshots/logs-window.png)
 
 ## Transparante achtergrond
 
@@ -425,7 +445,7 @@ geplande taak "bij inloggen" met hoogste rechten aan, zodat er geen UAC-melding 
 | `src/WelcomeForm.cs`, `src/AboutForm.cs` | Welkomstscherm en Over-venster. |
 | `src/Loc.cs`, `lang/*.json` | Vertalingen: `Loc.T("English text")`, `Loc.P` (meervoud) met per taal een JSON-bestand (zie *Talen*). |
 | `tools/LangTool` | Controleert, synchroniseert en hernoemt de taalteksten (Roslyn); draait bij elke build. |
-| `src/Diag.cs`, `src/AppPaths.cs` | Logbestand, crashvangnet, diagnose-rapport; waar de gegevens staan (`%AppData%`, `TASKBARSTATS_DATA` of portable). |
+| `src/Diag.cs`, `src/Diag.Crash.cs`, `src/LogsForm.cs`, `src/AppPaths.cs` | Logbestand, crashvangnet, crashrapporten (`crashes\`), logvenster, diagnose-rapport; waar de gegevens staan (`%AppData%`, `TASKBARSTATS_DATA` of portable). |
 | `tests/TaskbarStats.Tests` | Automatische tests (xUnit); `dotnet test tests\TaskbarStats.Tests -c Release`. |
 
 ## Prestaties en threads
@@ -440,6 +460,17 @@ De UI-thread doet alleen tekenen en menu's; het zware werk zit elders:
 - Het widget staat niet elke 200 ms opnieuw bovenop (`SetWindowPos` op een venster van de taakbalk kan 100+ ms blokkeren);
   dat gebeurt alleen als er echt een ander zichtbaar topmost-venster overheen staat.
 - Programma's bemonsteren (`ProcessSampler.SampleAsync`) en netwerkschijven (`DriveInfo`) draaien op de achtergrond.
+
+## Vind je het leuk? Geef het een ster ⭐
+
+TaskbarStats is gratis en open source, en een ster is de makkelijkste manier om bedankt te zeggen. Het kost je één klik en maakt het project beter vindbaar voor anderen.
+
+<a href="https://github.com/ericbruggema/TaskbarStats"><img alt="Geef TaskbarStats een ster op GitHub" src="https://img.shields.io/github/stars/ericbruggema/TaskbarStats?style=for-the-badge&logo=github&label=Geef%20een%20ster&color=F5C518&labelColor=1F2937"></a>
+
+1. Open de [projectpagina op GitHub](https://github.com/ericbruggema/TaskbarStats).
+2. Klik rechtsboven op **Star** (je hebt een gratis GitHub-account nodig).
+
+Bedankt!
 
 ## Licentie en credits
 

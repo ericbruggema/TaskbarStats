@@ -23,12 +23,15 @@ internal sealed class ClaudePlugin : IPlugin
     public async Task<PluginResult> RunAsync(PluginContext ctx, CancellationToken ct)
     {
         var cfg = ctx.Config;
-        string? token = Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
+        // Volgorde: 'token =' in de config, dan de omgevingsvariabele, dan het aanmeldbestand van Claude Code.
+        string? token = CleanToken(cfg.Str("token", ""));
+        bool fromConfig = token is not null;
+        if (token is null) token = Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
         if (string.IsNullOrWhiteSpace(token))
         {
             string? credPath = FindCredentials(cfg.Str("credentials", "auto"));
             if (credPath is null)
-                return PluginResult.Fail("Claude Code sign-in not found. Run 'claude' in a terminal and use /login (or set 'credentials =' to the path of .credentials.json).");
+                return PluginResult.Fail("Claude Code sign-in not found. Run 'claude' in a terminal and use /login, or put a token in the config ('token ='), or set 'credentials =' to the path of .credentials.json.");
             try { token = ReadToken(credPath); }
             catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
             {
@@ -50,7 +53,12 @@ internal sealed class ClaudePlugin : IPlugin
         using (resp)
         {
             if (resp.StatusCode == HttpStatusCode.Unauthorized || resp.StatusCode == HttpStatusCode.Forbidden)
-                return PluginResult.Fail("Claude sign-in expired or not allowed (HTTP " + (int)resp.StatusCode + "). Use Claude Code once to refresh it.");
+            {
+                string why = await ServerReason(resp, ct).ConfigureAwait(false);
+                return PluginResult.Fail(fromConfig
+                    ? "The token in the config was refused (HTTP " + (int)resp.StatusCode + ")" + why + ". Check 'token =', or use the normal sign-in instead: run 'claude', then /login, and clear 'token ='."
+                    : "Claude sign-in expired or not allowed (HTTP " + (int)resp.StatusCode + ")" + why + ". Use Claude Code once to refresh it.");
+            }
             if (resp.StatusCode == (HttpStatusCode)429)
             {
                 int wait = (int)(resp.Headers.RetryAfter?.Delta?.TotalSeconds ?? 300);
@@ -60,6 +68,31 @@ internal sealed class ClaudePlugin : IPlugin
             string body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return Parse(body, cfg, ctx.Now());
         }
+    }
+
+    /// <summary>Het token uit de config: spaties en aanhalingstekens eraf; leeg = niet ingesteld (null).</summary>
+    internal static string? CleanToken(string? raw)
+    {
+        var t = raw?.Trim().Trim('"', (char)39).Trim();
+        return string.IsNullOrEmpty(t) ? null : t;
+    }
+
+    /// <summary>De reden die de server geeft (bv. ontbrekende scope), beknopt en zonder geheimen; leeg als er geen is.</summary>
+    private static async Task<string> ServerReason(HttpResponseMessage resp, CancellationToken ct)
+    {
+        try
+        {
+            string body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.Object
+                && e.TryGetProperty("message", out var m) && m.GetString() is { Length: > 0 } s)
+            {
+                s = Fmt.Scrub(s);
+                return ": " + (s.Length > 140 ? s[..140] + "…" : s);
+            }
+        }
+        catch (Exception ex) when (ex is JsonException or HttpRequestException or IOException) { }
+        return "";
     }
 
     // ---------- aanmelding ----------
@@ -142,7 +175,7 @@ internal sealed class ClaudePlugin : IPlugin
                 {
                     Key = prop.Name, Label = label, Short = known.Key is not null ? known.Short : prop.Name,
                     Value = shown, Min = 0, Max = 100, Unit = "%", Text = text, Detail = detail,
-                    Level = Fmt.Level(used, warn, crit), Widget = isMain, Notify = notify && isMain,
+                    Level = Fmt.Level(used, warn, crit), Widget = isMain, Notify = notify && isMain, Reset = resets,
                 });
             }
             if (res.Items.Count == 0) return PluginResult.Fail("The server reply contains no usage limits.");

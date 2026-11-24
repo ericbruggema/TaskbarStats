@@ -1,3 +1,7 @@
+extern alias app;
+using PluginFeed = app::TaskbarStats.PluginFeed;
+using PluginValue = app::TaskbarStats.PluginValue;
+using WidgetForm = app::TaskbarStats.WidgetForm;
 namespace TaskbarStats.Plugins.Tests;
 
 public class IniAndModelTests
@@ -103,6 +107,6 @@ public class IniAndModelTests
             Assert.False(IniFile.Parse(text).Enabled, p.Id + " moet standaard uit staan");
         }
         // de app kent dezelfde plugin-id's
-        Assert.Equal(Program.AllPlugins().Select(p => p.Id), TaskbarStats.PluginCatalog.Ids);
+        Assert.Equal(Program.AllPlugins().Select(p => p.Id), app::TaskbarStats.PluginCatalog.Ids);
     }
 }

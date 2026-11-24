@@ -97,7 +97,7 @@ internal sealed class ScriptPlugin : IPlugin
         return sb.ToString();
     }
 
-    private static string ReadFile(string path)
+    internal static string ReadFile(string path)
     {
         using var fs = new FileStream(Environment.ExpandEnvironmentVariables(path), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var r = new StreamReader(fs, Encoding.UTF8);

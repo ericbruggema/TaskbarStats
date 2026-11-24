@@ -8,7 +8,10 @@ public sealed class AboutForm : Form
     {
         get
         {
-            var v = Application.ProductVersion;
+            // De versie van deze assembly (niet Application.ProductVersion: dat is de versie van het hoofdprogramma, en in een testhost een ander nummer).
+            var asm = typeof(AboutForm).Assembly;
+            var v = asm.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                       .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion ?? asm.GetName().Version?.ToString() ?? Application.ProductVersion;
             int plus = v.IndexOf('+');
             return plus >= 0 ? v[..plus] : v;
         }
@@ -51,7 +54,7 @@ public sealed class AboutForm : Form
             BackColor = SystemColors.Window,
             Font = new Font("Segoe UI", 9.5f),
             Location = new Point(16, 80),
-            Size = new Size(528, 366),
+            Size = new Size(528, 322),
             Text = Body().Replace("\n", "\r\n"),
             TabStop = false,
         };
@@ -84,10 +87,14 @@ public sealed class AboutForm : Form
             catch (Exception dex) { Diag.Swallow(dex); }
         };
         new ToolTip().SetToolTip(diag, Loc.T("Copies version, Windows, screen and the last log lines (no personal names) to paste into a bug report."));
+        var logs = new Button { Text = Loc.T("Logs…"), Location = new Point(diag.Left + 160, 458), Size = new Size(120, 28) };
+        logs.Click += (_, _) => LogsForm.Open(this);
+        new ToolTip().SetToolTip(logs, Loc.T("Shows the saved errors and crash reports; you can copy them, open the folder or save everything as a zip."));
         AcceptButton = ok;
         CancelButton = ok;
 
-        Controls.AddRange(new Control[] { title, version, box, welcome, diag, ok });
+        var star = StarLink.CreateButton(new Rectangle(16, 412, 528, 36));
+        Controls.AddRange(new Control[] { title, version, box, star, welcome, diag, logs, ok });
     }
 
     // De brontekst is Engels; elke regel wordt afzonderlijk vertaald (lege regels blijven leeg).

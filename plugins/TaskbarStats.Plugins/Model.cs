@@ -34,6 +34,8 @@ internal sealed class PluginItem
     public bool Widget { get; set; } = true;
     /// <summary>Laat de app een melding tonen als dit onderdeel op "crit" springt.</summary>
     public bool Notify { get; set; }
+    /// <summary>Wanneer de waarde vanzelf teruggaat (bijvoorbeeld een limiet die vrijkomt); de app kan kort van tevoren melden dat het bijna zover is.</summary>
+    public DateTimeOffset? Reset { get; set; }
 }
 
 internal sealed class PluginResult
@@ -54,6 +56,11 @@ internal sealed class PluginContext
 {
     public IniFile Config { get; init; } = new();
     public HttpClient Http { get; init; } = null!;
+    /// <summary>Client zonder automatisch doorsturen (recepten volgen een omleiding alleen naar dezelfde host, zodat geheimen nergens anders heen gaan).</summary>
+    public HttpClient? HttpStrictClient { get; init; }
+    public HttpClient HttpStrict => HttpStrictClient ?? Http;
+    /// <summary>De geheimen uit de Windows-kluis, ontsleuteld (alleen in het geheugen van de host).</summary>
+    public IReadOnlyDictionary<string, string> Secrets { get; init; } = new Dictionary<string, string>();
     public string DataDir { get; init; } = "";
     /// <summary>Klok (injecteerbaar voor tests).</summary>
     public Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.Now;
@@ -104,6 +111,7 @@ internal static class OutputFile
                 w.WriteString("color", it.Color);
                 w.WriteBoolean("widget", it.Widget);
                 w.WriteBoolean("notify", it.Notify);
+                if (it.Reset is DateTimeOffset rs) w.WriteString("reset", rs.UtcDateTime.ToString("o", CultureInfo.InvariantCulture));
                 w.WriteEndObject();
             }
             w.WriteEndArray();
@@ -139,6 +147,13 @@ internal static class Fmt
         return s.StartsWith("-") && s.Trim('-', '0', '.') == "" ? s[1..] : s;   // "-0" -> "0"
     }
 
+    /// <summary>Als <see cref="Scrub(string)"/>, en haalt ook de opgegeven geheimen (de ingevulde {secret:..}-waarden) uit de tekst.</summary>
+    public static string Scrub(string s, IEnumerable<string> secrets)
+    {
+        foreach (var x in secrets) if (x.Length >= 4) s = s.Replace(x, "***", StringComparison.Ordinal);
+        return Scrub(s);
+    }
+
     /// <summary>Niveau uit een percentage "gebruikt": drempels uit de config.</summary>
     public static string Level(double pct, double warn, double crit) => pct >= crit ? "crit" : pct >= warn ? "warn" : "ok";
 
@@ -146,6 +161,7 @@ internal static class Fmt
     public static string Scrub(string s)
     {
         if (string.IsNullOrEmpty(s)) return s;
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"sk-ant-[A-Za-z0-9_\-]+", "sk-ant-***");   // een los Anthropic-token
         s = System.Text.RegularExpressions.Regex.Replace(s, @"(?i)(bearer\s+)[A-Za-z0-9\-\._~\+/]+=*", "$1***");
         s = System.Text.RegularExpressions.Regex.Replace(s, @"(?i)((?:token|key|secret|password|sk-ant-)[A-Za-z0-9_\-]*[=:]\s*)[^\s&""']+", "$1***");
         return s;

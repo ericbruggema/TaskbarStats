@@ -6,7 +6,7 @@
 ; Resultaat: installer\Output\TaskbarStats-Setup-<versie>.exe
 
 #define AppName "TaskbarStats"
-#define AppVersion "1.6.8"
+#define AppVersion "1.7.0"
 #define Publisher "Eric Bruggema"
 #define ExeName "TaskbarStats.exe"
 #define PublishDir "..\bin\Release\net8.0-windows\win-x64\publish"
@@ -57,9 +57,13 @@ english.IconReadme=Readme (explanation and credits)
 dutch.IconUninstall=verwijderen
 english.IconUninstall=Uninstall
 dutch.IconGitHub=TaskbarStats op GitHub
+dutch.IconLogs=TaskbarStats logs en crashrapporten
+english.IconLogs=TaskbarStats logs and crash reports
 english.IconGitHub=TaskbarStats on GitHub
 dutch.IconWebsite=TaskbarStats website
+dutch.RunStar=Vind je het leuk? Geef TaskbarStats een ster op GitHub
 english.IconWebsite=TaskbarStats website
+english.RunStar=Like it? Give TaskbarStats a star on GitHub
 dutch.AutoTitle=Meestarten met Windows
 english.AutoTitle=Start with Windows
 dutch.AutoSub=Moet TaskbarStats automatisch starten als je inlogt?
@@ -94,6 +98,7 @@ Source: "{#PublishDir}\{#ExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Leesmij.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#PluginsDir}\TaskbarStats.Plugins.exe"; DestDir: "{app}\plugins"; Flags: ignoreversion; Tasks: plugins
 Source: "{#PluginsDir}\defaults\*"; DestDir: "{app}\plugins\defaults"; Flags: ignoreversion recursesubdirs; Tasks: plugins
+Source: "{#PluginsDir}\templates\*"; DestDir: "{app}\plugins\templates"; Flags: ignoreversion recursesubdirs; Tasks: plugins
 
 [Icons]
 ; Startmenu
@@ -102,6 +107,8 @@ Name: "{group}\{cm:IconReadme}"; Filename: "{app}\Leesmij.txt"
 Name: "{group}\{#AppName} {cm:IconUninstall}"; Filename: "{uninstallexe}"
 Name: "{group}\{cm:IconWebsite}"; Filename: "https://taskbarstats.com"; IconFilename: "{app}\{#ExeName}"
 Name: "{group}\{cm:IconGitHub}"; Filename: "https://github.com/ericbruggema/TaskbarStats"; IconFilename: "{app}\{#ExeName}"
+; de map met diag.log en de crashrapporten (crashes\); werkt ook als de app zelf niet start
+Name: "{group}\{cm:IconLogs}"; Filename: "{win}\explorer.exe"; Parameters: """{userappdata}\{#AppName}"""; IconFilename: "{app}\{#ExeName}"
 ; Bureaublad (optioneel)
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopicon
 
@@ -112,6 +119,7 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopic
 Filename: "{app}\{#ExeName}"; Parameters: "--autostart-on"; Flags: runhidden waituntilterminated shellexec; Check: AutostartWanted
 Filename: "{app}\{#ExeName}"; Parameters: "--autostart-off"; Flags: runhidden waituntilterminated shellexec; Check: not AutostartWanted
 Filename: "{app}\Leesmij.txt"; Description: "{cm:RunReadme}"; Flags: postinstall shellexec skipifsilent unchecked
+Filename: "https://github.com/ericbruggema/TaskbarStats"; Description: "{cm:RunStar}"; Flags: postinstall shellexec skipifsilent unchecked
 Filename: "{app}\{#ExeName}"; Description: "{#AppName} {cm:RunStart}"; Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallRun]
@@ -124,6 +132,7 @@ Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""TaskbarStats Plugins"
 
 [UninstallDelete]
 Type: dirifempty; Name: "{app}\plugins\defaults"
+Type: dirifempty; Name: "{app}\plugins\templates"
 Type: dirifempty; Name: "{app}\plugins"
 
 [Code]
